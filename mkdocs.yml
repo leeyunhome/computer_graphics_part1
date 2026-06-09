@@ -1,0 +1,38 @@
+site_name: Computer Graphics Study Portfolio
+site_description: Portfolio of my computer graphics studies and implementations.
+site_url: https://leeyunhome.github.io/computer_graphics_part1/
+repo_url: https://github.com/leeyunhome/computer_graphics_part1
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.top
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.math:
+      enable_dollar_math: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
