@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>CPU 레이트레이서 데모</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  h2 { margin-bottom: 6px; color: #818cf8; font-size: 1.1rem; }
+  p.desc { font-size: 0.78rem; color: #94a3b8; margin-bottom: 14px; text-align: center; max-width: 480px; }
+  #c { border: 1px solid #312e81; cursor: default; }
+  .panels { display: flex; gap: 20px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .panel { background: #1e293b; border-radius: 8px; padding: 12px 16px; min-width: 200px; }
+  .panel h3 { font-size: 0.78rem; color: #818cf8; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+  .ctrl { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 0.72rem; color: #94a3b8; }
+  .ctrl label { width: 70px; }
+  input[type=range] { width: 100px; accent-color: #6366f1; }
+  .val { width: 36px; text-align: right; color: #a5b4fc; font-family: monospace; font-size: 0.7rem; }
+  #status { font-size: 0.7rem; color: #64748b; margin-top: 8px; }
+  .badge { display: inline-block; background: #1e3a5f; color: #93c5fd; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; margin: 2px; }
+</style>
+</head>
+<body>
+<h2>CPU 레이트레이서 — Phong 셰이딩</h2>
+<p class="desc">C++/DirectX11에서 CPU로 레이캐스팅한 구조와 동일한 알고리즘을 JavaScript로 재현.<br>
+  <span class="badge">레이-구 교차</span><span class="badge">Phong 반사</span><span class="badge">그림자</span><span class="badge">반사광</span>
+</p>
+<canvas id="c" width="400" height="300"></canvas>
+<div id="status">렌더링 중...</div>
+
+<div class="panels">
+  <!-- 구 설정 -->
+  <div class="panel">
+    <h3>구 (Sphere)</h3>
+    <div class="ctrl"><label>위치 X</label><input type="range" id="sx" min="-1.5" max="1.5" step="0.05" value="0"><span class="val" id="sxV">0.00</span></div>
+    <div class="ctrl"><label>위치 Y</label><input type="range" id="sy" min="-1.5" max="1.5" step="0.05" value="0"><span class="val" id="syV">0.00</span></div>
+    <div class="ctrl"><label>반지름</label><input type="range" id="sr" min="0.1" max="1.5" step="0.05" value="0.7"><span class="val" id="srV">0.70</span></div>
+    <div class="ctrl"><label>반사 (ks)</label><input type="range" id="ks" min="0" max="1" step="0.05" value="0.5"><span class="val" id="ksV">0.50</span></div>
+    <div class="ctrl"><label>광택 (α)</label><input type="range" id="sh" min="1" max="200" step="1" value="32"><span class="val" id="shV">32</span></div>
+  </div>
+
+  <!-- 조명 설정 -->
+  <div class="panel">
+    <h3>조명 (Light)</h3>
+    <div class="ctrl"><label>위치 X</label><input type="range" id="lx" min="-3" max="3" step="0.1" value="-2"><span class="val" id="lxV">-2.0</span></div>
+    <div class="ctrl"><label>위치 Y</label><input type="range" id="ly" min="-3" max="3" step="0.1" value="3"><span class="val" id="lyV">3.0</span></div>
+    <div class="ctrl"><label>위치 Z</label><input type="range" id="lz" min="0" max="6" step="0.1" value="2"><span class="val" id="lzV">2.0</span></div>
+    <div class="ctrl"><label>주변광 (ka)</label><input type="range" id="ka" min="0" max="0.5" step="0.01" value="0.1"><span class="val" id="kaV">0.10</span></div>
+    <div class="ctrl"><label>그림자</label><input type="checkbox" id="shadow" checked><span style="color:#a5b4fc;font-size:0.7rem">ON/OFF</span></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const imgData = ctx.createImageData(W, H);
+const px = imgData.data;
+const statusEl = document.getElementById('status');
+
+// --- 벡터 유틸 ---
+const v3 = (x,y,z) => ({x,y,z});
+const add = (a,b) => v3(a.x+b.x, a.y+b.y, a.z+b.z);
+const sub = (a,b) => v3(a.x-b.x, a.y-b.y, a.z-b.z);
+const scale = (a,t) => v3(a.x*t, a.y*t, a.z*t);
+const dot = (a,b) => a.x*b.x + a.y*b.y + a.z*b.z;
+const len = a => Math.sqrt(dot(a,a));
+const norm = a => { const l=len(a); return l>0 ? scale(a,1/l) : v3(0,0,0); };
+const reflect = (d, n) => sub(d, scale(n, 2*dot(d,n)));
+const clamp01 = v => Math.max(0, Math.min(1, v));
+
+// 파라미터 상태
+let state = {
+  sx:0, sy:0, sr:0.7, ks:0.5, sh:32,
+  lx:-2, ly:3, lz:2, ka:0.1, shadow:true
+};
+
+function bindRange(id, key) {
+  const el = document.getElementById(id);
+  const vEl = document.getElementById(id+'V');
+  el.addEventListener('input', () => {
+    state[key] = parseFloat(el.value);
+    vEl.textContent = parseFloat(el.value).toFixed(2);
+    scheduleRender();
+  });
+}
+['sx','sy','sr','ks','sh','lx','ly','lz','ka'].forEach(k => bindRange(k,k));
+document.getElementById('shadow').addEventListener('change', e => { state.shadow = e.target.checked; scheduleRender(); });
+
+// 바닥 체커보드 구
+const floor = { c: v3(0,-1e5-0.7,0), r: 1e5 };
+
+function intersectSphere(ro, rd, sphere) {
+  const oc = sub(ro, sphere.c);
+  const b = dot(oc, rd);
+  const c = dot(oc, oc) - sphere.r * sphere.r;
+  const disc = b*b - c;
+  if (disc < 0) return -1;
+  const sq = Math.sqrt(disc);
+  const t0 = -b - sq;
+  if (t0 > 1e-4) return t0;
+  const t1 = -b + sq;
+  if (t1 > 1e-4) return t1;
+  return -1;
+}
+
+function checkerColor(p) {
+  const cx = Math.floor(p.x * 2 + 100) & 1;
+  const cz = Math.floor(p.z * 2 + 100) & 1;
+  return (cx ^ cz) ? v3(0.8,0.8,0.8) : v3(0.2,0.2,0.2);
+}
+
+function phong(pos, nrm, albedo, toLight, toEye, lightCol, ka, ks, shininess) {
+  const amb = scale(albedo, ka);
+  const diff_f = clamp01(dot(nrm, toLight));
+  const diff = scale(albedo, diff_f);
+  const r = norm(reflect(scale(toLight,-1), nrm));
+  const spec_f = Math.pow(clamp01(dot(r, toEye)), shininess);
+  const spec = scale(lightCol, spec_f * ks);
+  return add(amb, add(scale(diff, (1-ks)), spec));
+}
+
+function trace(ro, rd) {
+  const sp = { c: v3(state.sx, state.sy, 3), r: state.sr };
+  const light = v3(state.lx, state.ly, state.lz);
+  const lightCol = v3(1, 1, 1);
+
+  const tSph = intersectSphere(ro, rd, sp);
+  const tFloor = intersectSphere(ro, rd, floor);
+
+  let col = v3(0.05, 0.05, 0.1); // background
+
+  if (tSph > 0 && (tFloor < 0 || tSph < tFloor)) {
+    const pos = add(ro, scale(rd, tSph));
+    const nrm = norm(sub(pos, sp.c));
+    const toLight = norm(sub(light, pos));
+    const toEye = norm(scale(rd, -1));
+    let shadowed = false;
+    if (state.shadow) {
+      const st = intersectSphere(add(pos, scale(nrm, 1e-3)), toLight, floor);
+      shadowed = st > 0 && st < len(sub(light, pos));
+    }
+    const albedo = v3(0.3, 0.5, 0.9);
+    col = phong(pos, nrm, albedo, toLight, toEye, lightCol, state.ka, state.ks, state.sh);
+    if (shadowed) col = scale(col, 0.3);
+  } else if (tFloor > 0) {
+    const pos = add(ro, scale(rd, tFloor));
+    const nrm = v3(0, 1, 0);
+    const toLight = norm(sub(light, pos));
+    const toEye = norm(scale(rd, -1));
+    let shadowed = false;
+    if (state.shadow) {
+      const st = intersectSphere(add(pos, scale(nrm, 1e-3)), toLight, sp);
+      shadowed = st > 0 && st < len(sub(light, pos));
+    }
+    const albedo = checkerColor(pos);
+    col = phong(pos, nrm, albedo, toLight, toEye, lightCol, state.ka, 0.1, 8);
+    if (shadowed) col = scale(col, 0.3);
+  }
+
+  return col;
+}
+
+let renderPending = false;
+function scheduleRender() {
+  if (!renderPending) { renderPending = true; requestAnimationFrame(doRender); }
+}
+
+function doRender() {
+  renderPending = false;
+  const t0 = performance.now();
+  const aspect = W / H;
+  const ro = v3(0, 0.5, -2);
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      // 정규화 좌표 (-1 ~ 1)
+      const u = (x + 0.5) / W * 2 - 1;
+      const v = 1 - (y + 0.5) / H * 2;
+      const rd = norm(v3(u * aspect, v, 2));
+      const col = trace(ro, rd);
+      const idx = (y * W + x) * 4;
+      px[idx]   = clamp01(col.x) * 255;
+      px[idx+1] = clamp01(col.y) * 255;
+      px[idx+2] = clamp01(col.z) * 255;
+      px[idx+3] = 255;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+  statusEl.textContent = `렌더 시간: ${(performance.now()-t0).toFixed(1)}ms  |  ${W}×${H} = ${W*H}px`;
+}
+
+doRender();
+</script>
+</body>
+</html>
