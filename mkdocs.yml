@@ -1,32 +1,35 @@
-site_name: Computer Graphics Study Portfolio
-site_description: Portfolio of my computer graphics studies and implementations.
+site_name: Computer Graphics Portfolio
+site_description: 컴퓨터 그래픽스 학습 포트폴리오 - DirectX 11, 레이트레이싱, HLSL
 site_url: https://leeyunhome.github.io/computer_graphics_part1/
 repo_url: https://github.com/leeyunhome/computer_graphics_part1
 
 theme:
   name: material
+  language: ko
   features:
     - navigation.tabs
     - navigation.top
+    - navigation.sections
+    - content.code.copy
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: deep purple
       accent: indigo
       toggle:
         icon: material/brightness-7
-        name: Switch to dark mode
+        name: 다크 모드
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: deep purple
       accent: indigo
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: 라이트 모드
 
 markdown_extensions:
-  - pymdownx.math:
-      enable_dollar_math: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -36,3 +39,15 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - 홈: index.md
+  - 학습 포스트: posts/index.md
+  - 인터랙티브 데모: demos/index.md
