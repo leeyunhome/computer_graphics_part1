@@ -5,71 +5,134 @@
 <title>픽셀 버퍼 애니메이션 (WebGPU)</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0f172a; color:#e2e8f0; font-family:'Segoe UI',sans-serif;
+  body { background:#1a1a2e; color:#e2e8f0; font-family:'Segoe UI',sans-serif;
          display:flex; flex-direction:column; align-items:center; padding:20px; min-height:100vh; }
-  h2 { color:#a78bfa; margin-bottom:6px; font-size:1.05rem; }
+  h2 { color:#a78bfa; margin-bottom:4px; font-size:1.05rem; }
   .tags { margin-bottom:12px; }
   .tag { display:inline-block; background:#1e1b4b; color:#a5b4fc; font-size:0.65rem;
          padding:2px 7px; border-radius:4px; margin:2px; }
-  canvas { border:1px solid #4c1d95; display:block; }
-  .controls { display:flex; flex-wrap:wrap; gap:12px; margin-top:14px; justify-content:center; }
-  .ctrl { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.72rem; color:#c4b5fd; }
-  input[type=range] { width:120px; accent-color:#7c3aed; }
-  .val { font-size:0.68rem; color:#a78bfa; font-family:monospace; }
-  #msg { font-size:0.72rem; margin-top:8px; color:#64748b; }
+
+  /* 강의 예제: 윈도우 안에 캔버스 (창 + ImGui 패널 레이아웃) */
+  .window-frame {
+    background:#2d2d2d; border:2px solid #555; border-radius:4px;
+    padding:0; overflow:hidden; width:480px;
+  }
+  .title-bar {
+    background:#3c3c3c; padding:4px 10px; font-size:0.72rem; color:#ccc;
+    display:flex; align-items:center; gap:6px; border-bottom:1px solid #555;
+  }
+  .dot { width:10px; height:10px; border-radius:50%; }
+  .canvas-area { position:relative; cursor:crosshair; }
+  canvas { display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
+
+  /* ImGui 스타일 패널 */
+  .imgui-panel {
+    background:#252526; border-top:1px solid #444; padding:10px 12px;
+  }
+  .imgui-title { font-size:0.68rem; color:#9cdcfe; margin-bottom:8px; }
+  .imgui-row { display:flex; align-items:center; gap:6px; margin:5px 0; font-size:0.7rem; }
+  .imgui-label { color:#9cdcfe; width:130px; font-family:monospace; }
+  .channel-sliders { display:flex; flex-direction:column; gap:4px; flex:1; }
+  .ch { display:flex; align-items:center; gap:6px; }
+  .ch span { width:10px; font-size:0.65rem; font-weight:bold; }
+  .ch span.r { color:#f87171; }
+  .ch span.g { color:#86efac; }
+  .ch span.b { color:#93c5fd; }
+  input[type=range] { flex:1; height:14px; accent-color:#7c3aed; }
+  .ch-val { width:36px; font-family:monospace; font-size:0.65rem; text-align:right; }
+  .color-preview { width:48px; height:48px; border:1px solid #555; border-radius:3px; flex-shrink:0; }
+  .info-row { font-size:0.62rem; color:#64748b; margin-top:8px; border-top:1px solid #333; padding-top:6px; }
+  #msg { font-size:0.68rem; color:#64748b; margin-top:6px; }
   #err { color:#fca5a5; background:#450a0a; border:1px solid #7f1d1d; border-radius:6px;
-         padding:12px 16px; margin-top:12px; font-size:0.8rem; display:none; max-width:420px; text-align:center; }
+         padding:10px; margin-top:10px; font-size:0.78rem; display:none; max-width:420px; text-align:center; }
 </style>
 </head>
 <body>
-<h2>픽셀 버퍼 애니메이션</h2>
+<h2>인터랙티브 캔버스 배경색 제어</h2>
 <div class="tags">
   <span class="tag">WebGPU Compute Shader</span>
   <span class="tag">WGSL ≈ HLSL</span>
-  <span class="tag">GPU 병렬 픽셀 계산</span>
+  <span class="tag">16×12 픽셀 버퍼</span>
+  <span class="tag">Dear ImGui 재현</span>
 </div>
-<canvas id="c" width="400" height="300"></canvas>
+
+<div class="window-frame">
+  <div class="title-bar">
+    <div class="dot" style="background:#ff5f57"></div>
+    <div class="dot" style="background:#ffbd2e"></div>
+    <div class="dot" style="background:#28c840"></div>
+    <span style="margin-left:4px;">DirectX 11 — 01_DX11InitAndImGui</span>
+  </div>
+  <div class="canvas-area">
+    <!-- 강의 예제: canvasWidth=16, canvasHeight=12 (1280/80, 960/80) -->
+    <!-- 각 픽셀이 픽셀아트처럼 보이도록 확대 렌더링 -->
+    <canvas id="c" width="480" height="360"></canvas>
+  </div>
+  <!-- ImGui 패널 재현 -->
+  <div class="imgui-panel">
+    <div class="imgui-title">ImGui Controls</div>
+    <div class="imgui-row">
+      <span class="imgui-label">RGB(0.0-&gt;1.0)</span>
+      <div class="channel-sliders">
+        <div class="ch">
+          <span class="r">R</span>
+          <input type="range" id="cr" min="0" max="1" step="0.01" value="0.8">
+          <span class="ch-val" id="crV">0.80</span>
+        </div>
+        <div class="ch">
+          <span class="g">G</span>
+          <input type="range" id="cg" min="0" max="1" step="0.01" value="0.8">
+          <span class="ch-val" id="cgV">0.80</span>
+        </div>
+        <div class="ch">
+          <span class="b">B</span>
+          <input type="range" id="cb" min="0" max="1" step="0.01" value="0.8">
+          <span class="ch-val" id="cbV">0.80</span>
+        </div>
+      </div>
+      <div class="color-preview" id="preview"></div>
+    </div>
+    <div class="info-row">
+      캔버스: 16 × 12 px &nbsp;|&nbsp; 화면 픽셀당 30px (1280×960 → 80px 스케일 재현)
+      &nbsp;|&nbsp; 텍스처: DXGI_FORMAT_R32G32B32A32_FLOAT
+    </div>
+  </div>
+</div>
+
 <div id="err"></div>
 <div id="msg">초기화 중...</div>
 
-<div class="controls">
-  <div class="ctrl">
-    <span>속도</span>
-    <input type="range" id="speed" min="0.5" max="15" step="0.5" value="3">
-    <span class="val" id="speedV">3.0</span>
-  </div>
-  <div class="ctrl">
-    <span>R 주기</span>
-    <input type="range" id="rp" min="50" max="500" step="10" value="200">
-    <span class="val" id="rpV">200</span>
-  </div>
-  <div class="ctrl">
-    <span>G 주기</span>
-    <input type="range" id="gp" min="50" max="500" step="10" value="300">
-    <span class="val" id="gpV">300</span>
-  </div>
-  <div class="ctrl">
-    <span>B 주기</span>
-    <input type="range" id="bp" min="50" max="500" step="10" value="400">
-    <span class="val" id="bpV">400</span>
-  </div>
-</div>
-
 <script>
-const W = 400, H = 300;
-let speed = 3, rP = 200, gP = 300, bP = 400, t = 0;
+// 강의 예제와 동일한 캔버스 해상도
+// main.cpp: canvasWidth = width/80 = 1280/80 = 16
+//           canvasHeight = height/80 = 960/80 = 12
+const CW = 16, CH = 12;
+// 표시 크기 (각 픽셀 = 30px, 총 480×360)
+const DW = 480, DH = 360;
 
-function bind(id, cb) {
+// backgroundColor 기본값 — Example.h: {0.8f, 0.8f, 0.8f}
+let bg = { r: 0.8, g: 0.8, b: 0.8 };
+
+function bindChannel(id, key) {
   const el = document.getElementById(id);
   el.addEventListener('input', () => {
-    cb(parseFloat(el.value));
-    document.getElementById(id + 'V').textContent = el.value;
+    bg[key] = parseFloat(el.value);
+    document.getElementById(id + 'V').textContent = bg[key].toFixed(2);
+    updatePreview();
+    scheduleRender();
   });
 }
-bind('speed', v => speed = v);
-bind('rp',    v => rP   = v);
-bind('gp',    v => gP   = v);
-bind('bp',    v => bP   = v);
+bindChannel('cr', 'r');
+bindChannel('cg', 'g');
+bindChannel('cb', 'b');
+
+function updatePreview() {
+  const r = Math.round(bg.r * 255);
+  const g = Math.round(bg.g * 255);
+  const b = Math.round(bg.b * 255);
+  document.getElementById('preview').style.background = `rgb(${r},${g},${b})`;
+}
+updatePreview();
 
 async function main() {
   if (!navigator.gpu) throw new Error('WebGPU 미지원 — Chrome 113+ 또는 Edge 113+가 필요합니다.');
@@ -82,45 +145,45 @@ async function main() {
   const fmt = navigator.gpu.getPreferredCanvasFormat();
   ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
 
-  // Storage Texture — DX11: RWTexture2D<float4> (UAV)
+  // ── Storage Texture: 16×12 ───────────────────────────────────────────
+  // DX11: ID3D11Texture2D (canvasWidth=16, canvasHeight=12)
+  //       DXGI_FORMAT_R32G32B32A32_FLOAT → 여기서는 rgba8unorm 근사
   const storageTex = device.createTexture({
-    size: [W, H],
+    size: [CW, CH],
     format: 'rgba8unorm',
     usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
   });
 
-  // Uniform Buffer — DX11: cbuffer (16-byte aligned, float x4)
+  // ── Uniform Buffer ────────────────────────────────────────────────────
+  // DX11: cbuffer { float4 backgroundColor; }
   const uniformBuf = device.createBuffer({
-    size: 16,
+    size: 16,  // vec4f = 16 bytes
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  // WGSL Compute Shader
-  // DX11 HLSL 대응: [numthreads(8,8,1)] → @workgroup_size(8,8)
-  //                 SV_DispatchThreadID → @builtin(global_invocation_id)
-  //                 RWTexture2D        → texture_storage_2d<rgba8unorm, write>
+  // ── WGSL Compute Shader ───────────────────────────────────────────────
+  // 강의 예제 Example.cpp Update() 함수 재현:
+  //   for(int y=0; y<canvasHeight; y++)
+  //     for(int x=0; x<canvasWidth; x++)
+  //       pixels[y*canvasWidth+x] = Vec4{bg[0], bg[1], bg[2], 1.0f};
   const computeShader = device.createShaderModule({ code: `
     struct Params {
-      time     : f32,
-      r_period : f32,
-      g_period : f32,
-      b_period : f32,
+      bg : vec4f,   // backgroundColor[0..3]
     }
 
+    // DX11: RWTexture2D<float4> output : register(u0)
     @group(0) @binding(0) var output_tex : texture_storage_2d<rgba8unorm, write>;
     @group(0) @binding(1) var<uniform>   p : Params;
 
-    @compute @workgroup_size(8, 8)
+    // DX11: [numthreads(4, 3, 1)]
+    @compute @workgroup_size(4, 3)
     fn cs_main(@builtin(global_invocation_id) id : vec3u) {
       let dims = textureDimensions(output_tex);
       if id.x >= dims.x || id.y >= dims.y { return; }
 
-      let sum = f32(id.x + id.y) + p.time;
-      let r = fract(sum / p.r_period);
-      let g = fract(sum / p.g_period);
-      let b = fract(sum / p.b_period);
-
-      textureStore(output_tex, vec2i(id.xy), vec4f(r, g, b, 1.0));
+      // 강의 예제와 동일:
+      // pixels[idx] = Vec4{backgroundColor[0], backgroundColor[1], backgroundColor[2], 1.0f};
+      textureStore(output_tex, vec2i(id.xy), p.bg);
     }
   `});
 
@@ -129,7 +192,9 @@ async function main() {
     compute: { module: computeShader, entryPoint: 'cs_main' },
   });
 
-  // Render Pipeline — Compute 결과 텍스처를 fullscreen quad로 표시
+  // ── Render Pipeline ────────────────────────────────────────────────────
+  // 16×12 텍스처를 480×360으로 nearest-neighbor 확대
+  // → 각 픽셀이 30×30 화면 픽셀 (강의 예제의 80px 픽셀 효과)
   const renderShader = device.createShaderModule({ code: `
     @vertex
     fn vs(@builtin(vertex_index) vi : u32) -> @builtin(position) vec4f {
@@ -143,7 +208,7 @@ async function main() {
     @group(0) @binding(1) var samp : sampler;
     @fragment
     fn fs(@builtin(position) pos : vec4f) -> @location(0) vec4f {
-      return textureSample(tex, samp, pos.xy / vec2f(${W}.0, ${H}.0));
+      return textureSample(tex, samp, pos.xy / vec2f(${DW}.0, ${DH}.0));
     }
   `});
 
@@ -154,6 +219,7 @@ async function main() {
     primitive: { topology: 'triangle-list' },
   });
 
+  // nearest 샘플러 — 픽셀아트처럼 선명하게 확대 (강의 예제의 큰 픽셀 느낌)
   const sampler = device.createSampler({ magFilter: 'nearest', minFilter: 'nearest' });
 
   const computeBG = device.createBindGroup({
@@ -171,27 +237,27 @@ async function main() {
     ],
   });
 
-  const msgEl = document.getElementById('msg');
-  let frameCount = 0, lastTime = performance.now();
+  document.getElementById('msg').textContent =
+    `WebGPU Compute  |  캔버스 ${CW}×${CH}px → ${DW}×${DH} 표시 (픽셀당 30px 확대)`;
 
-  function frame() {
-    // Uniform 업데이트 — DX11: UpdateSubresource
-    device.queue.writeBuffer(uniformBuf, 0, new Float32Array([t, rP, gP, bP]));
+  function doRender() {
+    // DX11: UpdateSubresource(pCBColor, &bg)
+    device.queue.writeBuffer(uniformBuf, 0, new Float32Array([bg.r, bg.g, bg.b, 1.0]));
 
     const encoder = device.createCommandEncoder();
 
-    // Compute Pass — DX11: CSSetShader → Dispatch
+    // Compute Pass — DX11: Dispatch(4, 3, 1)  (16/4=4, 12/3=4 그룹)
     const cp = encoder.beginComputePass();
     cp.setPipeline(computePipeline);
     cp.setBindGroup(0, computeBG);
-    cp.dispatchWorkgroups(Math.ceil(W / 8), Math.ceil(H / 8));
+    cp.dispatchWorkgroups(Math.ceil(CW / 4), Math.ceil(CH / 3));
     cp.end();
 
-    // Render Pass — DX11: Draw → Present
+    // Render Pass — 16×12 텍스처를 480×360으로 확대 표시
     const rp = encoder.beginRenderPass({
       colorAttachments: [{
         view: ctx.getCurrentTexture().createView(),
-        clearValue: [0,0,0,1], loadOp: 'clear', storeOp: 'store',
+        clearValue: [0.1, 0.1, 0.1, 1], loadOp: 'clear', storeOp: 'store',
       }],
     });
     rp.setPipeline(renderPipeline);
@@ -200,17 +266,14 @@ async function main() {
     rp.end();
 
     device.queue.submit([encoder.finish()]);
-
-    t += speed;
-    frameCount++;
-    const now = performance.now();
-    if (now - lastTime >= 1000) {
-      msgEl.textContent = `WebGPU Compute  |  ${frameCount} FPS  |  ${W}×${H} = ${(W*H/1000).toFixed(0)}k 픽셀 GPU 병렬 처리`;
-      frameCount = 0; lastTime = now;
-    }
-    requestAnimationFrame(frame);
   }
-  frame();
+
+  let pending = false;
+  window.scheduleRender = function() {
+    if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; doRender(); }); }
+  };
+
+  doRender();
 }
 
 main().catch(err => {
@@ -220,6 +283,7 @@ main().catch(err => {
   el.innerHTML = `<strong>WebGPU 초기화 실패</strong><br>${err.message}<br><br>
     Chrome 113+ / Edge 113+ 브라우저에서 실행해주세요.`;
   document.getElementById('msg').textContent = '';
+  window.scheduleRender = () => {};
 });
 </script>
 </body>
