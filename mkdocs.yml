@@ -50,4 +50,7 @@ extra_javascript:
 nav:
   - 홈: index.md
   - 학습 포스트: posts/index.md
-  - 인터랙티브 데모: demos/index.md
+  - 인터랙티브 데모:
+    - 목록: demos/index.md
+    - 픽셀 버퍼 애니메이션: demos/pixel-animation.md
+    - CPU 레이트레이서: demos/raytracer.md
