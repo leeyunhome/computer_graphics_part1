@@ -2,92 +2,225 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>픽셀 버퍼 애니메이션 데모</title>
+<title>픽셀 버퍼 애니메이션 (WebGPU)</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; color: #eee; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
-  h2 { margin-bottom: 8px; color: #a78bfa; font-size: 1.1rem; }
-  p.desc { font-size: 0.8rem; color: #9ca3af; margin-bottom: 16px; text-align: center; }
-  canvas { border: 1px solid #4c1d95; display: block; }
-  .controls { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; justify-content: center; }
-  .ctrl { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.75rem; color: #c4b5fd; }
-  input[type=range] { width: 140px; accent-color: #7c3aed; }
-  .val { font-size: 0.7rem; color: #a78bfa; }
-  .formula { margin-top: 14px; background: #16213e; padding: 10px 16px; border-radius: 6px; font-size: 0.75rem; color: #86efac; font-family: monospace; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0f172a; color:#e2e8f0; font-family:'Segoe UI',sans-serif;
+         display:flex; flex-direction:column; align-items:center; padding:20px; min-height:100vh; }
+  h2 { color:#a78bfa; margin-bottom:6px; font-size:1.05rem; }
+  .tags { margin-bottom:12px; }
+  .tag { display:inline-block; background:#1e1b4b; color:#a5b4fc; font-size:0.65rem;
+         padding:2px 7px; border-radius:4px; margin:2px; }
+  canvas { border:1px solid #4c1d95; display:block; }
+  .controls { display:flex; flex-wrap:wrap; gap:12px; margin-top:14px; justify-content:center; }
+  .ctrl { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.72rem; color:#c4b5fd; }
+  input[type=range] { width:120px; accent-color:#7c3aed; }
+  .val { font-size:0.68rem; color:#a78bfa; font-family:monospace; }
+  #msg { font-size:0.72rem; margin-top:8px; color:#64748b; }
+  #err { color:#fca5a5; background:#450a0a; border:1px solid #7f1d1d; border-radius:6px;
+         padding:12px 16px; margin-top:12px; font-size:0.8rem; display:none; max-width:420px; text-align:center; }
 </style>
 </head>
 <body>
 <h2>픽셀 버퍼 애니메이션</h2>
-<p class="desc">C++ / DirectX 11에서 구현한 픽셀 단위 색상 제어를 JavaScript Canvas로 재현</p>
+<div class="tags">
+  <span class="tag">WebGPU Compute Shader</span>
+  <span class="tag">WGSL ≈ HLSL</span>
+  <span class="tag">GPU 병렬 픽셀 계산</span>
+</div>
 <canvas id="c" width="400" height="300"></canvas>
+<div id="err"></div>
+<div id="msg">초기화 중...</div>
 
 <div class="controls">
   <div class="ctrl">
-    <span>속도 (speed)</span>
-    <input type="range" id="speed" min="0.5" max="10" step="0.1" value="2">
-    <span class="val" id="speedVal">2.0</span>
+    <span>속도</span>
+    <input type="range" id="speed" min="0.5" max="15" step="0.5" value="3">
+    <span class="val" id="speedV">3.0</span>
   </div>
   <div class="ctrl">
     <span>R 주기</span>
-    <input type="range" id="rperiod" min="50" max="500" step="10" value="200">
-    <span class="val" id="rperiodVal">200</span>
+    <input type="range" id="rp" min="50" max="500" step="10" value="200">
+    <span class="val" id="rpV">200</span>
   </div>
   <div class="ctrl">
     <span>G 주기</span>
-    <input type="range" id="gperiod" min="50" max="500" step="10" value="300">
-    <span class="val" id="gperiodVal">300</span>
+    <input type="range" id="gp" min="50" max="500" step="10" value="300">
+    <span class="val" id="gpV">300</span>
   </div>
   <div class="ctrl">
     <span>B 주기</span>
-    <input type="range" id="bperiod" min="50" max="500" step="10" value="400">
-    <span class="val" id="bperiodVal">400</span>
+    <input type="range" id="bp" min="50" max="500" step="10" value="400">
+    <span class="val" id="bpV">400</span>
   </div>
 </div>
 
-<div class="formula">
-  R = ((x + y + t) % rPeriod) / rPeriod × 255<br>
-  G = ((x + y + t) % gPeriod) / gPeriod × 255<br>
-  B = ((x + y + t) % bPeriod) / bPeriod × 255
-</div>
-
 <script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
-const imgData = ctx.createImageData(W, H);
-const data = imgData.data;
+const W = 400, H = 300;
+let speed = 3, rP = 200, gP = 300, bP = 400, t = 0;
 
-let t = 0;
-let speed = 2, rP = 200, gP = 300, bP = 400;
-
-function bindSlider(id, valId, cb) {
+function bind(id, cb) {
   const el = document.getElementById(id);
-  const vEl = document.getElementById(valId);
-  el.addEventListener('input', () => { cb(parseFloat(el.value)); vEl.textContent = el.value; });
+  el.addEventListener('input', () => {
+    cb(parseFloat(el.value));
+    document.getElementById(id + 'V').textContent = el.value;
+  });
 }
+bind('speed', v => speed = v);
+bind('rp',    v => rP   = v);
+bind('gp',    v => gP   = v);
+bind('bp',    v => bP   = v);
 
-bindSlider('speed',   'speedVal',   v => speed = v);
-bindSlider('rperiod', 'rperiodVal', v => rP = v);
-bindSlider('gperiod', 'gperiodVal', v => gP = v);
-bindSlider('bperiod', 'bperiodVal', v => bP = v);
+async function main() {
+  if (!navigator.gpu) throw new Error('WebGPU 미지원 — Chrome 113+ 또는 Edge 113+가 필요합니다.');
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) throw new Error('GPU 어댑터를 찾을 수 없습니다.');
+  const device = await adapter.requestDevice();
 
-function render() {
-  const ti = Math.floor(t);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const idx = (y * W + x) * 4;
-      const sum = x + y + ti;
-      data[idx]     = ((sum % rP) / rP * 255) | 0;
-      data[idx + 1] = ((sum % gP) / gP * 255) | 0;
-      data[idx + 2] = ((sum % bP) / bP * 255) | 0;
-      data[idx + 3] = 255;
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('webgpu');
+  const fmt = navigator.gpu.getPreferredCanvasFormat();
+  ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
+
+  // Storage Texture — DX11: RWTexture2D<float4> (UAV)
+  const storageTex = device.createTexture({
+    size: [W, H],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+  });
+
+  // Uniform Buffer — DX11: cbuffer (16-byte aligned, float x4)
+  const uniformBuf = device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  // WGSL Compute Shader
+  // DX11 HLSL 대응: [numthreads(8,8,1)] → @workgroup_size(8,8)
+  //                 SV_DispatchThreadID → @builtin(global_invocation_id)
+  //                 RWTexture2D        → texture_storage_2d<rgba8unorm, write>
+  const computeShader = device.createShaderModule({ code: `
+    struct Params {
+      time     : f32,
+      r_period : f32,
+      g_period : f32,
+      b_period : f32,
     }
+
+    @group(0) @binding(0) var output_tex : texture_storage_2d<rgba8unorm, write>;
+    @group(0) @binding(1) var<uniform>   p : Params;
+
+    @compute @workgroup_size(8, 8)
+    fn cs_main(@builtin(global_invocation_id) id : vec3u) {
+      let dims = textureDimensions(output_tex);
+      if id.x >= dims.x || id.y >= dims.y { return; }
+
+      let sum = f32(id.x + id.y) + p.time;
+      let r = fract(sum / p.r_period);
+      let g = fract(sum / p.g_period);
+      let b = fract(sum / p.b_period);
+
+      textureStore(output_tex, vec2i(id.xy), vec4f(r, g, b, 1.0));
+    }
+  `});
+
+  const computePipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: computeShader, entryPoint: 'cs_main' },
+  });
+
+  // Render Pipeline — Compute 결과 텍스처를 fullscreen quad로 표시
+  const renderShader = device.createShaderModule({ code: `
+    @vertex
+    fn vs(@builtin(vertex_index) vi : u32) -> @builtin(position) vec4f {
+      var pos = array<vec2f, 6>(
+        vec2f(-1,-1), vec2f(1,-1), vec2f(-1,1),
+        vec2f(-1, 1), vec2f(1,-1), vec2f( 1,1),
+      );
+      return vec4f(pos[vi], 0.0, 1.0);
+    }
+    @group(0) @binding(0) var tex  : texture_2d<f32>;
+    @group(0) @binding(1) var samp : sampler;
+    @fragment
+    fn fs(@builtin(position) pos : vec4f) -> @location(0) vec4f {
+      return textureSample(tex, samp, pos.xy / vec2f(${W}.0, ${H}.0));
+    }
+  `});
+
+  const renderPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex:   { module: renderShader, entryPoint: 'vs' },
+    fragment: { module: renderShader, entryPoint: 'fs', targets: [{ format: fmt }] },
+    primitive: { topology: 'triangle-list' },
+  });
+
+  const sampler = device.createSampler({ magFilter: 'nearest', minFilter: 'nearest' });
+
+  const computeBG = device.createBindGroup({
+    layout: computePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: storageTex.createView() },
+      { binding: 1, resource: { buffer: uniformBuf } },
+    ],
+  });
+  const renderBG = device.createBindGroup({
+    layout: renderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: storageTex.createView() },
+      { binding: 1, resource: sampler },
+    ],
+  });
+
+  const msgEl = document.getElementById('msg');
+  let frameCount = 0, lastTime = performance.now();
+
+  function frame() {
+    // Uniform 업데이트 — DX11: UpdateSubresource
+    device.queue.writeBuffer(uniformBuf, 0, new Float32Array([t, rP, gP, bP]));
+
+    const encoder = device.createCommandEncoder();
+
+    // Compute Pass — DX11: CSSetShader → Dispatch
+    const cp = encoder.beginComputePass();
+    cp.setPipeline(computePipeline);
+    cp.setBindGroup(0, computeBG);
+    cp.dispatchWorkgroups(Math.ceil(W / 8), Math.ceil(H / 8));
+    cp.end();
+
+    // Render Pass — DX11: Draw → Present
+    const rp = encoder.beginRenderPass({
+      colorAttachments: [{
+        view: ctx.getCurrentTexture().createView(),
+        clearValue: [0,0,0,1], loadOp: 'clear', storeOp: 'store',
+      }],
+    });
+    rp.setPipeline(renderPipeline);
+    rp.setBindGroup(0, renderBG);
+    rp.draw(6);
+    rp.end();
+
+    device.queue.submit([encoder.finish()]);
+
+    t += speed;
+    frameCount++;
+    const now = performance.now();
+    if (now - lastTime >= 1000) {
+      msgEl.textContent = `WebGPU Compute  |  ${frameCount} FPS  |  ${W}×${H} = ${(W*H/1000).toFixed(0)}k 픽셀 GPU 병렬 처리`;
+      frameCount = 0; lastTime = now;
+    }
+    requestAnimationFrame(frame);
   }
-  ctx.putImageData(imgData, 0, 0);
-  t += speed;
-  requestAnimationFrame(render);
+  frame();
 }
-render();
+
+main().catch(err => {
+  document.getElementById('c').style.display = 'none';
+  const el = document.getElementById('err');
+  el.style.display = 'block';
+  el.innerHTML = `<strong>WebGPU 초기화 실패</strong><br>${err.message}<br><br>
+    Chrome 113+ / Edge 113+ 브라우저에서 실행해주세요.`;
+  document.getElementById('msg').textContent = '';
+});
 </script>
 </body>
 </html>
