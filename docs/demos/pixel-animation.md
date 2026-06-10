@@ -6,7 +6,7 @@ C++에서 `D3D11_MAPPED_SUBRESOURCE`로 CPU→GPU 픽셀 데이터를 전송한 
 $$R[x,y,t] = \frac{(x+y+t) \bmod P_R}{P_R} \times 255$$
 
 <div style="border: 1px solid #4c1d95; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="pixel-animation/index.html" width="100%" height="500" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="demo.html" width="100%" height="500" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 ## 핵심 개념

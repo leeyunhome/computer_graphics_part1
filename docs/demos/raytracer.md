@@ -6,7 +6,7 @@ C++에서 매 프레임 CPU로 픽셀 버퍼를 채운 뒤 GPU 텍스처로 업�
 $$I = k_a I_a + k_d (\hat{l} \cdot \hat{n}) I_d + k_s (\hat{r} \cdot \hat{v})^\alpha I_s$$
 
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="raytracer/index.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 ## 핵심 개념
