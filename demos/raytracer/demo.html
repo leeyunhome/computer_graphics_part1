@@ -2,195 +2,335 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CPU 레이트레이서 데모</title>
+<title>CPU 레이트레이서 (WebGPU Compute)</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-  h2 { margin-bottom: 6px; color: #818cf8; font-size: 1.1rem; }
-  p.desc { font-size: 0.78rem; color: #94a3b8; margin-bottom: 14px; text-align: center; max-width: 480px; }
-  #c { border: 1px solid #312e81; cursor: default; }
-  .panels { display: flex; gap: 20px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
-  .panel { background: #1e293b; border-radius: 8px; padding: 12px 16px; min-width: 200px; }
-  .panel h3 { font-size: 0.78rem; color: #818cf8; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
-  .ctrl { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 0.72rem; color: #94a3b8; }
-  .ctrl label { width: 70px; }
-  input[type=range] { width: 100px; accent-color: #6366f1; }
-  .val { width: 36px; text-align: right; color: #a5b4fc; font-family: monospace; font-size: 0.7rem; }
-  #status { font-size: 0.7rem; color: #64748b; margin-top: 8px; }
-  .badge { display: inline-block; background: #1e3a5f; color: #93c5fd; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; margin: 2px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0f172a; color:#e2e8f0; font-family:'Segoe UI',sans-serif;
+         display:flex; flex-direction:column; align-items:center; padding:20px; }
+  h2 { color:#818cf8; margin-bottom:4px; font-size:1.05rem; }
+  .tags { margin-bottom:12px; }
+  .tag { display:inline-block; background:#1e1b4b; color:#a5b4fc; font-size:0.65rem;
+         padding:2px 7px; border-radius:4px; margin:2px; }
+  canvas { border:1px solid #312e81; display:block; }
+  .panels { display:flex; gap:16px; margin-top:14px; flex-wrap:wrap; justify-content:center; }
+  .panel { background:#1e293b; border-radius:8px; padding:12px 14px; min-width:190px; }
+  .panel h3 { font-size:0.74rem; color:#818cf8; margin-bottom:8px;
+              border-bottom:1px solid #334155; padding-bottom:3px; }
+  .ctrl { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:0.7rem; color:#94a3b8; }
+  .ctrl label { width:65px; }
+  input[type=range] { width:95px; accent-color:#6366f1; }
+  .val { width:34px; text-align:right; color:#a5b4fc; font-family:monospace; font-size:0.68rem; }
+  #msg { font-size:0.72rem; color:#64748b; margin-top:8px; }
+  #err { color:#fca5a5; background:#450a0a; border:1px solid #7f1d1d; border-radius:6px;
+         padding:12px 16px; margin-top:12px; font-size:0.8rem; display:none; max-width:440px; text-align:center; }
 </style>
 </head>
 <body>
-<h2>CPU 레이트레이서 — Phong 셰이딩</h2>
-<p class="desc">C++/DirectX11에서 CPU로 레이캐스팅한 구조와 동일한 알고리즘을 JavaScript로 재현.<br>
-  <span class="badge">레이-구 교차</span><span class="badge">Phong 반사</span><span class="badge">그림자</span><span class="badge">반사광</span>
-</p>
-<canvas id="c" width="400" height="300"></canvas>
-<div id="status">렌더링 중...</div>
+<h2>GPU 레이트레이서 — Phong 셰이딩 + 그림자</h2>
+<div class="tags">
+  <span class="tag">WebGPU Compute Shader</span>
+  <span class="tag">WGSL ≈ HLSL CS</span>
+  <span class="tag">레이-구 교차</span>
+  <span class="tag">Phong 반사</span>
+  <span class="tag">그림자 레이</span>
+</div>
+<canvas id="c" width="480" height="320"></canvas>
+<div id="err"></div>
+<div id="msg">초기화 중...</div>
 
 <div class="panels">
-  <!-- 구 설정 -->
   <div class="panel">
     <h3>구 (Sphere)</h3>
     <div class="ctrl"><label>위치 X</label><input type="range" id="sx" min="-1.5" max="1.5" step="0.05" value="0"><span class="val" id="sxV">0.00</span></div>
-    <div class="ctrl"><label>위치 Y</label><input type="range" id="sy" min="-1.5" max="1.5" step="0.05" value="0"><span class="val" id="syV">0.00</span></div>
-    <div class="ctrl"><label>반지름</label><input type="range" id="sr" min="0.1" max="1.5" step="0.05" value="0.7"><span class="val" id="srV">0.70</span></div>
-    <div class="ctrl"><label>반사 (ks)</label><input type="range" id="ks" min="0" max="1" step="0.05" value="0.5"><span class="val" id="ksV">0.50</span></div>
-    <div class="ctrl"><label>광택 (α)</label><input type="range" id="sh" min="1" max="200" step="1" value="32"><span class="val" id="shV">32</span></div>
+    <div class="ctrl"><label>위치 Y</label><input type="range" id="sy" min="-0.5" max="1.5" step="0.05" value="0"><span class="val" id="syV">0.00</span></div>
+    <div class="ctrl"><label>반지름</label><input type="range" id="sr" min="0.1" max="1.4" step="0.05" value="0.7"><span class="val" id="srV">0.70</span></div>
+    <div class="ctrl"><label>반사 ks</label><input type="range" id="ks" min="0" max="1" step="0.05" value="0.5"><span class="val" id="ksV">0.50</span></div>
+    <div class="ctrl"><label>광택 α</label><input type="range" id="sh" min="1" max="256" step="1" value="32"><span class="val" id="shV">32</span></div>
   </div>
-
-  <!-- 조명 설정 -->
   <div class="panel">
     <h3>조명 (Light)</h3>
-    <div class="ctrl"><label>위치 X</label><input type="range" id="lx" min="-3" max="3" step="0.1" value="-2"><span class="val" id="lxV">-2.0</span></div>
-    <div class="ctrl"><label>위치 Y</label><input type="range" id="ly" min="-3" max="3" step="0.1" value="3"><span class="val" id="lyV">3.0</span></div>
-    <div class="ctrl"><label>위치 Z</label><input type="range" id="lz" min="0" max="6" step="0.1" value="2"><span class="val" id="lzV">2.0</span></div>
-    <div class="ctrl"><label>주변광 (ka)</label><input type="range" id="ka" min="0" max="0.5" step="0.01" value="0.1"><span class="val" id="kaV">0.10</span></div>
-    <div class="ctrl"><label>그림자</label><input type="checkbox" id="shadow" checked><span style="color:#a5b4fc;font-size:0.7rem">ON/OFF</span></div>
+    <div class="ctrl"><label>위치 X</label><input type="range" id="lx" min="-4" max="4" step="0.1" value="-2"><span class="val" id="lxV">-2.0</span></div>
+    <div class="ctrl"><label>위치 Y</label><input type="range" id="ly" min="0" max="6" step="0.1" value="3"><span class="val" id="lyV">3.0</span></div>
+    <div class="ctrl"><label>위치 Z</label><input type="range" id="lz" min="-2" max="5" step="0.1" value="1"><span class="val" id="lzV">1.0</span></div>
+    <div class="ctrl"><label>주변광 ka</label><input type="range" id="ka" min="0" max="0.5" step="0.01" value="0.08"><span class="val" id="kaV">0.08</span></div>
+    <div class="ctrl"><label>그림자</label>
+      <input type="checkbox" id="shadow" checked>
+      <span style="color:#a5b4fc;font-size:0.7rem">ON/OFF</span>
+    </div>
   </div>
 </div>
 
 <script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
-const imgData = ctx.createImageData(W, H);
-const px = imgData.data;
-const statusEl = document.getElementById('status');
+const W = 480, H = 320;
 
-// --- 벡터 유틸 ---
-const v3 = (x,y,z) => ({x,y,z});
-const add = (a,b) => v3(a.x+b.x, a.y+b.y, a.z+b.z);
-const sub = (a,b) => v3(a.x-b.x, a.y-b.y, a.z-b.z);
-const scale = (a,t) => v3(a.x*t, a.y*t, a.z*t);
-const dot = (a,b) => a.x*b.x + a.y*b.y + a.z*b.z;
-const len = a => Math.sqrt(dot(a,a));
-const norm = a => { const l=len(a); return l>0 ? scale(a,1/l) : v3(0,0,0); };
-const reflect = (d, n) => sub(d, scale(n, 2*dot(d,n)));
-const clamp01 = v => Math.max(0, Math.min(1, v));
-
-// 파라미터 상태
-let state = {
-  sx:0, sy:0, sr:0.7, ks:0.5, sh:32,
-  lx:-2, ly:3, lz:2, ka:0.1, shadow:true
-};
+// 파라미터 상태 (ImGui 슬라이더 역할)
+const p = { sx:0, sy:0, sr:0.7, ks:0.5, sh:32, lx:-2, ly:3, lz:1, ka:0.08, shadow:true };
 
 function bindRange(id, key) {
   const el = document.getElementById(id);
-  const vEl = document.getElementById(id+'V');
   el.addEventListener('input', () => {
-    state[key] = parseFloat(el.value);
-    vEl.textContent = parseFloat(el.value).toFixed(2);
+    p[key] = parseFloat(el.value);
+    document.getElementById(id + 'V').textContent = parseFloat(el.value).toFixed(2);
     scheduleRender();
   });
 }
-['sx','sy','sr','ks','sh','lx','ly','lz','ka'].forEach(k => bindRange(k,k));
-document.getElementById('shadow').addEventListener('change', e => { state.shadow = e.target.checked; scheduleRender(); });
+['sx','sy','sr','ks','sh','lx','ly','lz','ka'].forEach(k => bindRange(k, k));
+document.getElementById('shadow').addEventListener('change', e => {
+  p.shadow = e.target.checked;
+  scheduleRender();
+});
 
-// 바닥 체커보드 구
-const floor = { c: v3(0,-1e5-0.7,0), r: 1e5 };
+async function main() {
+  if (!navigator.gpu) throw new Error('WebGPU 미지원 — Chrome 113+ 또는 Edge 113+가 필요합니다.');
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) throw new Error('GPU 어댑터를 찾을 수 없습니다.');
+  const device = await adapter.requestDevice();
 
-function intersectSphere(ro, rd, sphere) {
-  const oc = sub(ro, sphere.c);
-  const b = dot(oc, rd);
-  const c = dot(oc, oc) - sphere.r * sphere.r;
-  const disc = b*b - c;
-  if (disc < 0) return -1;
-  const sq = Math.sqrt(disc);
-  const t0 = -b - sq;
-  if (t0 > 1e-4) return t0;
-  const t1 = -b + sq;
-  if (t1 > 1e-4) return t1;
-  return -1;
-}
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('webgpu');
+  const fmt = navigator.gpu.getPreferredCanvasFormat();
+  ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
 
-function checkerColor(p) {
-  const cx = Math.floor(p.x * 2 + 100) & 1;
-  const cz = Math.floor(p.z * 2 + 100) & 1;
-  return (cx ^ cz) ? v3(0.8,0.8,0.8) : v3(0.2,0.2,0.2);
-}
+  // Storage Texture — DX11: RWTexture2D<float4> (UAV)
+  const storageTex = device.createTexture({
+    size: [W, H],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+  });
 
-function phong(pos, nrm, albedo, toLight, toEye, lightCol, ka, ks, shininess) {
-  const amb = scale(albedo, ka);
-  const diff_f = clamp01(dot(nrm, toLight));
-  const diff = scale(albedo, diff_f);
-  const r = norm(reflect(scale(toLight,-1), nrm));
-  const spec_f = Math.pow(clamp01(dot(r, toEye)), shininess);
-  const spec = scale(lightCol, spec_f * ks);
-  return add(amb, add(scale(diff, (1-ks)), spec));
-}
+  // Uniform Buffer — struct Params (48 bytes, 16-byte aligned)
+  // Layout: [sx,sy,sz=3,sr] [lx,ly,lz,ka] [ks,sh,shadow,_pad]
+  const uniformBuf = device.createBuffer({
+    size: 48,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
 
-function trace(ro, rd) {
-  const sp = { c: v3(state.sx, state.sy, 3), r: state.sr };
-  const light = v3(state.lx, state.ly, state.lz);
-  const lightCol = v3(1, 1, 1);
+  // ── WGSL Compute Shader (레이트레이서) ──────────────────────────────
+  // 이 셰이더는 DX11 HLSL Compute Shader와 거의 1:1 대응됩니다.
+  const computeShader = device.createShaderModule({ code: `
 
-  const tSph = intersectSphere(ro, rd, sp);
-  const tFloor = intersectSphere(ro, rd, floor);
-
-  let col = v3(0.05, 0.05, 0.1); // background
-
-  if (tSph > 0 && (tFloor < 0 || tSph < tFloor)) {
-    const pos = add(ro, scale(rd, tSph));
-    const nrm = norm(sub(pos, sp.c));
-    const toLight = norm(sub(light, pos));
-    const toEye = norm(scale(rd, -1));
-    let shadowed = false;
-    if (state.shadow) {
-      const st = intersectSphere(add(pos, scale(nrm, 1e-3)), toLight, floor);
-      shadowed = st > 0 && st < len(sub(light, pos));
+    // DX11: cbuffer Params : register(b0) { ... }
+    // WGSL의 vec3f는 align=16, size=12 → float와 함께 16바이트에 딱 맞음
+    struct Params {
+      sphere_pos : vec3f,   // offset  0 (xyz)
+      sphere_r   : f32,     // offset 12
+      light_pos  : vec3f,   // offset 16 (xyz)
+      ambient    : f32,     // offset 28
+      spec_k     : f32,     // offset 32
+      shininess  : f32,     // offset 36
+      shadow_on  : u32,     // offset 40
+      _pad       : f32,     // offset 44 (16-byte 정렬 패딩)
     }
-    const albedo = v3(0.3, 0.5, 0.9);
-    col = phong(pos, nrm, albedo, toLight, toEye, lightCol, state.ka, state.ks, state.sh);
-    if (shadowed) col = scale(col, 0.3);
-  } else if (tFloor > 0) {
-    const pos = add(ro, scale(rd, tFloor));
-    const nrm = v3(0, 1, 0);
-    const toLight = norm(sub(light, pos));
-    const toEye = norm(scale(rd, -1));
-    let shadowed = false;
-    if (state.shadow) {
-      const st = intersectSphere(add(pos, scale(nrm, 1e-3)), toLight, sp);
-      shadowed = st > 0 && st < len(sub(light, pos));
+
+    // DX11: RWTexture2D<float4> output : register(u0)
+    @group(0) @binding(0) var output_tex : texture_storage_2d<rgba8unorm, write>;
+    @group(0) @binding(1) var<uniform>   p : Params;
+
+    // ── 레이-구 교차 함수 ────────────────────────────────────────────
+    // DX11 HLSL: float RaySphere(float3 ro, float3 rd, float3 c, float r)
+    fn ray_sphere(ro: vec3f, rd: vec3f, center: vec3f, radius: f32) -> f32 {
+      let oc   = ro - center;
+      let b    = dot(oc, rd);
+      let c    = dot(oc, oc) - radius * radius;
+      let disc = b * b - c;
+      if disc < 0.0 { return -1.0; }
+      let sq = sqrt(disc);
+      let t0 = -b - sq;
+      if t0 > 1e-4 { return t0; }
+      let t1 = -b + sq;
+      if t1 > 1e-4 { return t1; }
+      return -1.0;
     }
-    const albedo = checkerColor(pos);
-    col = phong(pos, nrm, albedo, toLight, toEye, lightCol, state.ka, 0.1, 8);
-    if (shadowed) col = scale(col, 0.3);
+
+    // ── Phong 반사 모델 ──────────────────────────────────────────────
+    // I = ka*Ia + kd*(l·n)*Id + ks*(r·v)^α*Is
+    fn phong(n: vec3f, albedo: vec3f, to_l: vec3f, to_e: vec3f,
+             ka: f32, ks: f32, shine: f32) -> vec3f {
+      let amb  = albedo * ka;
+      let diff = albedo * max(dot(n, to_l), 0.0) * (1.0 - ks);
+      let r    = reflect(-to_l, n);
+      let spec = vec3f(pow(max(dot(r, to_e), 0.0), shine) * ks);
+      return amb + diff + spec;
+    }
+
+    // ── Compute Shader 진입점 ────────────────────────────────────────
+    // DX11: [numthreads(8, 8, 1)]
+    // void CSMain(uint3 DTid : SV_DispatchThreadID)
+    @compute @workgroup_size(8, 8)
+    fn cs_main(@builtin(global_invocation_id) id : vec3u) {
+      let dims = textureDimensions(output_tex);
+      if id.x >= dims.x || id.y >= dims.y { return; }
+
+      let W = f32(dims.x);
+      let H = f32(dims.y);
+
+      // 정규화 좌표 (-1 ~ 1) — 핀홀 카메라 모델
+      let u = (f32(id.x) + 0.5) / W * 2.0 - 1.0;
+      let v = 1.0 - (f32(id.y) + 0.5) / H * 2.0;
+
+      let cam = vec3f(0.0, 0.5, -2.0);
+      let rd  = normalize(vec3f(u * (W / H), v, 2.0));
+
+      // 씬 요소
+      let sph_c   = vec3f(p.sphere_pos.x, p.sphere_pos.y, 3.0);
+      let floor_c = vec3f(0.0, -1e4 - 0.7, 0.0);
+      let floor_r = 1e4;
+
+      let t_sph = ray_sphere(cam, rd, sph_c,   p.sphere_r);
+      let t_flr = ray_sphere(cam, rd, floor_c, floor_r);
+
+      var col = vec3f(0.04, 0.04, 0.1); // 배경색
+
+      if t_sph > 0.0 && (t_flr < 0.0 || t_sph < t_flr) {
+        // ── 구 히트 ────────────────────────────────────────────────
+        let pos  = cam + rd * t_sph;
+        let n    = normalize(pos - sph_c);
+        let to_l = normalize(p.light_pos - pos);
+        let to_e = normalize(cam - pos);
+
+        // 그림자 레이 — 교차점 → 광원 방향으로 재발사
+        var shadowed = false;
+        if p.shadow_on != 0u {
+          let sh_t = ray_sphere(pos + n * 0.001, to_l, floor_c, floor_r);
+          shadowed = sh_t > 0.0 && sh_t < length(p.light_pos - pos);
+        }
+
+        let albedo = vec3f(0.28, 0.48, 0.9);
+        col = phong(n, albedo, to_l, to_e, p.ambient, p.spec_k, p.shininess);
+        if shadowed { col *= 0.25; }
+
+      } else if t_flr > 0.0 {
+        // ── 바닥 체커보드 ──────────────────────────────────────────
+        let pos  = cam + rd * t_flr;
+        let n    = vec3f(0.0, 1.0, 0.0);
+        let to_l = normalize(p.light_pos - pos);
+        let to_e = normalize(cam - pos);
+
+        // 체커보드 패턴 — 비트 XOR로 칸 색상 결정
+        let cx = i32(floor(pos.x * 2.0 + 100.0)) & 1;
+        let cz = i32(floor(pos.z * 2.0 + 100.0)) & 1;
+        let checker = f32(cx ^ cz);
+        let albedo  = mix(vec3f(0.12), vec3f(0.88), checker);
+
+        var shadowed = false;
+        if p.shadow_on != 0u {
+          let sh_t = ray_sphere(pos + n * 0.001, to_l, sph_c, p.sphere_r);
+          shadowed = sh_t > 0.0 && sh_t < length(p.light_pos - pos);
+        }
+
+        col = phong(n, albedo, to_l, to_e, p.ambient, 0.05, 4.0);
+        if shadowed { col *= 0.25; }
+      }
+
+      // DX11: output[id.xy] = float4(clamp(col, 0, 1), 1);
+      textureStore(output_tex, vec2i(id.xy), vec4f(clamp(col, vec3f(0.0), vec3f(1.0)), 1.0));
+    }
+  `});
+
+  const computePipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: computeShader, entryPoint: 'cs_main' },
+  });
+
+  // Render Pipeline — 결과 텍스처를 fullscreen quad로 표시
+  const renderShader = device.createShaderModule({ code: `
+    @vertex
+    fn vs(@builtin(vertex_index) vi : u32) -> @builtin(position) vec4f {
+      var pos = array<vec2f, 6>(
+        vec2f(-1,-1), vec2f(1,-1), vec2f(-1,1),
+        vec2f(-1, 1), vec2f(1,-1), vec2f( 1,1),
+      );
+      return vec4f(pos[vi], 0.0, 1.0);
+    }
+    @group(0) @binding(0) var tex  : texture_2d<f32>;
+    @group(0) @binding(1) var samp : sampler;
+    @fragment
+    fn fs(@builtin(position) pos : vec4f) -> @location(0) vec4f {
+      return textureSample(tex, samp, pos.xy / vec2f(${W}.0, ${H}.0));
+    }
+  `});
+
+  const renderPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex:   { module: renderShader, entryPoint: 'vs' },
+    fragment: { module: renderShader, entryPoint: 'fs', targets: [{ format: fmt }] },
+    primitive: { topology: 'triangle-list' },
+  });
+
+  const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+
+  const computeBG = device.createBindGroup({
+    layout: computePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: storageTex.createView() },
+      { binding: 1, resource: { buffer: uniformBuf } },
+    ],
+  });
+  const renderBG = device.createBindGroup({
+    layout: renderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: storageTex.createView() },
+      { binding: 1, resource: sampler },
+    ],
+  });
+
+  const msgEl = document.getElementById('msg');
+
+  function doRender() {
+    // Uniform buffer 갱신 — DX11: UpdateSubresource
+    // struct layout: [sx,sy,3.0,sr] [lx,ly,lz,ka] [ks,sh,shadow,0]
+    device.queue.writeBuffer(uniformBuf, 0, new Float32Array([
+      p.sx, p.sy, 0, p.sr,
+      p.lx, p.ly, p.lz, p.ka,
+      p.ks, p.sh, p.shadow ? 1 : 0, 0,
+    ]));
+
+    const encoder = device.createCommandEncoder();
+
+    // Compute Pass — DX11: Dispatch(ceil(W/8), ceil(H/8), 1)
+    const cp = encoder.beginComputePass();
+    cp.setPipeline(computePipeline);
+    cp.setBindGroup(0, computeBG);
+    cp.dispatchWorkgroups(Math.ceil(W / 8), Math.ceil(H / 8));
+    cp.end();
+
+    // Render Pass — DX11: Draw → Present
+    const rp = encoder.beginRenderPass({
+      colorAttachments: [{
+        view: ctx.getCurrentTexture().createView(),
+        clearValue: [0,0,0,1], loadOp: 'clear', storeOp: 'store',
+      }],
+    });
+    rp.setPipeline(renderPipeline);
+    rp.setBindGroup(0, renderBG);
+    rp.draw(6);
+    rp.end();
+
+    const t0 = performance.now();
+    device.queue.submit([encoder.finish()]);
+    device.queue.onSubmittedWorkDone().then(() => {
+      msgEl.textContent = `WebGPU Compute  |  GPU 렌더 ${(performance.now()-t0).toFixed(1)}ms  |  ${W}×${H} 픽셀 병렬 레이트레이싱`;
+    });
   }
 
-  return col;
+  let pending = false;
+  window.scheduleRender = function() {
+    if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; doRender(); }); }
+  };
+
+  doRender();
 }
 
-let renderPending = false;
-function scheduleRender() {
-  if (!renderPending) { renderPending = true; requestAnimationFrame(doRender); }
-}
-
-function doRender() {
-  renderPending = false;
-  const t0 = performance.now();
-  const aspect = W / H;
-  const ro = v3(0, 0.5, -2);
-
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      // 정규화 좌표 (-1 ~ 1)
-      const u = (x + 0.5) / W * 2 - 1;
-      const v = 1 - (y + 0.5) / H * 2;
-      const rd = norm(v3(u * aspect, v, 2));
-      const col = trace(ro, rd);
-      const idx = (y * W + x) * 4;
-      px[idx]   = clamp01(col.x) * 255;
-      px[idx+1] = clamp01(col.y) * 255;
-      px[idx+2] = clamp01(col.z) * 255;
-      px[idx+3] = 255;
-    }
-  }
-  ctx.putImageData(imgData, 0, 0);
-  statusEl.textContent = `렌더 시간: ${(performance.now()-t0).toFixed(1)}ms  |  ${W}×${H} = ${W*H}px`;
-}
-
-doRender();
+main().catch(err => {
+  document.getElementById('c').style.display = 'none';
+  const el = document.getElementById('err');
+  el.style.display = 'block';
+  el.innerHTML = `<strong>WebGPU 초기화 실패</strong><br>${err.message}<br><br>
+    Chrome 113+ / Edge 113+ 브라우저에서 실행해주세요.`;
+  document.getElementById('msg').textContent = '';
+  // scheduleRender가 없으면 슬라이더에서 에러 방지
+  window.scheduleRender = () => {};
+});
 </script>
 </body>
 </html>
