@@ -539,10 +539,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#c-javascript" class="md-nav__link">
+  <a href="#cdx11-webgpu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        C++ → JavaScript 대응
+        C++/DX11 → WebGPU 대응
       
     </span>
   </a>
@@ -631,10 +631,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#c-javascript" class="md-nav__link">
+  <a href="#cdx11-webgpu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        C++ → JavaScript 대응
+        C++/DX11 → WebGPU 대응
       
     </span>
   </a>
@@ -662,39 +662,50 @@
 
 
 <h1 id="_1">픽셀 버퍼 애니메이션</h1>
-<p>C++에서 <code>D3D11_MAPPED_SUBRESOURCE</code>로 CPU→GPU 픽셀 데이터를 전송한 구조를 Canvas <code>ImageData</code>로 재현.<br />
-모듈로(%) 연산으로 각 채널에 다른 주기의 색상 파동을 만듭니다.</p>
-<div class="arithmatex">\[R[x,y,t] = \frac{(x+y+t) \bmod P_R}{P_R} \times 255\]</div>
+<p>C++/DirectX 11에서 CPU로 픽셀 버퍼를 채운 뒤 GPU 텍스처로 업로드하는 구조를 WebGPU로 재현.<br />
+강의 예제와 동일하게 <strong>16×12 픽셀</strong> 캔버스에 ImGui 슬라이더로 배경색을 실시간 제어합니다.</p>
 <div style="border: 1px solid #4c1d95; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="demo.html" width="100%" height="500" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="demo.html" width="100%" height="720" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 <h2 id="_2">핵심 개념</h2>
 <ul>
-<li><strong>픽셀 버퍼</strong>: 매 프레임 CPU에서 픽셀 색상을 계산해 Canvas에 직접 쓰기</li>
-<li><strong>모듈로 연산</strong>: <code>(x + y + t) % period</code> 로 대각선 방향으로 흐르는 색상 파동 생성</li>
-<li><strong>채널 독립 주기</strong>: R·G·B 각각 다른 주기 → 복잡한 색상 변화</li>
+<li><strong>픽셀 버퍼</strong>: <code>canvasWidth=16, canvasHeight=12</code> (1280÷80, 960÷80) — 각 픽셀이 화면에서 큰 사각형으로 표시</li>
+<li><strong>배경색 제어</strong>: ImGui <code>SliderFloat3("RGB(0.0-&gt;1.0)")</code> 로 R·G·B 각각 0~1 범위 조절</li>
+<li><strong>GPU 업로드</strong>: <code>D3D11_MAPPED_SUBRESOURCE</code>로 CPU 픽셀 데이터를 매 프레임 텍스처에 복사</li>
 </ul>
-<h2 id="c-javascript">C++ → JavaScript 대응</h2>
+<h2 id="cdx11-webgpu">C++/DX11 → WebGPU 대응</h2>
 <table>
 <thead>
 <tr>
-<th>C++ / DX11</th>
-<th>JavaScript</th>
+<th>DX11</th>
+<th>WebGPU (WGSL)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>D3D11_MAPPED_SUBRESOURCE</code></td>
-<td><code>canvas.getContext('2d').createImageData()</code></td>
+<td><code>RWTexture2D&lt;float4&gt;</code> (UAV)</td>
+<td><code>texture_storage_2d&lt;rgba8unorm, write&gt;</code></td>
 </tr>
 <tr>
-<td><code>memcpy</code>로 픽셀 버퍼 업로드</td>
-<td><code>ctx.putImageData(imgData, 0, 0)</code></td>
+<td><code>[numthreads(4,3,1)]</code></td>
+<td><code>@workgroup_size(4, 3)</code></td>
 </tr>
 <tr>
-<td><code>Present()</code> 호출</td>
-<td><code>requestAnimationFrame()</code></td>
+<td><code>SV_DispatchThreadID</code></td>
+<td><code>@builtin(global_invocation_id)</code></td>
+</tr>
+<tr>
+<td><code>cbuffer { float4 bg; }</code></td>
+<td><code>var&lt;uniform&gt; p : Params</code></td>
+</tr>
+<tr>
+<td><code>output[id.xy] = float4(bg, 1)</code></td>
+<td><code>textureStore(output_tex, id.xy, bg)</code></td>
+</tr>
+<tr>
+<td><code>ID3D11DeviceContext::Dispatch</code></td>
+<td><code>dispatchWorkgroups(4, 4)</code></td>
 </tr>
 </tbody>
 </table>
