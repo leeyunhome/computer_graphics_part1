@@ -1,527 +1,326 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-    <meta charset="utf-8">
-    <title>DirectX 11 — 이미지 밝게 만들기</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #1a1a2e;
-            color: #cccccc;
-            margin: 0;
-            overflow: hidden; /* Prevent scrollbars */
-            display: flex;
-            flex-direction: column;
-            width: 100vw;
-            height: 100vh;
-        }
-        #app-container {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-        #header {
-            background-color: #2a2a3a;
-            padding: 8px;
-            border-bottom: 1px solid #444;
-            text-align: center;
-            font-weight: bold;
-            color: #eee;
-            /* Mimic draggable title bar - browser specific, might not work universally */
-            /* -webkit-app-region: drag; */
-        }
-        #main-content {
-            display: flex;
-            flex-grow: 1;
-        }
-        #control-panel {
-            width: 280px;
-            background-color: #2b2b2b;
-            border-right: 1px solid #444;
-            padding: 15px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            flex-shrink: 0;
-            overflow-y: auto;
-        }
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #ddd;
-        }
-        input[type="range"] {
-            width: 100%;
-            -webkit-appearance: none;
-            height: 8px;
-            background: #555;
-            border-radius: 4px;
-            outline: none;
-            transition: opacity .2s;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #007acc; /* ImGui blue */
-            cursor: grab;
-            border: 1px solid #eee;
-        }
-        input[type="range"]::-webkit-slider-thumb:active {
-            cursor: grabbing;
-        }
-        .slider-value {
-            text-align: right;
-            font-size: 0.9em;
-            color: #aaa;
-            margin-top: 5px;
-        }
-        #canvas-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #1a1a2e; /* Match body background */
-            padding: 15px;
-            box-sizing: border-box;
-        }
-        canvas {
-            max-width: 100%;
-            max-height: 100%;
-            border: 1px solid #444; /* Border for the canvas */
-            display: block;
-            background-color: black; /* In case texture doesn't load */
-        }
-    </style>
+<meta charset="utf-8">
+<title>이미지 밝기 조절 — 픽셀 단위 곱셈</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #1a1a2e;
+  color: #e2e8f0;
+  width: 580px;
+  padding: 16px;
+}
+h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #e2e8f0; }
+.tags { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tag {
+  background: #2d3748; color: #90cdf4; font-size: 0.7rem;
+  padding: 2px 8px; border-radius: 10px; border: 1px solid #4a5568;
+}
+.window-frame {
+  border: 1px solid #555; border-radius: 4px; overflow: hidden; margin-bottom: 10px;
+}
+.title-bar {
+  background: #3c3c3c; color: #cccccc; font-size: 0.78rem;
+  padding: 5px 10px; border-bottom: 1px solid #555;
+  display: flex; align-items: center; gap: 6px;
+}
+.title-bar-dot { width: 10px; height: 10px; border-radius: 50%; }
+.tb-red { background: #ff5f57; } .tb-yellow { background: #ffbd2e; } .tb-green { background: #28c840; }
+.canvas-area {
+  background: #0d0d1a; padding: 12px;
+  display: flex; gap: 12px; justify-content: center; align-items: flex-start;
+}
+.canvas-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.canvas-label { font-size: 0.72rem; color: #94a3b8; }
+canvas { border: 1px solid #444; display: block; }
+.imgui-panel {
+  background: #252526; border: 1px solid #555; border-radius: 4px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.imgui-title {
+  font-size: 0.72rem; color: #9cdcfe; font-weight: 600;
+  border-bottom: 1px solid #444; padding-bottom: 4px; margin-bottom: 8px;
+}
+.ctrl-row { margin-bottom: 8px; }
+.ctrl-row label {
+  display: flex; justify-content: space-between;
+  font-size: 0.75rem; color: #d4d4d4; margin-bottom: 3px;
+}
+.ctrl-row label span { color: #9cdcfe; font-weight: 600; }
+input[type=range] {
+  width: 100%; height: 6px; -webkit-appearance: none;
+  background: #3c3c3c; border-radius: 3px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: #007acc; cursor: pointer; border: 1px solid #569cd6;
+}
+#status { font-size: 0.7rem; color: #6b7280; min-height: 1.2em; }
+#gpu-error { color: #f87171; font-size: 0.85rem; padding: 10px; background: #2d1515; border-radius: 4px; display: none; }
+</style>
 </head>
 <body>
-    <div id="app-container">
-        <div id="header">DirectX 11 — 이미지 밝게 만들기</div>
-        <div id="main-content">
-            <div id="control-panel">
-                <div class="control-group">
-                    <label for="brighteningFactor">밝기 배수</label>
-                    <input type="range" id="brighteningFactor" min="0.1" max="5.0" step="0.01" value="1.2">
-                    <div class="slider-value" id="brighteningFactorValue">1.20</div>
-                </div>
-                <div class="control-group">
-                    <label>이미지 정보</label>
-                    <div style="font-size: 0.9em;">
-                        <p>너비: <span id="imageWidthDisplay"></span></p>
-                        <p>높이: <span id="imageHeightDisplay"></span></p>
-                    </div>
-                </div>
-            </div>
-            <div id="canvas-container">
-                <canvas id="webgpu-canvas"></canvas>
-            </div>
-        </div>
+<h2>이미지 밝기 조절 — 픽셀 단위 곱셈</h2>
+<div class="tags">
+  <span class="tag">WebGPU Compute</span>
+  <span class="tag">WGSL</span>
+  <span class="tag">픽셀 연산</span>
+</div>
+<div id="gpu-error"></div>
+<div class="window-frame">
+  <div class="title-bar">
+    <div class="title-bar-dot tb-red"></div>
+    <div class="title-bar-dot tb-yellow"></div>
+    <div class="title-bar-dot tb-green"></div>
+    DirectX 11 — 이미지 밝기 조절
+  </div>
+  <div class="canvas-area">
+    <div class="canvas-col">
+      <canvas id="srcCanvas" width="250" height="200"></canvas>
+      <div class="canvas-label">원본 이미지</div>
     </div>
+    <div class="canvas-col">
+      <canvas id="dstCanvas" width="250" height="200"></canvas>
+      <div class="canvas-label">밝기 조절 결과</div>
+    </div>
+  </div>
+</div>
+<div class="imgui-panel">
+  <div class="imgui-title">Params (Uniform Buffer)</div>
+  <div class="ctrl-row">
+    <label>밝기 배수 (0.0~3.0) <span id="valAll">1.50</span></label>
+    <input type="range" id="slAll" min="0" max="3" step="0.05" value="1.5">
+  </div>
+  <div class="ctrl-row">
+    <label>R 채널 <span id="valR">1.50</span></label>
+    <input type="range" id="slR" min="0" max="3" step="0.05" value="1.5">
+  </div>
+  <div class="ctrl-row">
+    <label>G 채널 <span id="valG">1.50</span></label>
+    <input type="range" id="slG" min="0" max="3" step="0.05" value="1.5">
+  </div>
+  <div class="ctrl-row">
+    <label>B 채널 <span id="valB">1.50</span></label>
+    <input type="range" id="slB" min="0" max="3" step="0.05" value="1.5">
+  </div>
+</div>
+<div id="status">WebGPU 초기화 중...</div>
 
-    <script type="text/wgsl" id="compute-shader">
-        // commit message: •feat: add image brightening logic
-        // DX11: RWTexture2D<float4> (UAV) -> WebGPU: texture_storage_2d<rgba8unorm, write>
-        // DX11: [numthreads(8,8,1)] -> WebGPU: @workgroup_size(8,8)
-        // DX11: SV_DispatchThreadID -> WebGPU: @builtin(global_invocation_id)
-        // DX11: cbuffer { float4 x; } -> WebGPU: struct Params { x: vec4f } + var<uniform>
+<script>
+const W = 250, H = 200;
 
-        @group(0) @binding(0) var<uniform> params: Params;
-        @group(0) @binding(1) var inputImage: texture_2d<f32>; // Read original image
-        @group(0) @binding(2) var outputImage: texture_storage_2d<rgba8unorm, write>; // Write brightened image
+// --- Procedural source image via Canvas2D ---
+function drawSourceImage(canvas) {
+  const ctx = canvas.getContext('2d');
+  // Diagonal gradient corners
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0,   '#ff2020');
+  grad.addColorStop(0.33,'#2020ff');
+  grad.addColorStop(0.66,'#20ff20');
+  grad.addColorStop(1,   '#ffff20');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
 
-        struct Params {
-            brighteningFactor: f32,
-            imageWidth: u32,
-            imageHeight: u32,
-        };
+  // Horizontal stripes overlay (semi-transparent) to make brightness effect visible
+  for (let y = 0; y < H; y += 20) {
+    ctx.fillStyle = `rgba(255,255,255,${y % 40 === 0 ? 0.12 : 0.04})`;
+    ctx.fillRect(0, y, W, 10);
+  }
 
-        @compute @workgroup_size(8, 8)
-        fn main(@builtin(global_invocation_id) global_id: vec3u) {
-            let x = global_id.x;
-            let y = global_id.y;
+  // 5 colored circles
+  const circles = [
+    { x: 45,  y: 50,  r: 28, color: '#ff8c00' },
+    { x: 200, y: 40,  r: 22, color: '#00e5ff' },
+    { x: 125, y: 100, r: 30, color: '#ffffff' },
+    { x: 60,  y: 155, r: 20, color: '#ff69b4' },
+    { x: 190, y: 160, r: 25, color: '#7fff00' },
+  ];
+  circles.forEach(c => {
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    ctx.fillStyle = c.color;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  });
+}
 
-            // Check bounds to prevent out-of-bounds access
-            if x >= params.imageWidth || y >= params.imageHeight {
-                return;
-            }
+// --- scheduleRender pattern ---
+let pending = false;
+function scheduleRender() {
+  if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; doRender(); }); }
+}
 
-            let coords = vec2u(x, y);
-            var pixel = textureLoad(inputImage, coords, 0); // Read original pixel (mip level 0)
-            
-            // DX11 C++ logic: image.pixels[i].v[0] *= 1.2f;
-            // 'v[0]' typically corresponds to the Red channel.
-            // For general image brightening, it's more common to multiply all RGB channels.
-            // We'll multiply all RGB channels for a visually balanced brightening effect.
-            // If strict adherence to 'v[0]' (Red channel only) is required, change pixel.rgb to pixel.r
-            pixel.rgb *= params.brighteningFactor;
-            
-            // Clamp to [0, 1] range to fit into rgba8unorm texture format
-            pixel = clamp(pixel, vec4f(0.0), vec4f(1.0));
+let device, computePipeline, uniformBuf, inputTex, outputTex, bindGroup;
+let mulR = 1.5, mulG = 1.5, mulB = 1.5;
 
-            textureStore(outputImage, coords, pixel); // Write brightened pixel
-        }
-    </script>
+const COMPUTE_WGSL = `
+struct Params { mulR: f32, mulG: f32, mulB: f32, _pad: f32 }
+@group(0) @binding(0) var<uniform> p: Params;
+@group(0) @binding(1) var src: texture_2d<f32>;
+@group(0) @binding(2) var dst: texture_storage_2d<rgba8unorm, write>;
 
-    <script type="text/wgsl" id="vertex-shader">
-        struct VertexOutput {
-            @builtin(position) position: vec4f,
-            @location(0) uv: vec2f,
-        };
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+  if (id.x >= ${W}u || id.y >= ${H}u) { return; }
+  let coords = vec2i(i32(id.x), i32(id.y));
+  let c = textureLoad(src, coords, 0);
+  textureStore(dst, coords, vec4f(
+    clamp(c.r * p.mulR, 0.0, 1.0),
+    clamp(c.g * p.mulG, 0.0, 1.0),
+    clamp(c.b * p.mulB, 0.0, 1.0),
+    1.0
+  ));
+}`;
 
-        @vertex
-        fn main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
-            var pos = array<vec2f, 6>(
-                vec2f(-1.0, -1.0),
-                vec2f(1.0, -1.0),
-                vec2f(-1.0, 1.0),
-                vec2f(-1.0, 1.0),
-                vec2f(1.0, -1.0),
-                vec2f(1.0, 1.0)
-            );
-            var uv = array<vec2f, 6>(
-                vec2f(0.0, 1.0),
-                vec2f(1.0, 1.0),
-                vec2f(0.0, 0.0),
-                vec2f(0.0, 0.0),
-                vec2f(1.0, 1.0),
-                vec2f(1.0, 0.0)
-            );
+const VERT_WGSL = `
+struct V { @builtin(position) pos: vec4f, @location(0) uv: vec2f }
+@vertex fn main(@builtin(vertex_index) vi: u32) -> V {
+  var p = array<vec2f,6>(
+    vec2f(-1,-1), vec2f(1,-1), vec2f(-1,1),
+    vec2f(-1,1),  vec2f(1,-1), vec2f(1,1));
+  var u = array<vec2f,6>(
+    vec2f(0,1), vec2f(1,1), vec2f(0,0),
+    vec2f(0,0), vec2f(1,1), vec2f(1,0));
+  var o: V; o.pos = vec4f(p[vi],0,1); o.uv = u[vi]; return o;
+}`;
 
-            var output: VertexOutput;
-            output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
-            output.uv = uv[vertexIndex];
-            return output;
-        }
-    </script>
+const FRAG_WGSL = `
+@group(0) @binding(0) var s: sampler;
+@group(0) @binding(1) var t: texture_2d<f32>;
+struct V { @builtin(position) pos: vec4f, @location(0) uv: vec2f }
+@fragment fn main(v: V) -> @location(0) vec4f { return textureSample(t, s, v.uv); }`;
 
-    <script type="text/wgsl" id="fragment-shader">
-        @group(0) @binding(0) var mySampler: sampler;
-        @group(0) @binding(1) var myTexture: texture_2d<f32>; // The output texture from compute pass
+async function init() {
+  const srcCanvas = document.getElementById('srcCanvas');
+  drawSourceImage(srcCanvas);
 
-        struct VertexOutput {
-            @builtin(position) position: vec4f,
-            @location(0) uv: vec2f,
-        };
+  if (!navigator.gpu) { showError('WebGPU를 지원하지 않는 브라우저입니다.'); return; }
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) { showError('WebGPU 어댑터를 찾을 수 없습니다.'); return; }
+  device = await adapter.requestDevice();
 
-        @fragment
-        fn main(input: VertexOutput) -> @location(0) vec4f {
-            return textureSample(myTexture, mySampler, input.uv);
-        }
-    </script>
+  // Upload procedural image to WebGPU texture
+  const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
 
-    <script>
-        // Global WebGPU objects
-        let device = null;
-        let context = null;
-        let presentationFormat = null;
-        let canvas = null;
+  inputTex = device.createTexture({
+    size: [W, H], format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+  });
+  device.queue.writeTexture({ texture: inputTex }, imgData.data,
+    { bytesPerRow: W * 4, rowsPerImage: H }, [W, H]);
 
-        // Compute pipeline objects
-        let computePipeline = null;
-        let computeBindGroup = null;
-        let uniformBuffer = null;
-        let inputTexture = null;
-        let outputTexture = null;
+  outputTex = device.createTexture({
+    size: [W, H], format: 'rgba8unorm',
+    usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+  });
 
-        // Render pipeline objects
-        let renderPipeline = null;
-        let renderBindGroup = null;
-        let sampler = null;
+  uniformBuf = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
-        // Image parameters
-        const IMAGE_WIDTH = 512;
-        const IMAGE_HEIGHT = 512;
-        let brighteningFactor = 1.2;
+  const bgl = device.createBindGroupLayout({ entries: [
+    { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+    { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+    { binding: 2, visibility: GPUShaderStage.COMPUTE, storageTexture: { format: 'rgba8unorm' } }
+  ]});
 
-        // UI elements
-        let brighteningFactorSlider = null;
-        let brighteningFactorValueDisplay = null;
-        let imageWidthDisplay = null;
-        let imageHeightDisplay = null;
+  computePipeline = device.createComputePipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [bgl] }),
+    compute: { module: device.createShaderModule({ code: COMPUTE_WGSL }), entryPoint: 'main' }
+  });
 
-        let animationFrameId = null;
+  bindGroup = device.createBindGroup({ layout: bgl, entries: [
+    { binding: 0, resource: { buffer: uniformBuf } },
+    { binding: 1, resource: inputTex.createView() },
+    { binding: 2, resource: outputTex.createView() }
+  ]});
 
-        async function initWebGPU() {
-            if (!navigator.gpu) {
-                document.body.innerHTML = '<p>WebGPU를 지원하지 않는 브라우저입니다. Chrome Canary 또는 최신 Edge를 사용해 보세요.</p>';
-                return;
-            }
+  // Render pipeline (blit outputTex → dstCanvas)
+  const dstCanvas = document.getElementById('dstCanvas');
+  const ctx = dstCanvas.getContext('webgpu');
+  const fmt = navigator.gpu.getPreferredCanvasFormat();
+  ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
 
-            const adapter = await navigator.gpu.requestAdapter();
-            if (!adapter) {
-                document.body.innerHTML = '<p>WebGPU 어댑터를 찾을 수 없습니다.</p>';
-                return;
-            }
+  const renderBGL = device.createBindGroupLayout({ entries: [
+    { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+    { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+  ]});
+  const renderPipeline = device.createRenderPipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [renderBGL] }),
+    vertex: { module: device.createShaderModule({ code: VERT_WGSL }), entryPoint: 'main' },
+    fragment: { module: device.createShaderModule({ code: FRAG_WGSL }), entryPoint: 'main',
+      targets: [{ format: fmt }] },
+    primitive: { topology: 'triangle-list' }
+  });
+  const samp = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+  const renderBG = device.createBindGroup({ layout: renderBGL, entries: [
+    { binding: 0, resource: samp },
+    { binding: 1, resource: outputTex.createView() }
+  ]});
 
-            device = await adapter.requestDevice();
-            canvas = document.getElementById('webgpu-canvas');
-            context = canvas.getContext('webgpu');
+  window._renderCtx = ctx;
+  window._renderPipeline = renderPipeline;
+  window._renderBG = renderBG;
 
-            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-            context.configure({
-                device,
-                format: presentationFormat,
-                alphaMode: 'opaque',
-            });
+  setupUI();
+  doRender();
+  document.getElementById('status').textContent = 'WebGPU 초기화 완료 ✓';
+}
 
-            // Set canvas size
-            canvas.width = IMAGE_WIDTH; // Fixed internal resolution
-            canvas.height = IMAGE_HEIGHT;
-            // Use CSS to control display size. The render pass will stretch the texture.
+function doRender() {
+  if (!device) return;
+  device.queue.writeBuffer(uniformBuf, 0, new Float32Array([mulR, mulG, mulB, 0]));
+  const enc = device.createCommandEncoder();
+  const cp = enc.beginComputePass();
+  cp.setPipeline(computePipeline);
+  cp.setBindGroup(0, bindGroup);
+  cp.dispatchWorkgroups(Math.ceil(W/8), Math.ceil(H/8));
+  cp.end();
+  const rp = enc.beginRenderPass({ colorAttachments: [{
+    view: window._renderCtx.getCurrentTexture().createView(),
+    clearValue: { r:0,g:0,b:0,a:1 }, loadOp: 'clear', storeOp: 'store'
+  }]});
+  rp.setPipeline(window._renderPipeline);
+  rp.setBindGroup(0, window._renderBG);
+  rp.draw(6);
+  rp.end();
+  device.queue.submit([enc.finish()]);
+}
 
-            initResources();
-            initComputePipeline();
-            initRenderPipeline();
-            createUI();
+function setupUI() {
+  function bind(id, valId, setter) {
+    const sl = document.getElementById(id);
+    const vl = document.getElementById(valId);
+    sl.addEventListener('input', () => {
+      const v = parseFloat(sl.value);
+      vl.textContent = v.toFixed(2);
+      setter(v);
+      scheduleRender();
+    });
+  }
+  bind('slAll', 'valAll', v => {
+    mulR = mulG = mulB = v;
+    document.getElementById('slR').value = v;
+    document.getElementById('slG').value = v;
+    document.getElementById('slB').value = v;
+    document.getElementById('valR').textContent = v.toFixed(2);
+    document.getElementById('valG').textContent = v.toFixed(2);
+    document.getElementById('valB').textContent = v.toFixed(2);
+  });
+  bind('slR', 'valR', v => { mulR = v; });
+  bind('slG', 'valG', v => { mulG = v; });
+  bind('slB', 'valB', v => { mulB = v; });
+}
 
-            render(); // Initial render
-        }
+function showError(msg) {
+  const el = document.getElementById('gpu-error');
+  el.style.display = 'block';
+  el.textContent = msg;
+  document.getElementById('status').textContent = '';
+}
 
-        function createCheckerboardData(width, height) {
-            const data = new Uint8ClampedArray(width * height * 4); // RGBA
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const i = (y * width + x) * 4;
-                    // Simple checkerboard with two shades of grey
-                    const color = (((x / 32 | 0) + (y / 32 | 0)) % 2 == 0) ? 200 : 80;
-                    data[i + 0] = color;     // R
-                    data[i + 1] = color;     // G
-                    data[i + 2] = color;     // B
-                    data[i + 3] = 255;   // A
-                }
-            }
-            return data;
-        }
-
-        function initResources() {
-            // 1. Uniform Buffer for parameters
-            uniformBuffer = device.createBuffer({
-                size: 3 * 4 + 4, // 1 float (brighteningFactor), 2 uints (width, height) + padding
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            });
-
-            // Initial uniform data
-            updateUniformBuffer();
-
-            // 2. Storage Texture (Input and Output)
-            const initialImageData = createCheckerboardData(IMAGE_WIDTH, IMAGE_HEIGHT);
-
-            inputTexture = device.createTexture({
-                size: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
-                format: 'rgba8unorm',
-                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-            });
-
-            device.queue.writeTexture(
-                { texture: inputTexture },
-                initialImageData,
-                {
-                    bytesPerRow: IMAGE_WIDTH * 4,
-                    rowsPerImage: IMAGE_HEIGHT,
-                },
-                [IMAGE_WIDTH, IMAGE_HEIGHT, 1]
-            );
-
-            outputTexture = device.createTexture({
-                size: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
-                format: 'rgba8unorm',
-                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
-            });
-
-            // Sampler for the render pass
-            sampler = device.createSampler({
-                magFilter: 'linear',
-                minFilter: 'linear',
-            });
-        }
-
-        function updateUniformBuffer() {
-            const uniformData = new Float32Array([
-                brighteningFactor,
-                IMAGE_WIDTH, // Stored as float, but used as u32 in WGSL (careful with types)
-                IMAGE_HEIGHT, // Stored as float
-                0, // Padding
-            ]);
-            device.queue.writeBuffer(uniformBuffer, 0, uniformData);
-        }
-
-        function initComputePipeline() {
-            const computeShaderModule = device.createShaderModule({
-                code: document.getElementById('compute-shader').textContent,
-            });
-
-            const computeBindGroupLayout = device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0, // Params uniform buffer
-                        visibility: GPUShaderStage.COMPUTE,
-                        buffer: { type: 'uniform' },
-                    },
-                    {
-                        binding: 1, // Input texture (read-only)
-                        visibility: GPUShaderStage.COMPUTE,
-                        texture: { sampleType: 'float' },
-                    },
-                    {
-                        binding: 2, // Output storage texture (write-only)
-                        visibility: GPUShaderStage.COMPUTE,
-                        storageTexture: { format: 'rgba8unorm' },
-                    },
-                ],
-            });
-
-            computePipeline = device.createComputePipeline({
-                layout: device.createPipelineLayout({
-                    bindGroupLayouts: [computeBindGroupLayout],
-                }),
-                compute: {
-                    module: computeShaderModule,
-                    entryPoint: 'main',
-                },
-            });
-
-            computeBindGroup = device.createBindGroup({
-                layout: computeBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: uniformBuffer },
-                    },
-                    {
-                        binding: 1,
-                        resource: inputTexture.createView(),
-                    },
-                    {
-                        binding: 2,
-                        resource: outputTexture.createView(),
-                    },
-                ],
-            });
-        }
-
-        function initRenderPipeline() {
-            const vertexShaderModule = device.createShaderModule({
-                code: document.getElementById('vertex-shader').textContent,
-            });
-            const fragmentShaderModule = device.createShaderModule({
-                code: document.getElementById('fragment-shader').textContent,
-            });
-
-            const renderBindGroupLayout = device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0, // Sampler
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: { type: 'filtering' },
-                    },
-                    {
-                        binding: 1, // Texture from compute pass
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: { sampleType: 'float' },
-                    },
-                ],
-            });
-
-            renderPipeline = device.createRenderPipeline({
-                layout: device.createPipelineLayout({
-                    bindGroupLayouts: [renderBindGroupLayout],
-                }),
-                vertex: {
-                    module: vertexShaderModule,
-                    entryPoint: 'main',
-                },
-                fragment: {
-                    module: fragmentShaderModule,
-                    entryPoint: 'main',
-                    targets: [{ format: presentationFormat }],
-                },
-                primitive: {
-                    topology: 'triangle-list',
-                },
-            });
-
-            renderBindGroup = device.createBindGroup({
-                layout: renderBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: sampler,
-                    },
-                    {
-                        binding: 1,
-                        resource: outputTexture.createView(),
-                    },
-                ],
-            });
-        }
-
-        function render() {
-            if (!device) return;
-
-            const commandEncoder = device.createCommandEncoder();
-
-            // Compute Pass
-            const computePassEncoder = commandEncoder.beginComputePass();
-            computePassEncoder.setPipeline(computePipeline);
-            computePassEncoder.setBindGroup(0, computeBindGroup);
-            // DX11: Dispatch(W/8, H/8, 1) -> WebGPU: dispatchWorkgroups(ceil(W/8), ceil(H/8))
-            const workgroupX = Math.ceil(IMAGE_WIDTH / 8);
-            const workgroupY = Math.ceil(IMAGE_HEIGHT / 8);
-            computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY, 1);
-            computePassEncoder.end();
-
-            // Render Pass
-            const textureView = context.getCurrentTexture().createView();
-            const renderPassEncoder = commandEncoder.beginRenderPass({
-                colorAttachments: [
-                    {
-                        view: textureView,
-                        clearValue: { r: 0.1, g: 0.1, b: 0.2, a: 1.0 }, // Background color #1a1a2e
-                        loadOp: 'clear',
-                        storeOp: 'store',
-                    },
-                ],
-            });
-            renderPassEncoder.setPipeline(renderPipeline);
-            renderPassEncoder.setBindGroup(0, renderBindGroup);
-            renderPassEncoder.draw(6); // Draw fullscreen quad (6 vertices for two triangles)
-            renderPassEncoder.end();
-
-            device.queue.submit([commandEncoder.finish()]);
-            animationFrameId = null; // Reset animation frame ID after submission
-        }
-
-        // Debounce render calls to only happen on next requestAnimationFrame
-        function scheduleRender() {
-            if (!animationFrameId) {
-                animationFrameId = requestAnimationFrame(render);
-            }
-        }
-
-        function createUI() {
-            brighteningFactorSlider = document.getElementById('brighteningFactor');
-            brighteningFactorValueDisplay = document.getElementById('brighteningFactorValue');
-            imageWidthDisplay = document.getElementById('imageWidthDisplay');
-            imageHeightDisplay = document.getElementById('imageHeightDisplay');
-
-            brighteningFactorSlider.value = brighteningFactor;
-            brighteningFactorValueDisplay.textContent = brighteningFactor.toFixed(2);
-            imageWidthDisplay.textContent = IMAGE_WIDTH;
-            imageHeightDisplay.textContent = IMAGE_HEIGHT;
-
-            brighteningFactorSlider.addEventListener('input', (event) => {
-                brighteningFactor = parseFloat(event.target.value);
-                brighteningFactorValueDisplay.textContent = brighteningFactor.toFixed(2);
-                updateUniformBuffer();
-                scheduleRender();
-            });
-        }
-
-        window.addEventListener('load', initWebGPU);
-    </script>
+init().catch(e => showError('오류: ' + e.message));
+</script>
 </body>
 </html>
