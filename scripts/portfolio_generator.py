@@ -209,6 +209,94 @@ def rebuild_posts_index():
         f.write('\n'.join(lines))
 
 
+def rebuild_homepage():
+    """docs/index.md 의 데모 카드와 최근 포스트 목록을 현재 상태로 갱신합니다."""
+    # 데모 목록 (index.md 제외, 알파벳순)
+    demo_pages = sorted(
+        [f for f in os.listdir(DEMOS_PATH) if f.endswith('.md') and f != 'index.md']
+    )
+    # 최근 포스트 5개 (날짜 역순)
+    recent_posts = sorted(
+        [f for f in os.listdir(POSTS_PATH) if f.endswith('.md') and f != 'index.md'],
+        reverse=True,
+    )[:5]
+
+    # 데모 카드 HTML 생성
+    demo_cards = ""
+    for fname in demo_pages:
+        title = _extract_title_from_md(os.path.join(DEMOS_PATH, fname))
+        slug = fname[:-3]
+        demo_cards += f"""
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>{title}</strong><br><br>
+<a href="demos/{fname}">데모 보기 →</a>
+</div>
+"""
+
+    # 최근 포스트 목록 마크다운 생성
+    post_lines = ""
+    for fname in recent_posts:
+        title = _extract_title_from_md(os.path.join(POSTS_PATH, fname))
+        date = fname[:10] if fname[:4].isdigit() else ''
+        post_lines += f"- [{title}](posts/{fname})"
+        if date:
+            post_lines += f" <small style='color:#64748b'>({date})</small>"
+        post_lines += "\n"
+
+    homepage = f"""# 컴퓨터 그래픽스 학습 포트폴리오
+
+C++과 DirectX 11로 컴퓨터 그래픽스를 공부하며 직접 구현한 내용을 정리한 포트폴리오입니다.
+강의 코드를 그대로 옮긴 것이 아니라, 학습한 수학·알고리즘을 **WebGPU Compute Shader로 재현**하여 브라우저에서 직접 체험할 수 있도록 했습니다.
+
+---
+
+## 학습 스택
+
+| 분류 | 기술 |
+|------|------|
+| 렌더링 API | DirectX 11 (D3D11), HLSL |
+| 언어 | C++17 |
+| 수학 | GLM (vec3, mat4) |
+| UI | Dear ImGui |
+| 포트폴리오 | WebGPU / WGSL, MkDocs Material |
+
+---
+
+## 학습 로드맵
+
+```mermaid
+graph LR
+  A[DX11 초기화<br/>픽셀버퍼] --> B[Bloom<br/>포스트프로세싱]
+  A --> C[레이트레이싱 Step 1<br/>벡터·GLM]
+  C --> D[Step 2-4<br/>구 렌더링]
+  D --> E[Step 5<br/>Phong 셰이딩]
+  E --> F[Step 6-9<br/>원근·삼각형·그림자]
+  F --> G[Step 10-14<br/>텍스처·반사·굴절·환경맵]
+```
+
+---
+
+## 인터랙티브 데모
+
+각 주제의 핵심 알고리즘을 WebGPU Compute Shader로 재현한 인터랙티브 데모입니다.
+
+<div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
+{demo_cards}
+</div>
+
+[전체 데모 목록 →](demos/index.md)
+
+---
+
+## 최근 학습 포스트
+
+{post_lines}
+[모든 포스트 보기 →](posts/index.md)
+"""
+    with open(os.path.join(DOCS_PATH, 'index.md'), 'w', encoding='utf-8') as f:
+        f.write(homepage)
+
+
 def rebuild_demos_index():
     """docs/demos/index.md 를 데모 목록으로 갱신합니다."""
     # 수동으로 만든 데모 페이지 + 자동 생성 데모 페이지 모두 포함
@@ -238,10 +326,13 @@ def create_demo_page(title, demo_slug):
     demo_page_path = os.path.join(DEMOS_PATH, f"{demo_slug}.md")
     if os.path.exists(demo_page_path):
         return  # 이미 존재하면 건너뜀 (pixel-animation.md, raytracer.md 등 수동 페이지 보호)
+    # MkDocs renders demos/<slug>.md → demos/<slug>/index.html
+    # demo.html is at demos/<slug>/demo.html
+    # So relative iframe src from the rendered page is just "demo.html"
     content = f"""# {title}
 
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="{demo_slug}/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 """
     with open(demo_page_path, 'w', encoding='utf-8') as f:
@@ -318,10 +409,11 @@ def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo
         f.write(final_content)
     print(f"  포스트 저장: {md_path}")
 
-    # 포스트/데모 인덱스 항상 재빌드 (새 항목 반영)
+    # 포스트/데모 인덱스 + 홈페이지 항상 재빌드 (새 항목 반영)
     rebuild_posts_index()
     rebuild_demos_index()
-    print("  인덱스 갱신 완료 (posts/index.md, demos/index.md)")
+    rebuild_homepage()
+    print("  인덱스 갱신 완료 (index.md, posts/index.md, demos/index.md)")
 
     if commit_hash:
         mark_commit_processed(commit_hash)
