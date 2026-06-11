@@ -1,0 +1,742 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="컴퓨터 그래픽스 학습 포트폴리오 - DirectX 11, 레이트레이싱, HLSL">
+      
+      
+      
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-11-boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰 - Computer Graphics Portfolio</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#boxblur5" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="Computer Graphics Portfolio" class="md-header__button md-logo" aria-label="Computer Graphics Portfolio" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Computer Graphics Portfolio
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/leeyunhome/computer_graphics_part1" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  홈
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  학습 포스트
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../demos/" class="md-tabs__link">
+          
+  
+  
+  인터랙티브 데모
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Computer Graphics Portfolio" class="md-nav__button md-logo" aria-label="Computer Graphics Portfolio" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Computer Graphics Portfolio
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/leeyunhome/computer_graphics_part1" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    홈
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습 포스트
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인터랙티브 데모
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    인터랙티브 데모
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    목록
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/pixel-animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 버퍼 애니메이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/raytracer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CPU 레이트레이서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        학습자가 구현하며 이해한 핵심 개념
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핵심 알고리즘 (수평 패스)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGPU 인터랙티브 데모
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webgpu_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인터랙티브 WebGPU 데모
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="boxblur5">BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰</h1>
+<p>학습자님, DirectX 11/C++ 그래픽스 스터디 리포지토리에 BoxBlur5 분리 가능한 컨볼루션의 수평 패스를 구현한 커밋을 하셨군요. 매우 잘 하셨습니다! 이미지 처리에서 컨볼루션은 핵심 개념이며, 특히 분리 가능한 컨볼루션은 효율적인 이미지 블러링 기법으로 중요하게 다뤄집니다. 이번 커밋을 통해 학습자님이 어떤 개념들을 이해하고 구현했는지 살펴보겠습니다.</p>
+<h2 id="_1">학습자가 구현하며 이해한 핵심 개념</h2>
+<p>이번 커밋은 <code>image.BoxBlur5()</code> 함수를 100번 호출하는 코드를 활성화함으로써, 박스 블러(Box Blur) 필터의 수평 패스 구현을 테스트하는 것으로 보입니다. 이를 통해 학습자님은 다음과 같은 핵심 개념들을 직접 구현하고 이해했을 것이라고 생각합니다.</p>
+<ol>
+<li><strong>컨볼루션(Convolution)의 기본 원리:</strong><ul>
+<li>이미지의 각 픽셀에 대해 주변 픽셀들의 가중 평균을 계산하여 새로운 픽셀 값을 결정하는 과정입니다. 필터(커널)는 이 가중치를 정의합니다.</li>
+</ul>
+</li>
+<li><strong>박스 블러(Box Blur) 필터:</strong><ul>
+<li>주변 픽셀들에 모두 동일한 가중치(예: 1/N)를 적용하여 평균을 내는 가장 간단한 형태의 블러 필터입니다. 5x5 박스 블러의 경우, 각 픽셀은 주변 5x5 영역의 25개 픽셀들의 평균이 됩니다.</li>
+</ul>
+</li>
+<li><strong>분리 가능한 컨볼루션(Separable Convolution)의 이해:</strong><ul>
+<li>2D 컨볼루션 커널 <span class="arithmatex">\(K\)</span>가 수평 1D 커널 <span class="arithmatex">\(K_h\)</span>와 수직 1D 커널 <span class="arithmatex">\(K_v\)</span>의 외적(<span class="arithmatex">\(K = K_v \otimes K_h\)</span>)으로 표현될 수 있을 때, 이를 분리 가능하다고 합니다. 5x5 박스 블러 커널은 다음과 같이 두 개의 1D 커널로 분리될 수 있습니다:
+    $$ K_{5 \times 5} = \begin{pmatrix} 1/5 \ 1/5 \ 1/5 \ 1/5 \ 1/5 \end{pmatrix} \otimes \begin{pmatrix} 1/5 &amp; 1/5 &amp; 1/5 &amp; 1/5 &amp; 1/5 \end{pmatrix} $$</li>
+<li>이렇게 분리하면, 원래 <span class="arithmatex">\(N \times N\)</span> 커널을 한 번에 적용하는 것(픽셀당 <span class="arithmatex">\(N^2\)</span> 연산)보다, 먼저 수평 1D 커널을 적용한 후(픽셀당 <span class="arithmatex">\(N\)</span> 연산) 그 결과에 수직 1D 커널을 적용하는 방식(픽셀당 <span class="arithmatex">\(N\)</span> 연산)이 훨씬 효율적(<span class="arithmatex">\(2N\)</span> 연산)이라는 것을 이해하셨을 것입니다. 5x5 커널의 경우, 25번의 곱셈/덧셈 대신 10번의 곱셈/덧셈으로 동일한 효과를 낼 수 있어 성능 향상에 크게 기여합니다.</li>
+</ul>
+</li>
+<li><strong>수평 패스(Horizontal Pass) 구현:</strong><ul>
+<li>분리 가능한 컨볼루션의 첫 단계로, 이미지의 각 행(row)에 대해 수평 1D 커널을 적용하는 과정을 직접 구현하셨습니다. 이는 각 픽셀이 자신의 양옆 픽셀들과 함께 평균되는 과정입니다.</li>
+<li>이 과정에서 이미지 경계(boundary)를 벗어나는 픽셀에 대한 처리 방식(예: 클램프(clamp), 반복(repeat), 미러링(mirror) 등)에 대해서도 고민하고 적용했을 것입니다.</li>
+</ul>
+</li>
+<li><strong>반복 적용의 효과:</strong><ul>
+<li><code>BoxBlur5()</code> 함수를 100번 반복하여 호출하는 것은 블러 효과를 극대화하는 방법입니다. 여러 번의 박스 블러 반복 적용은 가우시안 블러(Gaussian Blur)와 유사한 부드러운 블러 효과를 낸다고 알려져 있습니다. 이를 통해 블러 강도가 어떻게 조절되는지 직접 확인하셨을 것입니다.</li>
+</ul>
+</li>
+</ol>
+<h2 id="_2">핵심 알고리즘 (수평 패스)</h2>
+<p>박스 블러의 수평 패스는 각 픽셀 <span class="arithmatex">\((x, y)\)</span>에 대해 해당 행의 주변 픽셀들을 평균하는 방식으로 작동합니다. 5x5 박스 블러의 수평 1D 커널은 <code>[1/5, 1/5, 1/5, 1/5, 1/5]</code>입니다.</p>
+<p>입력 이미지 <span class="arithmatex">\(I\)</span>와 출력될 중간 이미지 <span class="arithmatex">\(I_{temp}\)</span>가 있을 때, 각 픽셀의 새로운 값 <span class="arithmatex">\(I_{temp}[x, y]\)</span>는 다음과 같이 계산됩니다:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>함수 BoxBlurHorizontal(SourceImage, TargetImage, KernelRadius):
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ImageWidth = SourceImage.Width
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ImageHeight = SourceImage.Height
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  KernelSize = 2 * KernelRadius + 1 // 예: KernelRadius=2 이면 KernelSize=5
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  // 이미지의 각 행(row)에 대해 반복
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  for y from 0 to ImageHeight - 1:
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    // 각 행의 각 픽셀(column)에 대해 반복
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    for x from 0 to ImageWidth - 1:
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>      Sum = (0, 0, 0) // RGB 채널 또는 각 채널별로 합계 초기화
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      // 5x5 박스 블러의 경우 KernelRadius = 2 (중심 픽셀 포함 총 5개)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>      // 현재 픽셀을 중심으로 좌우로 KernelRadius만큼 떨어진 픽셀들을 합산
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>      for i from -KernelRadius to KernelRadius:
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        // 경계 조건 처리: 이미지 범위를 벗어나지 않도록 픽셀 좌표 클램프
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        NeighborX = Clamp(x + i, 0, ImageWidth - 1) 
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        Sum += SourceImage.GetPixel(NeighborX, y)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>      // 계산된 합계를 커널 크기로 나누어 평균을 구하고 결과 이미지에 저장
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>      TargetImage.SetPixel(x, y, Sum / KernelSize)
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>  return TargetImage
+</code></pre></div>
+<p>수식으로 표현하면, <span class="arithmatex">\(P'_{x,y}\)</span>는 원본 이미지 <span class="arithmatex">\(I\)</span>의 픽셀 <span class="arithmatex">\((x,y)\)</span>에 대한 수평 블러링 결과이며, <span class="arithmatex">\(K_h\)</span>는 5-탭 수평 박스 블러 커널 <span class="arithmatex">\([1/5, 1/5, 1/5, 1/5, 1/5]\)</span>입니다.
+$$ P'<em i="i">{x,y} = \sum</em> $$
+여기서 }^{2} I_{clamp(x+i), y} \cdot K_{h_i} = \frac{1}{5} \sum_{i = -2}^{2} I_{clamp(x+i), y<span class="arithmatex">\(clamp(v, min, max)\)</span>는 값이 <span class="arithmatex">\(min\)</span>과 <span class="arithmatex">\(max\)</span> 사이에 있도록 제한하는 함수입니다. 예를 들어, <span class="arithmatex">\(0\)</span> 미만이면 <span class="arithmatex">\(0\)</span>으로, 너비(<span class="arithmatex">\(ImageWidth-1\)</span>)보다 크면 너비(<span class="arithmatex">\(ImageWidth-1\)</span>)로 조정됩니다.</p>
+<h2 id="webgpu">WebGPU 인터랙티브 데모</h2>
+<p>이 박스 블러의 수평 패스를 WebGPU의 Compute Shader를 이용해 구현한다면 다음과 같은 방식으로 작동하며 시각화될 것입니다.</p>
+<ol>
+<li><strong>Compute Shader 작성:</strong> GLSL 또는 WGSL로 작성된 Compute Shader는 각 워크그룹(workgroup) 또는 개별 인보케이션(invocation)이 이미지의 특정 픽셀을 처리하도록 구성됩니다.</li>
+<li><strong>데이터 바인딩:</strong> 원본 이미지 데이터는 <code>storage_texture_2d&lt;rgba8unorm, read&gt;</code>와 같은 텍스처 형태로 바인딩되고, 수평 블러링된 결과가 저장될 중간 이미지 텍스처는 <code>storage_texture_2d&lt;rgba8unorm, write&gt;</code>로 바인딩됩니다.</li>
+<li><strong>커널 실행:</strong> Compute Shader의 각 인보케이션은 <code>global_invocation_id.xy</code>를 통해 처리할 픽셀의 전역 좌표 <span class="arithmatex">\((x, y)\)</span>를 얻습니다.</li>
+<li><strong>픽셀 처리:</strong> 각 인보케이션은 자신의 <span class="arithmatex">\((x, y)\)</span> 좌표를 중심으로 좌우로 2칸씩 떨어진 픽셀들 (총 5개)의 색상 값을 원본 이미지 텍스처에서 읽어옵니다. 이 5개 픽셀의 색상 값을 평균하여, 결과 텍스처의 <span class="arithmatex">\((x, y)\)</span> 위치에 기록합니다. 경계 조건 처리는 <code>textureLoad</code> 함수와 함께 <code>clamp</code> 등의 유틸리티 함수를 사용하거나, <code>textureSample</code>의 샘플링 모드를 <code>clamp_to_edge</code>로 설정하여 간단히 처리할 수 있습니다.</li>
+<li><strong>시각적 효과:</strong> 브라우저에서 이 데모를 실행하면, 원본 이미지가 로드된 후 컴퓨트 셰이더가 실행되어 새로운 이미지로 렌더링될 것입니다. 시각적으로는 이미지가 마치 좌우로 길게 늘어트린 것처럼 <strong>수평 방향으로만 흐려지는(smearing)</strong> 효과를 관찰할 수 있습니다. 수직 방향의 디테일은 그대로 유지되지만, 수평 방향의 디테일은 크게 손실되어 뿌옇게 보일 것입니다. <code>BoxBlur5()</code> 함수를 100번 반복 적용한 결과라면, 이미지는 거의 완전히 수평 방향으로만 색상 띠가 이어진 것처럼 보여 원본 이미지의 형체를 알아보기 어려울 정도로 강한 수평 블러가 적용될 것입니다.</li>
+</ol>
+<hr />
+<h2 id="webgpu_1">인터랙티브 WebGPU 데모</h2>
+<div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
+<iframe src="../demos/boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  맨위로
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
