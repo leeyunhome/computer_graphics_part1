@@ -50,7 +50,7 @@ def _call_gemini(prompt):
         sys.exit(1)
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model='gemini-2.5-pro',
+        model='gemini-3.5-flash',
         contents=prompt,
     )
     return response.text
