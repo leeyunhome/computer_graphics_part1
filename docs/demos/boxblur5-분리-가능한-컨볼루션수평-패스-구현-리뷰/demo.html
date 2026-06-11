@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Implement horizontal pass of BoxBlur5 separable convolution</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e; /* 배경색 설정 */
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        #gui-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        /* ImGui 스타일 다크 테마 */
+        .imgui-window {
+            background-color: #252526; /* Darker than #2b2b2b for window background */
+            border: 1px solid #3d3d3d;
+            border-radius: 3px;
+            padding: 5px;
+            color: #d0d0d0;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        .imgui-header {
+            background-color: #3e3e40;
+            color: #e0e0e0;
+            padding: 3px 5px;
+            margin: -5px -5px 5px -5px;
+            border-bottom: 1px solid #3d3d3d;
+            font-weight: bold;
+            cursor: move;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+        }
+        .imgui-slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .imgui-slider-label {
+            flex-shrink: 0;
+            width: 80px;
+            margin-right: 5px;
+        }
+        .imgui-slider {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #505050;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        .imgui-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007acc; /* Accent color */
+            cursor: pointer;
+        }
+        .imgui-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+        }
+        .imgui-text-input {
+            background-color: #333333;
+            border: 1px solid #444444;
+            color: #d0d0d0;
+            padding: 3px;
+            border-radius: 2px;
+            width: 40px;
+            margin-left: 5px;
+        }
+        #webgpu-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background-color: rgba(255, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 5px;
+            font-size: 1.2em;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="webgpu-canvas"></canvas>
+    <div id="gui-container">
+        <div class="imgui-window" id="blur-window">
+            <div class="imgui-header" id="blur-window-header">파라미터</div>
+            <div class="imgui-content">
+                <div class="imgui-slider-container">
+                    <label class="imgui-slider-label" for="blur-iterations">블러 반복:</label>
+                    <input type="range" id="blur-iterations" class="imgui-slider" min="0" max="100" value="10" step="1">
+                    <input type="number" id="blur-iterations-text" class="imgui-text-input" min="0" max="100" value="10">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="webgpu-error">
+        WebGPU를 지원하지 않는 브라우저입니다. 최신 Chrome 또는 Edge 브라우저를 사용해주세요.
+    </div>
+
+    <script type="text/wgsl" id="compute-shader-wgsl">
+        // Uniforms for compute shader
+        struct Params {
+            width: u32,
+            height: u32,
+            num_iterations: u32, // Not directly used in shader, but good to include
+        };
+        @group(0) @binding(0) var<uniform> params: Params;
+
+        // Input texture (read-only)
+        @group(0) @binding(1) var inputTexture: texture_2d<f32>;
+
+        // Output texture (write-only storage texture)
+        @group(0) @binding(2) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+
+        // Compute shader entry point
+        @compute @workgroup_size(8, 8)
+        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            let coords = global_id.xy;
+
+            // Check if global_id is within texture bounds
+            if (coords.x >= params.width || coords.y >= params.height) {
+                return;
+            }
+
+            var sum: vec4f = vec4f(0.0);
+            let blur_radius: u32 = 2u; // For a 5x5 kernel (pixels: -2, -1, 0, 1, 2)
+            let inv_kernel_sum: f32 = 1.0 / 5.0; // Box blur weights sum to 1
+
+            // Horizontal pass: sum up 5 neighboring pixels
+            for (var i: i32 = -i32(blur_radius); i <= i32(blur_radius); i = i + 1) {
+                // Clamp x coordinate to stay within bounds
+                let sample_x = clamp(i32(coords.x) + i, 0, i32(params.width) - 1);
+                let sample_coords = vec2<u32>(u32(sample_x), coords.y);
+                sum += textureLoad(inputTexture, sample_coords, 0);
+            }
+            
+            // Apply average weight and store result
+            let result = sum * inv_kernel_sum;
+            textureStore(outputTexture, coords, result);
+        }
+    </script>
+
+    <script type="text/wgsl" id="render-shader-wgsl">
+        // Vertex shader
+        @vertex
+        fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
+            let pos = array<vec2f, 6>(
+                vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0), // Triangle 1
+                vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0)  // Triangle 2
+            );
+            return vec4f(pos[vertexIndex], 0.0, 1.0);
+        }
+
+        // Fragment shader
+        @group(0) @binding(0) var renderTexture: texture_2d<f32>;
+        @group(0) @binding(1) var renderSampler: sampler;
+
+        @fragment
+        fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
+            let uv = fragCoord.xy / vec2f(textureDimensions(renderTexture)) * vec2f(1.0, -1.0) + vec2f(0.0, 1.0); // Adjust UV for fullscreen quad
+            return textureSample(renderTexture, renderSampler, uv);
+        }
+    </script>
+
+    <script>
+        // Global WebGPU variables
+        let device;
+        let context;
+        let presentationFormat;
+        let canvas;
+
+        // Textures
+        let inputTexture; // Original procedural image
+        let tempTexture1; // For ping-pong blurring (storage & texture binding)
+        let tempTexture2; // For ping-pong blurring (storage & texture binding)
+
+        // Pipelines
+        let computePipeline;
+        let renderPipeline;
+
+        // Bind groups (pre-created for efficiency)
+        let computeBindGroupInitial; // inputTexture -> tempTexture1
+        let computeBindGroupPing;    // tempTexture1 -> tempTexture2
+        let computeBindGroupPong;    // tempTexture2 -> tempTexture1
+        let renderBindGroupFinal;    // Will be updated dynamically
+
+        // Buffers
+        let uniformBuffer; // For compute shader parameters (width, height, num_iterations)
+        let renderSampler; // For rendering texture
+
+        // UI parameters
+        let blurIterations = 10; // Default iterations
+        const IMAGE_WIDTH = 1024;
+        const IMAGE_HEIGHT = 768;
+
+        // scheduleRender debounce
+        let frameScheduled = false;
+
+        // --- ImGui-like UI helper functions ---
+        function initImGuiDrag(windowElement, headerElement) {
+            let isDragging = false;
+            let offset = { x: 0, y: 0 };
+
+            headerElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offset = {
+                    x: e.clientX - windowElement.getBoundingClientRect().left,
+                    y: e.clientY - windowElement.getBoundingClientRect().top
+                };
+                windowElement.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                windowElement.style.left = `${e.clientX - offset.x}px`;
+                windowElement.style.top = `${e.clientY - offset.y}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                windowElement.style.cursor = 'grab';
+            });
+
+            headerElement.style.cursor = 'grab';
+        }
+
+        // --- WebGPU Initialization ---
+        async function initWebGPU() {
+            canvas = document.getElementById('webgpu-canvas');
+            const errorDiv = document.getElementById('webgpu-error');
+
+            if (!navigator.gpu) {
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            context = canvas.getContext('webgpu');
+
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: presentationFormat,
+                alphaMode: 'opaque',
+            });
+
+            // Set canvas size to match window size for fullscreen
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Initialize resources
+            await createTextures();
+            createPipelines();
+            createBindGroups();
+            setupUI();
+
+            // Start rendering
+            scheduleRender();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                scheduleRender();
+            });
+        }
+
+        async function createTextures() {
+            // Create a procedural texture (input for blur)
+            const offscreenCanvas = document.createElement('canvas');
+            offscreenCanvas.width = IMAGE_WIDTH;
+            offscreenCanvas.height = IMAGE_HEIGHT;
+            const ctx = offscreenCanvas.getContext('2d');
+
+            // Draw a gradient
+            const gradient = ctx.createLinearGradient(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+            gradient.addColorStop(0, "rgb(255, 0, 0)"); // Red
+            gradient.addColorStop(0.25, "rgb(255, 255, 0)"); // Yellow
+            gradient.addColorStop(0.5, "rgb(0, 255, 0)"); // Green
+            gradient.addColorStop(0.75, "rgb(0, 0, 255)"); // Blue
+            gradient.addColorStop(1, "rgb(255, 0, 255)"); // Magenta
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+            // Add some circles for detail
+            for (let i = 0; i < 20; i++) {
+                ctx.fillStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.8)`;
+                ctx.beginPath();
+                ctx.arc(Math.random() * IMAGE_WIDTH, Math.random() * IMAGE_HEIGHT, Math.random() * 40 + 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            inputTexture = device.createTexture({
+                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+                label: 'Original Input Texture',
+            });
+
+            device.queue.copyExternalImageToTexture(
+                { source: offscreenCanvas },
+                { texture: inputTexture },
+                [IMAGE_WIDTH, IMAGE_HEIGHT]
+            );
+
+            // Create two temporary textures for ping-ponging during compute passes
+            const tempTextureDescriptor = {
+                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST,
+            };
+            tempTexture1 = device.createTexture({ ...tempTextureDescriptor, label: 'Temp Texture 1' });
+            tempTexture2 = device.createTexture({ ...tempTextureDescriptor, label: 'Temp Texture 2' });
+        }
+
+        function createPipelines() {
+            // Uniform buffer for compute parameters
+            uniformBuffer = device.createBuffer({
+                size: 12, // width (u32), height (u32), num_iterations (u32)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                label: 'Compute Uniform Buffer',
+            });
+
+            // Compute Pipeline
+            const computeShaderModule = device.createShaderModule({
+                code: document.getElementById('compute-shader-wgsl').textContent,
+            });
+
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main',
+                },
+                label: 'Horizontal Box Blur Compute Pipeline',
+            });
+
+            // Render Pipeline
+            const renderShaderModule = device.createShaderModule({
+                code: document.getElementById('render-shader-wgsl').textContent,
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderShaderModule,
+                    entryPoint: 'vs_main',
+                },
+                fragment: {
+                    module: renderShaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+                label: 'Fullscreen Quad Render Pipeline',
+            });
+
+            // Sampler for rendering the final texture
+            renderSampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+                label: 'Render Sampler',
+            });
+        }
+
+        function createBindGroups() {
+            const computeLayout = computePipeline.getBindGroupLayout(0);
+            const renderLayout = renderPipeline.getBindGroupLayout(0);
+
+            // Compute bind group for the initial pass (inputTexture -> tempTexture1)
+            computeBindGroupInitial = device.createBindGroup({
+                layout: computeLayout,
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: inputTexture.createView() },
+                    { binding: 2, resource: tempTexture1.createView() },
+                ],
+                label: 'Compute Bind Group (Initial)',
+            });
+
+            // Compute bind group for ping (tempTexture1 -> tempTexture2)
+            computeBindGroupPing = device.createBindGroup({
+                layout: computeLayout,
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: tempTexture1.createView() },
+                    { binding: 2, resource: tempTexture2.createView() },
+                ],
+                label: 'Compute Bind Group (Ping)',
+            });
+
+            // Compute bind group for pong (tempTexture2 -> tempTexture1)
+            computeBindGroupPong = device.createBindGroup({
+                layout: computeLayout,
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: tempTexture2.createView() },
+                    { binding: 2, resource: tempTexture1.createView() },
+                ],
+                label: 'Compute Bind Group (Pong)',
+            });
+
+            // Render bind group for displaying the original texture (default for 0 iterations)
+            renderBindGroupFinal = device.createBindGroup({
+                layout: renderLayout,
+                entries: [
+                    { binding: 0, resource: inputTexture.createView() },
+                    { binding: 1, resource: renderSampler },
+                ],
+                label: 'Render Bind Group (Default/Input)',
+            });
+        }
+
+        async function render() {
+            if (!device) return;
+
+            // Update uniform buffer with current parameters
+            device.queue.writeBuffer(uniformBuffer, 0, new Uint32Array([IMAGE_WIDTH, IMAGE_HEIGHT, blurIterations]));
+
+            const commandEncoder = device.createCommandEncoder();
+
+            let finalOutputTextureForRender = inputTexture; // Default if 0 iterations
+
+            if (blurIterations > 0) {
+                // Perform blurIterations horizontal passes
+                for (let i = 0; i < blurIterations; i++) {
+                    const computePassEncoder = commandEncoder.beginComputePass();
+                    computePassEncoder.setPipeline(computePipeline);
+
+                    // Select the correct bind group for ping-ponging
+                    if (i === 0) {
+                        computePassEncoder.setBindGroup(0, computeBindGroupInitial); // input -> temp1
+                    } else if (i % 2 === 1) { // 1st, 3rd, 5th... iteration after initial: temp1 -> temp2
+                        computePassEncoder.setBindGroup(0, computeBindGroupPing);
+                    } else { // 2nd, 4th, 6th... iteration after initial: temp2 -> temp1
+                        computePassEncoder.setBindGroup(0, computeBindGroupPong);
+                    }
+
+                    const workgroupX = Math.ceil(IMAGE_WIDTH / 8);
+                    const workgroupY = Math.ceil(IMAGE_HEIGHT / 8);
+                    computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY);
+                    computePassEncoder.end();
+                }
+
+                // Determine which temporary texture holds the final result
+                finalOutputTextureForRender = (blurIterations % 2 === 1) ? tempTexture1 : tempTexture2;
+            }
+
+            // Update the render bind group with the final output texture
+            renderBindGroupFinal = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: finalOutputTextureForRender.createView() },
+                    { binding: 1, resource: renderSampler },
+                ],
+                label: 'Render Bind Group (Final Blurred)',
+            });
+
+            // Render pass to display the result on the canvas
+            const renderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: context.getCurrentTexture().createView(),
+                        loadOp: 'clear',
+                        clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 }, // Background #1a1a2e
+                        storeOp: 'store',
+                    },
+                ],
+            };
+
+            const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroupFinal);
+            renderPassEncoder.draw(6); // Draw fullscreen quad using 6 vertices
+            renderPassEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            frameScheduled = false; // Reset for next frame
+        }
+
+        // --- UI Setup ---
+        function setupUI() {
+            const blurSlider = document.getElementById('blur-iterations');
+            const blurText = document.getElementById('blur-iterations-text');
+
+            // Initialize values
+            blurSlider.value = blurIterations;
+            blurText.value = blurIterations;
+
+            // Sync slider and text input
+            blurSlider.addEventListener('input', (e) => {
+                blurIterations = parseInt(e.target.value);
+                blurText.value = blurIterations;
+                scheduleRender();
+            });
+
+            blurText.addEventListener('change', (e) => {
+                let value = parseInt(e.target.value);
+                if (isNaN(value) || value < 0) value = 0;
+                if (value > 100) value = 100; // Max iterations
+                blurIterations = value;
+                blurSlider.value = blurIterations;
+                blurText.value = blurIterations;
+                scheduleRender();
+            });
+
+            // Make the UI window draggable
+            initImGuiDrag(document.getElementById('blur-window'), document.getElementById('blur-window-header'));
+        }
+
+        // --- Render Scheduling (debounce for RAF) ---
+        function scheduleRender() {
+            if (!frameScheduled) {
+                frameScheduled = true;
+                requestAnimationFrame(render);
+            }
+        }
+
+        // Initialize everything when the DOM is ready
+        window.addEventListener('load', initWebGPU);
+    </script>
+</body>
+</html>
