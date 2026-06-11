@@ -39,32 +39,32 @@ graph LR
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰</strong><br><br>
-<a href="demos/boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰.md">데모 보기 →</a>
+<a href="demos/boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>픽셀 버퍼 애니메이션</strong><br><br>
-<a href="demos/pixel-animation.md">데모 보기 →</a>
+<a href="demos/pixel-animation/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>CPU 레이트레이서 — Phong 셰이딩 + 그림자</strong><br><br>
-<a href="demos/raytracer.md">데모 보기 →</a>
+<a href="demos/raytracer/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작</strong><br><br>
-<a href="demos/이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작.md">데모 보기 →</a>
+<a href="demos/이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>이미지 밝기 조절 픽셀 값 직접 조작하기</strong><br><br>
-<a href="demos/이미지-밝기-조절-픽셀-값-직접-조작하기.md">데모 보기 →</a>
+<a href="demos/이미지-밝기-조절-픽셀-값-직접-조작하기/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>학습자의 directx 11 c 그래픽스 스터디 커밋 분석 입력 이미지</strong><br><br>
-<a href="demos/학습자의-directx-11-c-그래픽스-스터디-커밋-분석-입력-이미지-.md">데모 보기 →</a>
+<a href="demos/학습자의-directx-11-c-그래픽스-스터디-커밋-분석-입력-이미지-/">데모 보기 →</a>
 </div>
 
 </div>

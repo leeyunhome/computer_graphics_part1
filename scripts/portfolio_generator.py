@@ -222,6 +222,8 @@ def rebuild_homepage():
     )[:5]
 
     # 데모 카드 HTML 생성
+    # raw HTML <a href> 안에서는 MkDocs가 .md→URL 변환을 하지 않으므로
+    # 렌더링된 URL 경로인 "demos/<slug>/" 를 직접 사용
     demo_cards = ""
     for fname in demo_pages:
         title = _extract_title_from_md(os.path.join(DEMOS_PATH, fname))
@@ -229,7 +231,7 @@ def rebuild_homepage():
         demo_cards += f"""
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>{title}</strong><br><br>
-<a href="demos/{fname}">데모 보기 →</a>
+<a href="demos/{slug}/">데모 보기 →</a>
 </div>
 """
 
