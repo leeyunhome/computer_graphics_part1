@@ -1,216 +1,755 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>이미지 밝기 조절 시각화</title>
-    <style>
-        /* 기본 레이아웃 및 테마 설정 */
-        body {
-            background-color: #0f172a; /* 어두운 배경 */
-            color: #e2e8f0; /* 밝은 텍스트 */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh; /* 뷰포트 전체 높이 사용 */
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
 
-        /* 제목 스타일 */
-        h1 {
-            color: #f8fafc; /* 더 밝은 텍스트 */
-            margin-bottom: 30px;
-            font-size: 2.2em;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="컴퓨터 그래픽스 학습 포트폴리오 - DirectX 11, 레이트레이싱, HLSL">
+      
+      
+      
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/">
+      
+      
+        <link rel="prev" href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/">
+      
+      
+        <link rel="next" href="../%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>이미지 밝기 조절 픽셀 값 직접 조작하기 - Computer Graphics Portfolio</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
 
-        /* 캔버스 스타일 */
-        canvas {
-            border: 2px solid #334155; /* 캔버스 테두리 */
-            background-color: #000; /* 캔버스 배경 (이미지 로딩 전 또는 투명 부분) */
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); /* 그림자 효과 */
-            max-width: 90%; /* 화면 너비 제한 */
-            height: auto;
-            display: block; /* 중앙 정렬을 위해 블록 요소로 */
-            border-radius: 8px; /* 부드러운 모서리 */
-        }
 
-        /* 컨트롤 패널 스타일 */
-        .controls {
-            margin-top: 30px;
-            padding: 20px 30px;
-            background-color: #1e293b; /* 컨트롤 패널 배경 */
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 15px; /* 요소 간 간격 */
-        }
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
 
-        /* 레이블 스타일 */
-        label {
-            font-size: 1.1em;
-            font-weight: 500;
-            color: #cbd5e1;
-        }
-
-        /* 슬라이더(range input) 스타일 */
-        input[type="range"] {
-            -webkit-appearance: none; /* 기본 웹킷 스타일 제거 */
-            width: 300px;
-            height: 8px;
-            background: #475569; /* 슬라이더 트랙 색상 */
-            outline: none;
-            opacity: 0.9;
-            transition: opacity .2s;
-            border-radius: 5px;
-        }
-        input[type="range"]:hover {
-            opacity: 1; /* 호버 시 투명도 증가 */
-        }
-
-        /* 슬라이더 썸(thumb) 스타일 (웹킷 기반 브라우저) */
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #60a5fa; /* 썸 색상 */
-            cursor: pointer;
-            border-radius: 50%; /* 원형 썸 */
-            border: 2px solid #e0f2fe; /* 썸 테두리 */
-            box-shadow: 0 0 8px rgba(96, 165, 250, 0.6); /* 썸 그림자 */
-        }
-
-        /* 슬라이더 썸(thumb) 스타일 (파이어폭스) */
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: #60a5fa;
-            cursor: pointer;
-            border-radius: 50%;
-            border: 2px solid #e0f2fe;
-            box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
-        }
-
-        /* 현재 밝기 값 표시 스타일 */
-        #brightnessValue {
-            min-width: 40px; /* 값 표시 영역 최소 너비 */
-            text-align: right;
-            font-weight: bold;
-            color: #60a5fa; /* 값 텍스트 색상 */
-            font-size: 1.1em;
-        }
-    </style>
-</head>
-<body>
-    <h1>이미지 밝기 조절 시각화</h1>
-    <canvas id="mainCanvas"></canvas>
-    <div class="controls">
-        <label for="brightnessSlider">밝기 조절:</label>
-        <!-- 밝기 조절 슬라이더: -100 (어둡게) 에서 100 (밝게) 까지 조절 가능 -->
-        <input type="range" id="brightnessSlider" min="-100" max="100" value="0">
-        <span id="brightnessValue">0</span> <!-- 현재 밝기 값을 표시할 요소 -->
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
     </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
 
-    <script>
-        // DOM 요소 가져오기
-        const canvas = document.getElementById('mainCanvas');
-        const ctx = canvas.getContext('2d');
-        const brightnessSlider = document.getElementById('brightnessSlider');
-        const brightnessValueSpan = document.getElementById('brightnessValue');
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="Computer Graphics Portfolio" class="md-header__button md-logo" aria-label="Computer Graphics Portfolio" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
-        // 캔버스 크기 설정
-        const CANVAS_WIDTH = 600;
-        const CANVAS_HEIGHT = 400;
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Computer Graphics Portfolio
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              이미지 밝기 조절 픽셀 값 직접 조작하기
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/leeyunhome/computer_graphics_part1" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  홈
 
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
+      </a>
+    </li>
+  
 
-        let originalImageData; // 원본 이미지 데이터를 저장할 변수
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../posts/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  학습 포스트
 
-        /**
-         * 초기 이미지 (그라디언트 패턴)를 캔버스에 그립니다.
-         * 이 함수는 원본 이미지 데이터를 생성하고 저장합니다.
-         */
-        function drawInitialImage() {
-            // ImageData 객체를 생성하여 픽셀 데이터를 직접 조작
-            const imageData = ctx.createImageData(CANVAS_WIDTH, CANVAS_HEIGHT);
-            const data = imageData.data; // 픽셀 배열 (R, G, B, A 순서)
+      </a>
+    </li>
+  
 
-            for (let y = 0; y < CANVAS_HEIGHT; y++) {
-                for (let x = 0; x < CANVAS_WIDTH; x++) {
-                    const i = (y * CANVAS_WIDTH + x) * 4; // 각 픽셀의 첫 번째 채널(R) 인덱스
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  인터랙티브 데모
 
-                    // 복합적인 그라디언트 패턴 생성
-                    // R: 가로 방향으로 0에서 255까지 증가
-                    // G: 세로 방향으로 0에서 255까지 증가
-                    // B: 사인파를 이용하여 물결무늬 패턴 생성
-                    const r = Math.floor(255 * (x / CANVAS_WIDTH));
-                    const g = Math.floor(255 * (y / CANVAS_HEIGHT));
-                    const b = Math.floor(128 + 127 * Math.sin(x * 0.03 + y * 0.05)); // x와 y에 따라 변하는 사인파
+        </a>
+      </li>
+    
+  
 
-                    data[i] = r;         // Red 채널
-                    data[i + 1] = g;     // Green 채널
-                    data[i + 2] = b;     // Blue 채널
-                    data[i + 3] = 255;   // Alpha 채널 (완전히 불투명)
-                }
-            }
-            ctx.putImageData(imageData, 0, 0); // 생성된 이미지 데이터를 캔버스에 그리기
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
 
-            // 현재 캔버스에 그려진 이미지 데이터를 원본으로 저장
-            // 이렇게 함으로써 슬라이더 조작 시 항상 원본에서 시작하여 밝기를 조절할 수 있습니다.
-            originalImageData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        }
 
-        /**
-         * 주어진 ImageData에 밝기 조절을 적용하고 캔버스에 그립니다.
-         * @param {ImageData} imageData - 수정할 ImageData 객체
-         * @param {number} brightnessAmount - 밝기 조절 값 (양수면 밝게, 음수면 어둡게)
-         */
-        function applyBrightness(imageData, brightnessAmount) {
-            const data = imageData.data; // 픽셀 데이터 (Uint8ClampedArray)
+  
 
-            for (let i = 0; i < data.length; i += 4) {
-                // 각 R, G, B 채널에 밝기 조절 값을 더하고, 0-255 범위로 클램핑
-                // Math.max(0, ...)는 최소값 0을 보장
-                // Math.min(255, ...)는 최대값 255를 보장
-                // `originalImageData.data`를 사용하여 항상 원본 픽셀 값에서 시작합니다.
-                data[i] = Math.max(0, Math.min(255, originalImageData.data[i] + brightnessAmount));           // Red
-                data[i + 1] = Math.max(0, Math.min(255, originalImageData.data[i + 1] + brightnessAmount));     // Green
-                data[i + 2] = Math.max(0, Math.min(255, originalImageData.data[i + 2] + brightnessAmount));       // Blue
-                // Alpha 채널 (data[i+3])은 변경하지 않습니다.
-            }
-            ctx.putImageData(imageData, 0, 0); // 수정된 이미지 데이터를 캔버스에 다시 그리기
-        }
 
-        /**
-         * 슬라이더 값 변경에 따라 시각화를 업데이트하는 함수입니다.
-         */
-        function updateVisualization() {
-            const brightness = parseInt(brightnessSlider.value, 10); // 슬라이더에서 현재 밝기 값 가져오기
-            brightnessValueSpan.textContent = brightness; // 현재 값 표시 업데이트
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Computer Graphics Portfolio" class="md-nav__button md-logo" aria-label="Computer Graphics Portfolio" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
-            // 원본 이미지 데이터의 복사본을 생성하여 수정합니다.
-            // 이렇게 해야 원본 데이터는 보존되고, 변경 사항은 복사본에만 적용됩니다.
-            const currentImageData = new ImageData(
-                new Uint8ClampedArray(originalImageData.data), // 원본 데이터의 새로운 Uint8ClampedArray 생성
-                originalImageData.width,
-                originalImageData.height
-            );
+    </a>
+    Computer Graphics Portfolio
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/leeyunhome/computer_graphics_part1" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    홈
+  
 
-            applyBrightness(currentImageData, brightness); // 밝기 조절 적용
-        }
+    
+  </span>
+  
+  
 
-        // 초기화:
-        drawInitialImage(); // 초기 이미지 그리기
-        brightnessSlider.addEventListener('input', updateVisualization); // 슬라이더 값 변경 시 이벤트 리스너 등록
+      </a>
+    </li>
+  
 
-        // 페이지 로드 후 초기 시각화 업데이트 (초기 슬라이더 값 0 반영)
-        updateVisualization();
-    </script>
-</body>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../posts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습 포스트
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인터랙티브 데모
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    인터랙티브 데모
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    목록
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pixel-animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 버퍼 애니메이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raytracer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CPU 레이트레이서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이미지 밝기 조절 픽셀 값 직접 조작하기
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습자의 directx 11 c 그래픽스 스터디 커밋 분석 입력 이미지
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">이미지 밝기 조절 픽셀 값 직접 조작하기</h1>
+<div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
+<iframe src="이미지-밝기-조절-픽셀-값-직접-조작하기/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  맨위로
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
 </html>

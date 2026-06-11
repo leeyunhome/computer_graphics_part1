@@ -10,9 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-10-%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%ED%81%B4%EB%A6%AC%EC%96%B4-%EC%83%89%EC%83%81-%EB%B3%80%EA%B2%BD/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/">
       
       
+        <link rel="prev" href="../raytracer/">
+      
+      
+        <link rel="next" href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>학습자의 DirectX 11 / C++ 그래픽스 스터디 커밋 분석: 입력 이미지 및 렌더 타겟 클리어 색상 변경 - Computer Graphics Portfolio</title>
+        <title>boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰 - Computer Graphics Portfolio</title>
       
     
     
@@ -74,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#directx-11-c" class="md-skip">
+        <a href="#boxblur5" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -108,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              학습자의 DirectX 11 / C++ 그래픽스 스터디 커밋 분석: 입력 이미지 및 렌더 타겟 클리어 색상 변경
+              boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰
             
           </span>
         </div>
@@ -238,7 +242,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../" class="md-tabs__link">
+      <a href="../../posts/" class="md-tabs__link">
         
   
   
@@ -255,11 +259,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../demos/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -350,7 +356,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../posts/" class="md-nav__link">
         
   
   
@@ -374,26 +380,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -411,7 +422,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -429,7 +440,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../demos/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -457,7 +468,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../demos/pixel-animation/" class="md-nav__link">
+      <a href="../pixel-animation/" class="md-nav__link">
         
   
   
@@ -485,7 +496,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../demos/raytracer/" class="md-nav__link">
+      <a href="../raytracer/" class="md-nav__link">
         
   
   
@@ -510,10 +521,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../demos/boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -529,6 +549,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -541,7 +562,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
+      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
         
   
   
@@ -569,7 +590,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
+      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
         
   
   
@@ -597,7 +618,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
+      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
         
   
   
@@ -645,108 +666,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      목차
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        핵심 변경 사항 분석
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        학습자가 직접 구현하며 이해한 개념
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="학습자가 직접 구현하며 이해한 개념">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. 텍스처 로딩 및 관리의 기초
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-rgba" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 렌더링 파이프라인의 초기화 및 RGBA 색상 체계
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-bloom" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 후처리 효과(Bloom) 적용을 위한 준비
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        핵심 알고리즘 (의사 코드)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#javascript" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        JavaScript 데모 연동 가능 여부
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        인터랙티브 데모
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -765,117 +684,9 @@
   
 
 
-<h1 id="directx-11-c">학습자의 DirectX 11 / C++ 그래픽스 스터디 커밋 분석: 입력 이미지 및 렌더 타겟 클리어 색상 변경</h1>
-<p>컴퓨터 그래픽스 전문가로서 학습자님의 커밋 내용을 면밀히 검토했습니다. 이번 커밋은 "02_Bloom" 예제에서 입력 이미지를 변경하고 렌더 타겟의 클리어 색상을 조정한 것으로 보입니다. 이는 렌더링 파이프라인의 기본적인 입력 및 초기화 단계를 이해하는 데 중요한 실습입니다.</p>
-<h2 id="_1">핵심 변경 사항 분석</h2>
-<p>학습자님의 커밋은 크게 두 가지 핵심 변경 사항을 포함하고 있습니다.</p>
-<ol>
-<li>
-<p><strong>입력 이미지 파일 변경</strong>:
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gd">-       image.ReadFromFile(&quot;image_1.jpg&quot;); // 컴퓨터 속도가 느리다면 &quot;image_1_360.jpg&quot; 사용</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gi">+       image.ReadFromFile(&quot;image_4.jpg&quot;); // 컴퓨터 속도가 느리다면 &quot;image_1_360.jpg&quot; 사용</span>
-</code></pre></div>
-    이 변경은 <code>image.ReadFromFile()</code> 함수를 통해 렌더링 파이프라인에 주입될 텍스처 데이터를 <code>image_1.jpg</code>에서 <code>image_4.jpg</code>로 바꾼 것입니다. 커밋 메시지에 <code>IMG_1294.HEIC</code>를 <code>image_4.jpg</code>로 변환했다는 언급은 학습자님이 실제 이미지 파일을 그래픽스 애플리케이션에서 사용할 수 있는 포맷으로 준비하는 과정을 직접 경험했음을 보여줍니다.</p>
-</li>
-<li>
-<p><strong>렌더 타겟 클리어 색상 변경</strong>:
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gd">-       float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gi">+       float clearColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f };</span>
-</code></pre></div>
-    이 변경은 <code>ClearRenderTargetView</code> 함수가 사용하는 <code>clearColor</code> 배열의 값을 수정한 것입니다. 기존의 <code>{ 0.0f, 0.0f, 0.0f, 1.0f }</code>는 검은색(RGB 값 모두 0, 알파 1)을 의미하며, 이를 <code>{ 0.0f, 0.0f, 1.0f, 1.0f }</code>로 변경하여 파란색(R:0, G:0, B:1, 알파 1)으로 바꾼 것입니다. 이는 매 프레임 렌더링 시작 시 화면이 파란색으로 지워지도록 설정하는 것을 의미합니다.</p>
-</li>
-</ol>
-<h2 id="_2">학습자가 직접 구현하며 이해한 개념</h2>
-<p>이번 커밋을 통해 학습자님이 직접 구현하며 이해한 핵심 개념은 다음과 같습니다.</p>
-<h3 id="1">1. 텍스처 로딩 및 관리의 기초</h3>
-<ul>
-<li><strong>외부 파일에서 이미지 로딩</strong>: 학습자님은 <code>image.ReadFromFile()</code>과 같은 함수를 사용하여 외부 저장소에 있는 이미지 파일(JPEG)을 읽어들여 메모리에 로드하고, 이를 그래픽스 애플리케이션의 텍스처 데이터로 활용하는 방법을 이해했습니다. 이는 3D 모델에 질감을 입히거나, 2D 스프라이트를 그리거나, 혹은 Bloom과 같은 후처리 효과의 입력 이미지로 사용하는 데 필수적인 과정입니다.</li>
-<li><strong>이미지 포맷 변환의 필요성</strong>: HEIC 파일을 JPG로 변환한 경험은 실제 프로젝트에서 다양한 이미지 포맷을 지원해야 하거나, 특정 그래픽스 API에 맞는 포맷으로 변환해야 할 필요성을 체감하게 했을 것입니다. 이는 텍스처 에셋 관리의 중요한 부분입니다.</li>
-</ul>
-<h3 id="2-rgba">2. 렌더링 파이프라인의 초기화 및 RGBA 색상 체계</h3>
-<ul>
-<li><strong>렌더 타겟 클리어링</strong>: 매 프레임 렌더링을 시작하기 전에 이전에 그려진 내용을 지우고 새로운 프레임을 그릴 준비를 하는 <code>ClearRenderTargetView()</code> 함수의 중요성을 이해했습니다. 이는 렌더링 아티팩트를 방지하고 깨끗한 화면에서 렌더링을 시작하는 기본적인 단계입니다.</li>
-<li><strong>RGBA 색상 모델</strong>: <code>float clearColor[4]</code> 배열을 통해 RGBA (Red, Green, Blue, Alpha) 색상 모델을 사용하며, 각 채널이 0.0f(최소)부터 1.0f(최대) 사이의 부동 소수점 값으로 표현된다는 것을 이해했습니다.<ul>
-<li>빨강(R): <code>clearColor[0]</code></li>
-<li>초록(G): <code>clearColor[1]</code></li>
-<li>파랑(B): <code>clearColor[2]</code></li>
-<li>알파(A): <code>clearColor[3]</code> (불투명도, 1.0f는 완전 불투명)
-이를 통해 특정 색상(예: 검은색 <code>(0,0,0,1)</code> 또는 파란색 <code>(0,0,1,1)</code>)으로 렌더 타겟을 지울 수 있음을 파악한 것입니다.</li>
-</ul>
-</li>
-</ul>
-<h3 id="3-bloom">3. 후처리 효과(Bloom) 적용을 위한 준비</h3>
-<p>이번 변경은 Bloom 효과 자체를 직접 구현한 것은 아니지만, Bloom 효과를 다양한 입력 이미지와 배경에 대해 테스트하고 시각적으로 확인하기 위한 중요한 준비 작업입니다. 새로운 이미지를 로드하고 배경색을 변경함으로써, Bloom 효과가 이미지의 밝은 영역을 어떻게 확장하고, 다른 배경색 위에서 어떻게 다르게 보이는지 실험할 수 있는 기반을 마련했습니다.</p>
-<h2 id="_3">핵심 알고리즘 (의사 코드)</h2>
-<p><strong>1. 이미지 로딩 과정 추상화:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>// 이미지 로딩 함수
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>FUNCTION LoadImageToTexture(filePath: string) -&gt; Texture
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    image_data = ReadImageFile(filePath) // 파일 시스템에서 이미지 데이터 읽기
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    IF image_data IS NULL THEN
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        LogError(&quot;Failed to read image file.&quot;)
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        RETURN NULL
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    END IF
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    // 읽은 이미지 데이터를 GPU 텍스처 자원으로 변환
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    texture = CreateGPUTextureFromImageData(image_data) 
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    RETURN texture
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>END FUNCTION
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>// 예제 코드 적용
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>BEGIN Example_Constructor
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    // image_4.jpg 파일을 읽어 텍스처로 준비
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    main_image_texture = LoadImageToTexture(&quot;image_4.jpg&quot;) 
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    // ... 초기화 및 다른 설정 계속 ...
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>END Example_Constructor
-</code></pre></div>
-<p><strong>2. 렌더 타겟 클리어링 과정 추상화:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>// 프레임 렌더링 함수
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>FUNCTION RenderFrame()
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    // 렌더 타겟을 지울 색상 설정 (RGBA)
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    // 학습자는 {0.0f, 0.0f, 1.0f, 1.0f} (파란색)으로 설정
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    DEFINE clear_color = {R_value, G_value, B_value, A_value} 
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    // GPU 렌더링 컨텍스트를 사용하여 렌더 타겟 뷰를 지정된 색상으로 지우기
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    deviceContext.ClearRenderTargetView(main_render_target_view, clear_color)
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    // 뷰포트 설정
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    deviceContext.RSSetViewports(1, &amp;viewport)
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    // 렌더링할 오브젝트들(예: 불러온 이미지)을 그리는 작업 수행
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    DrawSceneObjects(main_image_texture)
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    // 최종 렌더링 결과를 화면에 표시
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    PresentFrameToScreen()
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>END FUNCTION
-</code></pre></div>
-<h2 id="javascript">JavaScript 데모 연동 가능 여부</h2>
-<p>네, 이번 커밋에서 다룬 <strong>이미지 로딩</strong> 및 <strong>렌더 타겟 클리어 색상 변경</strong> 개념은 웹 브라우저의 Canvas/WebGL 환경에서 쉽게 시각적으로 데모를 구현할 수 있습니다.</p>
-<ul>
-<li>
-<p><strong>이미지 로딩</strong>:</p>
-<ul>
-<li>JavaScript의 <code>Image</code> 객체를 사용하여 URL로부터 이미지를 비동기적으로 로드할 수 있습니다.</li>
-<li>로드된 <code>Image</code> 객체는 WebGL의 <code>gl.texImage2D()</code> 함수를 통해 텍스처로 변환되어 GPU에 업로드될 수 있습니다.</li>
-<li>데모에서는 사용자가 파일 입력(<code>input type="file"</code>)을 통해 로컬 이미지를 선택하거나, 드롭다운 메뉴로 여러 샘플 이미지 중 하나를 선택하면 해당 이미지가 캔버스에 로드되어 표시되도록 만들 수 있습니다.</li>
-</ul>
-</li>
-<li>
-<p><strong>클리어 색상 변경</strong>:</p>
-<ul>
-<li>WebGL의 <code>gl.clearColor(red, green, blue, alpha);</code> 함수를 사용하여 렌더링 버퍼를 지울 색상을 설정합니다. 이 값은 0.0에서 1.0 사이의 부동 소수점입니다.</li>
-<li><code>gl.clear(gl.COLOR_BUFFER_BIT);</code> 호출을 통해 현재 프레임 버퍼를 이전에 설정한 <code>clearColor</code>로 지울 수 있습니다.</li>
-<li>데모에서는 R, G, B, A 각각에 대한 슬라이더 또는 색상 피커를 제공하여 사용자가 실시간으로 배경색을 변경하고 <code>gl.clear()</code> 호출이 캔버스에 어떻게 반영되는지 즉시 확인할 수 있도록 구현할 수 있습니다.</li>
-</ul>
-</li>
-<li>
-<p><strong>시각화 모습</strong>:
-    웹 페이지 중앙에 Canvas 엘리먼트가 있고, 그 위에 로드된 <code>image_4.jpg</code>가 그려집니다. Canvas 아래에는 이미지 파일을 선택할 수 있는 버튼 또는 드롭다운 목록이 있고, 그 옆에는 "배경색 (R, G, B)"을 조절하는 슬라이더 세트가 배치될 것입니다. 슬라이더를 움직이면 Canvas의 배경색이 실시간으로 변하고, 이미지 선택을 바꾸면 캔버스에 새로운 이미지가 나타나게 됩니다. 만약 Bloom 효과까지 적용한다면, 이미지 선택과 배경색 변경에 따라 Bloom 효과가 적용된 결과물이 Canvas에 시각적으로 나타나 학습자가 다양한 조건에서 효과를 관찰할 수 있을 것입니다.</p>
-</li>
-</ul>
-<hr />
-<h2 id="_4">인터랙티브 데모</h2>
+<h1 id="boxblur5">boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰</h1>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="../demos/학습자의-directx-11-c-그래픽스-스터디-커밋-분석-입력-이미지-/index.html" width="100%" height="560" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
