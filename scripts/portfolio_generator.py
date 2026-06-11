@@ -171,6 +171,109 @@ def generate_js_demo(commit_msg, diff_text, topic_hint):
     return generate_webgpu_demo(commit_msg, diff_text, topic_hint)
 
 
+# ── Site index helpers ────────────────────────────────────────────────────────
+
+def _extract_title_from_md(filepath):
+    """마크다운 파일의 첫 번째 # 제목을 반환합니다."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('# '):
+                    return line[2:].strip()
+    except Exception:
+        pass
+    return os.path.basename(filepath)[:-3]
+
+
+def rebuild_posts_index():
+    """docs/posts/index.md 를 포스트 목록으로 갱신합니다."""
+    posts = sorted(
+        [f for f in os.listdir(POSTS_PATH) if f.endswith('.md') and f != 'index.md'],
+        reverse=True,  # 최신 순
+    )
+    lines = [
+        "# 학습 포스트\n",
+        "학습 저장소에 커밋할 때마다 자동 생성되는 포스트 목록입니다.\n",
+        "\n---\n",
+    ]
+    for fname in posts:
+        title = _extract_title_from_md(os.path.join(POSTS_PATH, fname))
+        date = fname[:10] if fname[:4].isdigit() else ''
+        lines.append(f"\n## [{title}]({fname})\n")
+        if date:
+            lines.append(f"\n📅 {date}\n")
+        lines.append("\n---\n")
+
+    with open(os.path.join(POSTS_PATH, 'index.md'), 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))
+
+
+def rebuild_demos_index():
+    """docs/demos/index.md 를 데모 목록으로 갱신합니다."""
+    # 수동으로 만든 데모 페이지 + 자동 생성 데모 페이지 모두 포함
+    demo_pages = sorted(
+        [f for f in os.listdir(DEMOS_PATH)
+         if f.endswith('.md') and f != 'index.md'],
+    )
+    lines = [
+        "# 인터랙티브 데모\n",
+        "WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.  \n",
+        "슬라이더를 조작해 실시간으로 파라미터를 바꿔볼 수 있습니다.\n",
+        "\n---\n",
+    ]
+    for fname in demo_pages:
+        title = _extract_title_from_md(os.path.join(DEMOS_PATH, fname))
+        slug = fname[:-3]
+        lines.append(f"\n## [{title}]({fname})\n")
+        lines.append(f"\n[→ 데모 열기]({fname}){{.md-button}}\n")
+        lines.append("\n---\n")
+
+    with open(os.path.join(DEMOS_PATH, 'index.md'), 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))
+
+
+def create_demo_page(title, demo_slug):
+    """docs/demos/<slug>.md — 데모를 iframe으로 감싸는 독립 페이지를 생성합니다."""
+    demo_page_path = os.path.join(DEMOS_PATH, f"{demo_slug}.md")
+    if os.path.exists(demo_page_path):
+        return  # 이미 존재하면 건너뜀 (pixel-animation.md, raytracer.md 등 수동 페이지 보호)
+    content = f"""# {title}
+
+<div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
+<iframe src="{demo_slug}/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+</div>
+"""
+    with open(demo_page_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"  데모 페이지 생성: {demo_page_path}")
+
+
+def update_mkdocs_nav(demo_title, demo_slug):
+    """mkdocs.yml의 인터랙티브 데모 섹션에 새 항목을 추가합니다."""
+    mkdocs_path = os.path.join(PORTFOLIO_REPO_PATH, 'mkdocs.yml')
+    nav_entry = f"    - {demo_title}: demos/{demo_slug}.md"
+
+    with open(mkdocs_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    if f"demos/{demo_slug}.md" in content:
+        return  # 이미 등록됨
+
+    # 마지막 "    - ...: demos/..." 라인 뒤에 삽입
+    lines = content.split('\n')
+    last_demo_idx = -1
+    for i, line in enumerate(lines):
+        if re.match(r'    - .+: demos/', line):
+            last_demo_idx = i
+
+    if last_demo_idx >= 0:
+        lines.insert(last_demo_idx + 1, nav_entry)
+        with open(mkdocs_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+        print(f"  mkdocs.yml nav 업데이트: {demo_title}")
+
+
 # ── Save & commit ──────────────────────────────────────────────────────────────
 
 def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo_topic_slug=None):
@@ -194,6 +297,10 @@ def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo
         demo_rel_path = f"../demos/{demo_topic_slug}/demo.html"
         print(f"  WebGPU 데모 저장: {demo_html_path}")
 
+        # 데모 독립 페이지 생성 + 인덱스/nav 갱신
+        create_demo_page(title, demo_topic_slug)
+        update_mkdocs_nav(title, demo_topic_slug)
+
     final_content = md_content
     if demo_rel_path:
         final_content += f"""
@@ -210,6 +317,11 @@ def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(final_content)
     print(f"  포스트 저장: {md_path}")
+
+    # 포스트/데모 인덱스 항상 재빌드 (새 항목 반영)
+    rebuild_posts_index()
+    rebuild_demos_index()
+    print("  인덱스 갱신 완료 (posts/index.md, demos/index.md)")
 
     if commit_hash:
         mark_commit_processed(commit_hash)
