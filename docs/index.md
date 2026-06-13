@@ -43,6 +43,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>1차원 배열을 통한 2D 캔버스 제어와 프레임 기반 픽셀 애니메이션</strong><br><br>
+<a href="demos/1차원-배열을-통한-2d-캔버스-제어와-프레임-기반-픽셀-애니메이션/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해</strong><br><br>
 <a href="demos/box-blur-5x5-수평-패스-구현-및-분리형-컨볼루션-이해/">데모 보기 →</a>
 </div>
