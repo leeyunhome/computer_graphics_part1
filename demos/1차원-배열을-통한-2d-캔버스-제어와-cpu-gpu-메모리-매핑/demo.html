@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Add blue pixel at position (2, 0) in canvas initialization</title>
+    <style>
+        /* ImGui 스타일의 다크 테마 적용 */
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: rgba(23, 23, 38, 0.95);
+            --panel-border: #4f5b66;
+            --text-color: #e0e0e0;
+            --text-muted: #8892b0;
+            --accent-color: #007acc;
+            --accent-hover: #0098ff;
+            --input-bg: #2d3748;
+            --input-border: #4a5568;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ImGui Window 컨테이너 */
+        #imgui-container {
+            width: 900px;
+            height: 600px;
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Window 타이틀바 */
+        #imgui-titlebar {
+            background: linear-gradient(to right, #2c3e50, #3498db);
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+            letter-spacing: 0.5px;
+        }
+
+        #imgui-titlebar .window-controls span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-left: 6px;
+            border-radius: 50%;
+            background: #4f5b66;
+        }
+
+        /* 메인 콘텐츠 영역 (2분할) */
+        #imgui-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 왼쪽: Render Viewport */
+        #viewport-container {
+            flex: 1.2;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid var(--panel-border);
+            background: #0d0d1a;
+            position: relative;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 1px solid #333;
+            image-rendering: pixelated; /* 픽셀 강조를 위해 Nearest-neighbor 적용 */
+            width: 450px;
+            height: 450px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+
+        /* 오른쪽: GUI 컨트롤 패널 */
+        #control-panel {
+            flex: 0.8;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h2 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 5px;
+            color: #3498db;
+        }
+
+        .section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 4px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        /* 컨트롤 요소 스타일링 */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #bbb;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 32px;
+            height: 24px;
+            border-radius: 3px;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid var(--panel-border);
+            border-radius: 3px;
+        }
+
+        .rgb-sliders {
+            flex-1: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-row span {
+            font-size: 10px;
+            width: 10px;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: var(--input-bg);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+
+        /* 체크박스 스타일 */
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* 디버그 인포 오버레이 */
+        .debug-info {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--panel-border);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* 에러 메시지 */
+        #error-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(20, 20, 30, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #ff4a4a;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="imgui-container">
+        <!-- DirectX 11 스타일 타이틀바 -->
+        <div id="imgui-titlebar">
+            <span>DirectX 11 — Add blue pixel at position (2, 0) in canvas initialization</span>
+            <div class="window-controls">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div id="imgui-content">
+            <!-- 렌더링 뷰포트 -->
+            <div id="viewport-container">
+                <canvas id="webgpu-canvas" width="512" height="512"></canvas>
+                
+                <!-- DX11 풍 디버그 오버레이 -->
+                <div class="debug-info">
+                    <span style="color: #3498db; font-weight: bold;">[DirectX 11 Render Target]</span>
+                    <span>Resolution: 16 x 16 (Upscaled to 512x512)</span>
+                    <span>UAV Format: DXGI_FORMAT_R8G8B8A8_UNORM</span>
+                    <span>SV_DispatchThreadID: [8, 8, 1]</span>
+                    <span id="fps-display">Frame: - ms</span>
+                </div>
+            </div>
+
+            <!-- GUI 제어 패널 -->
+            <div id="control-panel">
+                <h2>Canvas Initialize Settings</h2>
+
+                <!-- 픽셀 0,0 (Red) 설정 -->
+                <div class="section">
+                    <div class="section-title" style="color: #ff4a4a;">Pixel (0, 0) - Initial Red</div>
+                    <div class="color-picker-row">
+                        <input type="color" id="p0-picker" value="#ff0000">
+                        <div class="rgb-sliders">
+                            <div class="slider-row">
+                                <span>R</span>
+                                <input type="range" id="p0-r" min="0" max="255" value="255">
+                            </div>
+                            <div class="slider-row">
+                                <span>G</span>
+                                <input type="range" id="p0-g" min="0" max="255" value="0">
+                            </div>
+                            <div class="slider-row">
+                                <span>B</span>
+                                <input type="range" id="p0-b" min="0" max="255" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 픽셀 1,0 (Yellow) 설정 -->
+                <div class="section">
+                    <div class="section-title" style="color: #ffeb3b;">Pixel (1, 0) - Initial Yellow</div>
+                    <div class="color-picker-row">
+                        <input type="color" id="p1-picker" value="#ffff00">
+                        <div class="rgb-sliders">
+                            <div class="slider-row">
+                                <span>R</span>
+                                <input type="range" id="p1-r" min="0" max="255" value="255">
+                            </div>
+                            <div class="slider-row">
+                                <span>G</span>
+                                <input type="range" id="p1-g" min="0" max="255" value="255">
+                            </div>
+                            <div class="slider-row">
+                                <span>B</span>
+                                <input type="range" id="p1-b" min="0" max="255" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 픽셀 2,0 (Blue) 설정 -->
+                <div class="section">
+                    <div class="section-title" style="color: #3498db;">Pixel (2, 0) - Initial Blue</div>
+                    <div class="color-picker-row">
+                        <input type="color" id="p2-picker" value="#0000ff">
+                        <div class="rgb-sliders">
+                            <div class="slider-row">
+                                <span>R</span>
+                                <input type="range" id="p2-r" min="0" max="255" value="0">
+                            </div>
+                            <div class="slider-row">
+                                <span>G</span>
+                                <input type="range" id="p2-g" min="0" max="255" value="0">
+                            </div>
+                            <div class="slider-row">
+                                <span>B</span>
+                                <input type="range" id="p2-b" min="0" max="255" value="255">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 배경(기타 픽셀) 설정 -->
+                <div class="section">
+                    <div class="section-title">Background Pixels (Clear Color)</div>
+                    <div class="color-picker-row">
+                        <input type="color" id="bg-picker" value="#cccccc">
+                        <div class="rgb-sliders">
+                            <div class="slider-row">
+                                <span>R</span>
+                                <input type="range" id="bg-r" min="0" max="255" value="204">
+                            </div>
+                            <div class="slider-row">
+                                <span>G</span>
+                                <input type="range" id="bg-g" min="0" max="255" value="204">
+                            </div>
+                            <div class="slider-row">
+                                <span>B</span>
+                                <input type="range" id="bg-b" min="0" max="255" value="204">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 뷰포트 그리드 표시 여부 -->
+                <div class="section">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="grid-toggle" checked>
+                        <span>Pixel Grid Overlay 활성화 (16x16 격자)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebGPU 예외처리 오버레이 -->
+    <div id="error-overlay" style="display: none;">
+        <h1 style="margin: 0 0 10px 0;">WebGPU Unsupported</h1>
+        <p id="error-message">이 브라우저는 WebGPU를 지원하지 않거나 활성화되지 않았습니다.</p>
+    </div>
+
+    <script>
+        // --- WebGPU 전역 상태 및 자원 ---
+        let device = null;
+        let context = null;
+        let queue = null;
+        
+        // 크기 정보 (DX11 캔버스와 동일한 16x16 로우 해상도)
+        const TEXTURE_WIDTH = 16;
+        const TEXTURE_HEIGHT = 16;
+
+        // 파이프라인 및 바인딩 그룹
+        let computePipeline = null;
+        let renderPipeline = null;
+        let computeBindGroup = null;
+        let renderBindGroup = null;
+        
+        // 버퍼 및 텍스처
+        let uniformBuffer = null;
+        let renderParamsBuffer = null;
+        let storageTexture = null;
+        let sampler = null;
+
+        // 렌더 스케줄링 플래그
+        let renderPending = false;
+
+        // 파라미터 캐시 (CPU)
+        const state = {
+            p0: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
+            p1: { r: 1.0, g: 1.0, b: 0.0, a: 1.0 },
+            p2: { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
+            bg: { r: 0.8, g: 0.8, b: 0.8, a: 1.0 },
+            gridEnabled: 1
+        };
+
+        // UI 엘리먼트 래핑
+        const elements = {
+            p0: { r: document.getElementById('p0-r'), g: document.getElementById('p0-g'), b: document.getElementById('p0-b'), picker: document.getElementById('p0-picker') },
+            p1: { r: document.getElementById('p1-r'), g: document.getElementById('p1-g'), b: document.getElementById('p1-b'), picker: document.getElementById('p1-picker') },
+            p2: { r: document.getElementById('p2-r'), g: document.getElementById('p2-g'), b: document.getElementById('p2-b'), picker: document.getElementById('p2-picker') },
+            bg: { r: document.getElementById('bg-r'), g: document.getElementById('bg-g'), b: document.getElementById('bg-b'), picker: document.getElementById('bg-picker') },
+            gridToggle: document.getElementById('grid-toggle'),
+            canvas: document.getElementById('webgpu-canvas'),
+            fps: document.getElementById('fps-display')
+        };
+
+        // --- WGSL Shaders ---
+
+        // 1. Compute Shader: Canvas Initialization (DX11의 CPU 픽셀 루프를 병렬 처리화)
+        const computeShaderSource = `
+            struct Params {
+                bg_color: vec4f,
+                p0_color: vec4f,
+                p1_color: vec4f,
+                p2_color: vec4f,
+            }
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(8, 8)
+            fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+                let size = textureDimensions(out_tex);
+                if (id.x >= size.x || id.y >= size.y) {
+                    return;
+                }
+
+                var color = params.bg_color;
+
+                // DX11 캔버스 초기화 시점의 특정 픽셀 오버라이드
+                // pixels[0 + canvasWidth * 0] = Red
+                // pixels[1 + canvasWidth * 0] = Yellow
+                // pixels[2 + canvasWidth * 0] = Blue (요구사항 반영)
+                if (id.y == 0u) {
+                    if (id.x == 0u) {
+                        color = params.p0_color;
+                    } else if (id.x == 1u) {
+                        color = params.p1_color;
+                    } else if (id.x == 2u) {
+                        color = params.p2_color;
+                    }
+                }
+
+                textureStore(out_tex, id.xy, color);
+            }
+        `;
+
+        // 2. Fullscreen Render Shaders (Nearest Neighbor Interpolation + Grid Line Rendering)
+        const renderShaderSource = `
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0),
+                    vec2f( 1.0, -1.0),
+                    vec2f(-1.0,  1.0),
+                    vec2f(-1.0,  1.0),
+                    vec2f( 1.0, -1.0),
+                    vec2f( 1.0,  1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0),
+                    vec2f(1.0, 1.0),
+                    vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0),
+                    vec2f(1.0, 1.0),
+                    vec2f(1.0, 0.0)
+                );
+
+                var output: VertexOutput;
+                output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                output.uv = uv[vertexIndex];
+                return output;
+            }
+
+            struct RenderParams {
+                grid_enabled: u32,
+            }
+
+            @group(0) @binding(0) var t_sampler: sampler;
+            @group(0) @binding(1) var t_texture: texture_2d<f32>;
+            @group(0) @binding(2) var<uniform> render_params: RenderParams;
+
+            @fragment
+            fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                var color = textureSample(t_texture, t_sampler, uv);
+
+                // 픽셀 격자선 처리 (Nearest-neighbor 렌더링 시 격자 구조 가시화)
+                if (render_params.grid_enabled == 1u) {
+                    let grid_size = 16.0;
+                    let grid_uv = fract(uv * grid_size);
+                    let border = 0.03; // 격자선 두께 비율
+                    if (grid_uv.x < border || grid_uv.y < border || grid_uv.x > (1.0 - border) || grid_uv.y > (1.0 - border)) {
+                        color = mix(color, vec4f(0.1, 0.1, 0.2, 1.0), 0.4);
+                    }
+                }
+
+                return color;
+            }
+        `;
+
+        // --- 초기화 메인 함수 ---
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                showError("WebGPU를 지원하지 않는 브라우저입니다. Chrome, Edge, Safari 최신 버전을 사용해주세요.");
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                showError("WebGPU 어댑터를 요청하지 못했습니다.");
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            queue = device.queue;
+
+            const canvas = elements.canvas;
+            context = canvas.getContext("webgpu");
+            const format = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: format,
+                alphaMode: "opaque"
+            });
+
+            // 1. Storage Texture 생성 (UAV)
+            storageTexture = device.createTexture({
+                size: [TEXTURE_WIDTH, TEXTURE_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+            });
+
+            // 2. Uniform Buffer 생성 (Compute & Render용)
+            // Compute Uniform 구조: Params (vec4f x 4) = 64 bytes
+            uniformBuffer = device.createBuffer({
+                size: 64,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // Render Uniform 구조: RenderParams (u32, pad, pad, pad) = 16 bytes
+            renderParamsBuffer = device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // 3. Sampler 생성 (Nearest Neighbor 강제화하여 픽셀을 명확하게 표현)
+            sampler = device.createSampler({
+                magFilter: 'nearest',
+                minFilter: 'nearest'
+            });
+
+            // 4. Compute Pipeline 구성
+            const computeModule = device.createShaderModule({ code: computeShaderSource });
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeModule,
+                    entryPoint: 'cs_main'
+                }
+            });
+
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: storageTexture.createView() }
+                ]
+            });
+
+            // 5. Render Pipeline 구성
+            const renderModule = device.createShaderModule({ code: renderShaderSource });
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: format }]
+                },
+                primitive: {
+                    topology: 'triangle-list'
+                }
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: sampler },
+                    { binding: 1, resource: storageTexture.createView() },
+                    { binding: 2, resource: { buffer: renderParamsBuffer } }
+                ]
+            });
+
+            // UI 바인딩 등록 및 초기 렌더링
+            initUI();
+            updateBuffers();
+            scheduleRender();
+        }
+
+        // --- 버퍼 업데이트 ---
+        function updateBuffers() {
+            // Compute Uniform 패킹 (F32Array)
+            const computeData = new Float32Array(16);
+            
+            // bg_color
+            computeData[0] = state.bg.r;
+            computeData[1] = state.bg.g;
+            computeData[2] = state.bg.b;
+            computeData[3] = state.bg.a;
+
+            // p0_color
+            computeData[4] = state.p0.r;
+            computeData[5] = state.p0.g;
+            computeData[6] = state.p0.b;
+            computeData[7] = state.p0.a;
+
+            // p1_color
+            computeData[8] = state.p1.r;
+            computeData[9] = state.p1.g;
+            computeData[10] = state.p1.b;
+            computeData[11] = state.p1.a;
+
+            // p2_color
+            computeData[12] = state.p2.r;
+            computeData[13] = state.p2.g;
+            computeData[14] = state.p2.b;
+            computeData[15] = state.p2.a;
+
+            queue.writeBuffer(uniformBuffer, 0, computeData);
+
+            // Render Uniform 패킹
+            const renderData = new Uint32Array(4);
+            renderData[0] = state.gridEnabled ? 1 : 0;
+            queue.writeBuffer(renderParamsBuffer, 0, renderData);
+        }
+
+        // --- 렌더 패스 실행 루프 (RAF 중복 방지 설계) ---
+        function scheduleRender() {
+            if (renderPending) return;
+            renderPending = true;
+            requestAnimationFrame(render);
+        }
+
+        function render() {
+            renderPending = false;
+            const startTime = performance.now();
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // 1. Compute Pass 실행 (DX11 Dispatch 단계 재현)
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            // 16x16 텍스처를 8x8 워크그룹 사이즈로 처리하므로 X, Y 방향으로 각각 2개의 워크그룹 디스패치
+            computePass.dispatchWorkgroups(Math.ceil(TEXTURE_WIDTH / 8), Math.ceil(TEXTURE_HEIGHT / 8), 1);
+            computePass.end();
+
+            // 2. Render Pass 실행 (Storage Texture -> Canvas Fullscreen Render)
+            const renderPassDesc = {
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.2, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            };
+
+            const renderPass = commandEncoder.beginRenderPass(renderPassDesc);
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6, 1, 0, 0); // Fullscreen Quad (6개의 정점 전송)
+            renderPass.end();
+
+            queue.submit([commandEncoder.finish()]);
+
+            const endTime = performance.now();
+            elements.fps.innerText = `Frame: ${(endTime - startTime).toFixed(2)} ms`;
+        }
+
+        // --- UI 조작 및 싱크 ---
+        function initUI() {
+            const handleColorChange = (key, hex, rVal, gVal, bVal) => {
+                const r = parseInt(rVal) / 255;
+                const g = parseInt(gVal) / 255;
+                const b = parseInt(bVal) / 255;
+                
+                state[key].r = r;
+                state[key].g = g;
+                state[key].b = b;
+
+                // Picker와 Slider 싱크
+                elements[key].picker.value = hex;
+                elements[key].r.value = rVal;
+                elements[key].g.value = gVal;
+                elements[key].b.value = bVal;
+
+                updateBuffers();
+                scheduleRender();
+            };
+
+            // 각 채널 그룹 바인딩
+            ['p0', 'p1', 'p2', 'bg'].forEach(key => {
+                const group = elements[key];
+
+                const onSlider = () => {
+                    const hex = rgbToHex(group.r.value, group.g.value, group.b.value);
+                    handleColorChange(key, hex, group.r.value, group.g.value, group.b.value);
+                };
+
+                const onPicker = () => {
+                    const rgb = hexToRgb(group.picker.value);
+                    handleColorChange(key, group.picker.value, rgb.r, rgb.g, rgb.b);
+                };
+
+                group.r.addEventListener('input', onSlider);
+                group.g.addEventListener('input', onSlider);
+                group.b.addEventListener('input', onSlider);
+                group.picker.addEventListener('input', onPicker);
+            });
+
+            // 그리드 격자 토글
+            elements.gridToggle.addEventListener('change', (e) => {
+                state.gridEnabled = e.target.checked ? 1 : 0;
+                updateBuffers();
+                scheduleRender();
+            });
+        }
+
+        // --- 헬퍼 함수 ---
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (parseInt(r) << 16) + (parseInt(g) << 8) + parseInt(b)).toString(16).slice(1);
+        }
+
+        function showError(msg) {
+            const overlay = document.getElementById("error-overlay");
+            const text = document.getElementById("error-message");
+            text.innerText = msg;
+            overlay.style.display = "flex";
+        }
+
+        // 초기화 진입점
+        window.addEventListener('DOMContentLoaded', initWebGPU);
+    </script>
+</body>
+</html>

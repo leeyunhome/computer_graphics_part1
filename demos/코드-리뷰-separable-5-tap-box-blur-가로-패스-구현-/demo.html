@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Separable 5-Tap Box Blur (Horizontal Pass)</title>
+  <style>
+    :root {
+      --bg-color: #1a1a2e;
+      --panel-bg: rgba(22, 22, 37, 0.95);
+      --panel-border: #4f5d75;
+      --text-color: #e0e0e0;
+      --accent-color: #007acc;
+      --accent-hover: #0098ff;
+      --slider-track: #2d3748;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #app-container {
+      position: relative;
+      width: 1024px;
+      height: 768px;
+      border: 2px solid var(--panel-border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      background-color: #000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* DX11 Window Titlebar Style */
+    #titlebar {
+      height: 30px;
+      background: linear-gradient(90deg, #1f1f3a, #0d0d1a);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--panel-border);
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+
+    #titlebar-buttons {
+      display: flex;
+      gap: 5px;
+    }
+
+    .win-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #4f5d75;
+      display: inline-block;
+    }
+
+    .win-btn.close { background-color: #ff5f56; }
+    .win-btn.minimize { background-color: #ffbd2e; }
+    .win-btn.maximize { background-color: #27c93f; }
+
+    #view-port {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: calc(100% - 30px);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ImGui-style GUI Panel */
+    #gui-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      background-color: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: 15px;
+      box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+      z-index: 10;
+      font-size: 13px;
+    }
+
+    .gui-header {
+      font-weight: bold;
+      font-size: 14px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .gui-row {
+      margin-bottom: 12px;
+    }
+
+    .gui-row label {
+      display: block;
+      margin-bottom: 5px;
+      color: #a0aec0;
+    }
+
+    .gui-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--slider-track);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--accent-hover);
+    }
+
+    .slider-val {
+      width: 40px;
+      text-align: right;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-container input {
+      cursor: pointer;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background-color: #2d3748;
+      color: #48bb78;
+      font-family: monospace;
+    }
+
+    #error-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(10, 10, 20, 0.9);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      color: #f56565;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #error-overlay h2 { margin-bottom: 10px; }
+
+    /* DX11 Info Overlay */
+    #dx-info {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      border: 1px solid #333;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <div id="titlebar">
+      <span>DirectX 11 — Separable 5-Tap Box Blur (Horizontal Pass)</span>
+      <div id="titlebar-buttons">
+        <span class="win-btn minimize"></span>
+        <span class="win-btn maximize"></span>
+        <span class="win-btn close"></span>
+      </div>
+    </div>
+
+    <div id="view-port">
+      <canvas id="webgpu-canvas"></canvas>
+
+      <!-- ImGui-like Control Panel -->
+      <div id="gui-panel">
+        <div class="gui-header">
+          <span>D3D11_COMPUTE_STATE</span>
+          <span class="status-badge" id="gpu-status">ACTIVE</span>
+        </div>
+
+        <div class="gui-row">
+          <label for="brightness-slider">밝기 승수 (Brightness Multiplier)</label>
+          <div class="gui-slider-container">
+            <input type="range" id="brightness-slider" min="0.0" max="3.0" step="0.1" value="1.2">
+            <span class="slider-val" id="brightness-val">1.2</span>
+          </div>
+        </div>
+
+        <div class="gui-row">
+          <label class="checkbox-container">
+            <input type="checkbox" id="blur-enable" checked>
+            <span>Horizontal 5-Tap Blur 활성화</span>
+          </label>
+        </div>
+
+        <div style="border-top: 1px solid var(--panel-border); margin: 15px 0; padding-top: 10px; font-size: 11px; color: #a0aec0;">
+          <p style="margin: 4px 0;"><strong>Kernel Size:</strong> 5-tap separable horizontal</p>
+          <p style="margin: 4px 0;"><strong>Tap Weights:</strong> [0.2, 0.2, 0.2, 0.2, 0.2]</p>
+          <p style="margin: 4px 0;"><strong>Offsets:</strong> -2, -1, 0, +1, +2</p>
+          <p style="margin: 4px 0; color: #ed8936;"><strong>Note:</strong> Vertical pass pending (separability demo)</p>
+        </div>
+      </div>
+
+      <div id="dx-info">
+        <div>DEVICE: WebGPU / WGSL adapter</div>
+        <div>UAV: RWTexture2D&lt;float4&gt;</div>
+        <div>DISPATCH: [W/16, H/16, 1]</div>
+      </div>
+    </div>
+
+    <div id="error-overlay">
+      <h2>WebGPU 호환성 오류</h2>
+      <p id="error-desc">이 브라우저는 WebGPU를 지원하지 않거나 활성화되지 않았습니다.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // --- WGSL Shaders ---
+
+    const COMPUTE_SHADER_CODE = `
+      struct Params {
+        brightness: f32,
+        blurEnabled: u32,
+        width: u32,
+        height: u32,
+      }
+
+      @group(0) @binding(0) var inputTex: texture_2d<f32>;
+      @group(0) @binding(1) var outputTex: texture_storage_2d<rgba8unorm, write>;
+      @group(0) @binding(2) var<uniform> params: Params;
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let x = i32(id.x);
+        let y = i32(id.y);
+        let w = i32(params.width);
+        let h = i32(params.height);
+
+        if (x >= w || y >= h) {
+          return;
+        }
+
+        let coord = vec2i(x, y);
+
+        if (params.blurEnabled == 0u) {
+          // Blur 비활성화 시 단순 밝기 조절만 수행하여 출력
+          let baseColor = textureLoad(inputTex, coord, 0).rgb * params.brightness;
+          textureStore(outputTex, coord, vec4f(baseColor, 1.0));
+          return;
+        }
+
+        // Horizontal 5-tap Box Blur with Brightness Multipier (Applied before blur)
+        var colorSum = vec3f(0.0);
+        
+        // Offsets: -2, -1, 0, +1, +2
+        for (var i: i32 = -2; i <= 2; i++) {
+          let sampleX = clamp(x + i, 0, w - 1);
+          let sampleCoord = vec2i(sampleX, y);
+          
+          // 각 탭의 색상을 샘플링하고 미리 밝기 인자를 곱함
+          let tapColor = textureLoad(inputTex, sampleCoord, 0).rgb * params.brightness;
+          colorSum += tapColor;
+        }
+
+        // 5개 탭의 산술 평균 (weight = 0.2 per tap)
+        let finalColor = colorSum * 0.2;
+
+        textureStore(outputTex, coord, vec4f(finalColor, 1.0));
+      }
+    `;
+
+    const VERTEX_SHADER_CODE = `
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+      }
+
+      @vertex
+      fn main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+        // Fullscreen Triangle 생성 (클립 공간 전체 커버)
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0,  1.0),
+          vec2f(-1.0, -1.0),
+          vec2f( 1.0, -1.0),
+          vec2f(-1.0,  1.0),
+          vec2f( 1.0, -1.0),
+          vec2f( 1.0,  1.0)
+        );
+
+        var uv = array<vec2f, 6>(
+          vec2f(0.0, 0.0),
+          vec2f(0.0, 1.0),
+          vec2f(1.0, 1.0),
+          vec2f(0.0, 0.0),
+          vec2f(1.0, 1.0),
+          vec2f(1.0, 0.0)
+        );
+
+        var out: VertexOutput;
+        out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+        out.uv = uv[vertexIndex];
+        return out;
+      }
+    `;
+
+    const FRAGMENT_SHADER_CODE = `
+      @group(0) @binding(0) var mySampler: sampler;
+      @group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+      @fragment
+      fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        return textureSample(myTexture, mySampler, uv);
+      }
+    `;
+
+    // --- Image Loader Helper ---
+    async function loadImage(url, w, h) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.src = url;
+      });
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c;
+    }
+
+    // --- State and UI Elements ---
+    let device, context, canvas;
+    let computePipeline, renderPipeline;
+    let inputTexture, storageTexture;
+    let computeBindGroup, renderBindGroup, sampler;
+    let uniformBuffer;
+    let renderScheduled = false;
+
+    // UI State
+    const state = {
+      brightness: 1.2,
+      blurEnabled: 1, // 1: true, 0: false
+      width: 800,
+      height: 600
+    };
+
+    const brightnessSlider = document.getElementById('brightness-slider');
+    const brightnessVal = document.getElementById('brightness-val');
+    const blurEnableCb = document.getElementById('blur-enable');
+
+    brightnessSlider.addEventListener('input', (e) => {
+      state.brightness = parseFloat(e.target.value);
+      brightnessVal.textContent = state.brightness.toFixed(1);
+      scheduleRender();
+    });
+
+    blurEnableCb.addEventListener('change', (e) => {
+      state.blurEnabled = e.target.checked ? 1 : 0;
+      scheduleRender();
+    });
+
+    function showError(msg) {
+      const overlay = document.getElementById('error-overlay');
+      const desc = document.getElementById('error-desc');
+      desc.textContent = msg;
+      overlay.style.display = 'flex';
+      document.getElementById('gpu-status').textContent = 'ERROR';
+      document.getElementById('gpu-status').style.backgroundColor = '#f56565';
+    }
+
+    // --- WebGPU Implementation ---
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        showError("WebGPU를 지원하지 않는 브라우저입니다. Chrome, Edge 등의 최신 버전을 사용해 주세요.");
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        showError("호환되는 GPU 어댑터를 찾을 수 없습니다.");
+        return false;
+      }
+
+      device = await adapter.requestDevice();
+      if (!device) {
+        showError("WebGPU 디바이스 생성을 실패했습니다.");
+        return false;
+      }
+
+      canvas = document.getElementById('webgpu-canvas');
+      canvas.width = state.width;
+      canvas.height = state.height;
+
+      context = canvas.getContext('webgpu');
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: 'opaque'
+      });
+
+      return true;
+    }
+
+    async function setupResources() {
+      // 1. 소스 이미지 로드 (colosseum.jpg)
+      let srcCanvas;
+      try {
+        srcCanvas = await loadImage('../../images/colosseum.jpg', state.width, state.height);
+      } catch (err) {
+        console.warn("로컬 경로에서 이미지를 찾을 수 없어 백업 절차적 텍스처를 생성합니다.");
+        // Fallback: 실제 이미지가 없는 경우를 대비한 절차적 패턴 드로잉
+        srcCanvas = document.createElement('canvas');
+        srcCanvas.width = state.width;
+        srcCanvas.height = state.height;
+        const ctx = srcCanvas.getContext('2d');
+        // 아름다운 콜로세움 비슷한 패턴 유도
+        const grad = ctx.createLinearGradient(0, 0, state.width, state.height);
+        grad.addColorStop(0, '#ff7e5f');
+        grad.addColorStop(0.5, '#feb47b');
+        grad.addColorStop(1, '#1a1a2e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, state.width, state.height);
+        ctx.fillStyle = 'white';
+        ctx.font = '30px Courier New';
+        ctx.fillText("Backup Texture: Colosseum Placeholder", 100, 300);
+      }
+
+      // 2. Input Texture 생성 및 데이터 업로드
+      inputTexture = device.createTexture({
+        size: [state.width, state.height, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+
+      const imgData = srcCanvas.getContext('2d').getImageData(0, 0, state.width, state.height);
+      device.queue.writeTexture(
+        { texture: inputTexture },
+        imgData.data,
+        { bytesPerRow: state.width * 4, rowsPerImage: state.height },
+        [state.width, state.height, 1]
+      );
+
+      // 3. Storage Texture (UAV 대응, 계산 출력물 저장용)
+      storageTexture = device.createTexture({
+        size: [state.width, state.height, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+
+      // 4. Uniform Buffer 생성 (Params)
+      uniformBuffer = device.createBuffer({
+        size: 16, // 4 * sizeof(f32/u32)
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // 5. Sampler 생성
+      sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+    }
+
+    function setupPipelines() {
+      // --- Compute Pipeline Setup ---
+      const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_CODE });
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'main'
+        }
+      });
+
+      // Bind Group for Compute
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: inputTexture.createView() },
+          { binding: 1, resource: storageTexture.createView() },
+          { binding: 2, resource: { buffer: uniformBuffer } }
+        ]
+      });
+
+      // --- Render Pipeline Setup (Fullscreen Quad) ---
+      const renderModule = device.createShaderModule({
+        code: VERTEX_SHADER_CODE + FRAGMENT_SHADER_CODE
+      });
+
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: renderModule,
+          entryPoint: 'main'
+        },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'main',
+          targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+        },
+        primitive: {
+          topology: 'triangle-list'
+        }
+      });
+
+      // Bind Group for Render
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: sampler },
+          { binding: 1, resource: storageTexture.createView() }
+        ]
+      });
+    }
+
+    function updateUniforms() {
+      // Uniform 구조체 매핑:
+      // struct Params { brightness: f32, blurEnabled: u32, width: u32, height: u32 }
+      const arrayBuffer = new ArrayBuffer(16);
+      const floatView = new Float32Array(arrayBuffer);
+      const uintView = new Uint32Array(arrayBuffer);
+
+      floatView[0] = state.brightness;
+      uintView[1] = state.blurEnabled;
+      uintView[2] = state.width;
+      uintView[3] = state.height;
+
+      device.queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+    }
+
+    function render() {
+      renderScheduled = false;
+
+      updateUniforms();
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // Pass 1: Compute Pass (Horizontal Blur & Brightness Multiplier)
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      
+      const workgroupCountX = Math.ceil(state.width / 16);
+      const workgroupCountY = Math.ceil(state.height / 16);
+      computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY, 1);
+      computePass.end();
+
+      // Pass 2: Render Pass (Present output texture to swapchain)
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6); // Fullscreen Quad (6 vertices)
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+    }
+
+    function scheduleRender() {
+      if (renderScheduled) return;
+      renderScheduled = true;
+      requestAnimationFrame(render);
+    }
+
+    // --- Entry Point ---
+    async function main() {
+      const success = await initWebGPU();
+      if (!success) return;
+
+      await setupResources();
+      setupPipelines();
+      
+      // 최초 렌더링
+      scheduleRender();
+    }
+
+    main();
+  </script>
+</body>
+</html>

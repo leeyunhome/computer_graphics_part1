@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Enable ImGui background color slider to control canvas color</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: #dbdbdb;
+            user-select: none;
+        }
+
+        #webgpu-canvas {
+            position: absolute;
+            top: 30px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 30px);
+            z-index: 1;
+            display: block;
+        }
+
+        /* DX11 Window Frame Titlebar */
+        .dx11-titlebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background-color: #0f0f14;
+            border-bottom: 1px solid #2a2a35;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            box-sizing: border-box;
+            font-size: 12px;
+            font-weight: 500;
+            color: #c5c5d2;
+        }
+
+        .dx11-controls {
+            display: flex;
+            gap: 18px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .dx11-controls span:hover {
+            color: #ffffff;
+        }
+
+        /* ImGui Window CSS */
+        .imgui-window {
+            position: absolute;
+            z-index: 10;
+            background-color: rgba(28, 28, 35, 0.9);
+            border: 1px solid #4a4a5a;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            font-size: 13px;
+            width: 350px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .imgui-header {
+            background-color: #2c2c38;
+            padding: 6px 12px;
+            font-weight: bold;
+            cursor: move;
+            border-bottom: 1px solid #4a4a5a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        .imgui-content {
+            padding: 15px;
+        }
+
+        .imgui-row {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .imgui-row label {
+            width: 110px;
+            color: #c5c5d2;
+        }
+
+        .imgui-slider-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .imgui-slider {
+            flex-grow: 1;
+            accent-color: #3b82f6;
+            cursor: pointer;
+            height: 6px;
+            border-radius: 3px;
+            background: #1e1e24;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .imgui-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 1px solid #ffffff;
+        }
+
+        .imgui-value {
+            width: 45px;
+            text-align: right;
+            color: #3b82f6;
+            font-weight: bold;
+        }
+
+        /* WebGPU Error message */
+        #webgpu-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.85);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid white;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dx11-titlebar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #3b82f6;">⚙</span>
+            <span>DirectX 11 — Enable ImGui background color slider to control canvas color</span>
+        </div>
+        <div class="dx11-controls">
+            <span>_</span>
+            <span>🗖</span>
+            <span>✕</span>
+        </div>
+    </div>
+
+    <div id="webgpu-error">
+        WebGPU를 지원하지 않는 브라우저이거나 WebGPU가 비활성화되어 있습니다.<br>
+        Chrome 정식 버전 또는 WebGPU 호환 브라우저를 사용해 주세요.
+    </div>
+
+    <!-- ImGui Controller Panel -->
+    <div class="imgui-window" id="imgui-color-picker" style="top: 80px; left: 50px;">
+        <div class="imgui-header" id="imgui-header">
+            <span>Background Color</span>
+            <span style="color: #888; cursor: pointer;">✕</span>
+        </div>
+        <div class="imgui-content">
+            <!-- ImGui::SliderFloat3 RGB row elements -->
+            <div class="imgui-row">
+                <label>Red (R)</label>
+                <div class="imgui-slider-container">
+                    <input type="range" class="imgui-slider" id="slider-r" min="0" max="1" step="0.005" value="0.80">
+                    <span class="imgui-value" id="val-r">0.80</span>
+                </div>
+            </div>
+            <div class="imgui-row">
+                <label>Green (G)</label>
+                <div class="imgui-slider-container">
+                    <input type="range" class="imgui-slider" id="slider-g" min="0" max="1" step="0.005" value="0.80">
+                    <span class="imgui-value" id="val-g">0.80</span>
+                </div>
+            </div>
+            <div class="imgui-row">
+                <label>Blue (B)</label>
+                <div class="imgui-slider-container">
+                    <input type="range" class="imgui-slider" id="slider-b" min="0" max="1" step="0.005" value="0.80">
+                    <span class="imgui-value" id="val-b">0.80</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="webgpu-canvas"></canvas>
+
+    <script>
+        // WebGPU Global Variables
+        let device, context, presentationFormat;
+        let storageTexture, storageTextureView;
+        let uniformBuffer;
+        let computePipeline, renderPipeline;
+        let computeBindGroup, renderBindGroup;
+        let sampler;
+        let canvas = document.getElementById('webgpu-canvas');
+
+        // Initialized values matching example.h defaults: Vec4{0.8f, 0.8f, 0.8f, 1.0f}
+        const params = {
+            backgroundColor: new Float32Array([0.8, 0.8, 0.8, 1.0])
+        };
+
+        // Window dragging logic (ImGui style)
+        const header = document.getElementById('imgui-header');
+        const windowEl = document.getElementById('imgui-color-picker');
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        header.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            offsetX = e.clientX - windowEl.getBoundingClientRect().left;
+            offsetY = e.clientY - windowEl.getBoundingClientRect().top;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                windowEl.style.left = `${e.clientX - offsetX}px`;
+                windowEl.style.top = `${e.clientY - offsetY}px`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Initialize WebGPU Pipeline
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                document.getElementById('webgpu-error').style.display = 'block';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                document.getElementById('webgpu-error').style.display = 'block';
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            context = canvas.getContext('webgpu');
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            context.configure({
+                device: device,
+                format: presentationFormat,
+                alphaMode: 'opaque'
+            });
+
+            // 1. Uniform Buffer (corresponds to cbuffer in DX11)
+            uniformBuffer = device.createBuffer({
+                size: 16, // vec4f alignment
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // 2. Texture Sampler
+            sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            // WGSL Compute Shader
+            const computeShaderCode = `
+                struct Params {
+                    backgroundColor: vec4f,
+                }
+                @group(0) @binding(0) var<uniform> params: Params;
+                @group(0) @binding(1) var outTexture: texture_storage_2d<rgba8unorm, write>;
+
+                @compute @workgroup_size(8, 8)
+                fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+                    let size = textureDimensions(outTexture);
+                    if (id.x >= size.x || id.y >= size.y) {
+                        return;
+                    }
+                    textureStore(outTexture, id.xy, params.backgroundColor);
+                }
+            `;
+
+            // WGSL Fullscreen Quad Vertex & Fragment Render Shader
+            const renderShaderCode = `
+                struct VertexOutput {
+                    @builtin(position) position: vec4f,
+                    @location(0) uv: vec2f,
+                }
+
+                @vertex
+                fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                    var pos = array<vec2f, 6>(
+                        vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                        vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                    );
+                    var uv = array<vec2f, 6>(
+                        vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                        vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                    );
+                    var out: VertexOutput;
+                    out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                    out.uv = uv[vertexIndex];
+                    return out;
+                }
+
+                @group(0) @binding(0) var mySampler: sampler;
+                @group(0) @binding(1) var myTexture: texture_2d<float>;
+
+                @fragment
+                fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                    return textureSample(myTexture, mySampler, uv);
+                }
+            `;
+
+            const computeModule = device.createShaderModule({ code: computeShaderCode });
+            const renderModule = device.createShaderModule({ code: renderShaderCode });
+
+            // Create Pipelines
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeModule,
+                    entryPoint: 'cs_main'
+                }
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }]
+                },
+                primitive: {
+                    topology: 'triangle-list'
+                }
+            });
+
+            // Setup Resize Handling and Bind Groups Creation
+            resizeCanvas();
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                scheduleRender();
+            });
+
+            // Sync original parameters with UI and draw frame
+            updateColors();
+        }
+
+        function recreateStorageTexture(width, height) {
+            if (storageTexture) {
+                storageTexture.destroy();
+            }
+
+            storageTexture = device.createTexture({
+                size: [width, height],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+            });
+            storageTextureView = storageTexture.createView();
+
+            // Bind Group for Compute Pipeline
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: storageTextureView }
+                ]
+            });
+
+            // Bind Group for Render Pipeline
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: sampler },
+                    { binding: 1, resource: storageTextureView }
+                ]
+            });
+        }
+
+        function resizeCanvas() {
+            const width = Math.floor(window.innerWidth * window.devicePixelRatio);
+            const height = Math.floor((window.innerHeight - 30) * window.devicePixelRatio);
+            canvas.width = width;
+            canvas.height = height;
+
+            recreateStorageTexture(width, height);
+        }
+
+        // Render Schedule Control Loop
+        let renderPending = false;
+        function scheduleRender() {
+            if (renderPending) return;
+            renderPending = true;
+            requestAnimationFrame(render);
+        }
+
+        function render() {
+            renderPending = false;
+
+            // 1. Update Uniform Buffer (Background color transfer to GPU)
+            device.queue.writeBuffer(uniformBuffer, 0, params.backgroundColor);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // 2. Compute Pass (Compute Shader operations fill texture)
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            const workgroupsX = Math.ceil(canvas.width / 8);
+            const workgroupsY = Math.ceil(canvas.height / 8);
+            computePass.dispatchWorkgroups(workgroupsX, workgroupsY);
+            computePass.end();
+
+            // 3. Render Pass (Render to canvas presentation swapchain)
+            const renderPass = commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6); // Render fullscreen quad
+            renderPass.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        // Setup ImGui-like Input Elements
+        const sliderR = document.getElementById('slider-r');
+        const sliderG = document.getElementById('slider-g');
+        const sliderB = document.getElementById('slider-b');
+
+        const valR = document.getElementById('val-r');
+        const valG = document.getElementById('val-g');
+        const valB = document.getElementById('val-b');
+
+        function updateColors() {
+            const r = parseFloat(sliderR.value);
+            const g = parseFloat(sliderG.value);
+            const b = parseFloat(sliderB.value);
+
+            params.backgroundColor[0] = r;
+            params.backgroundColor[1] = g;
+            params.backgroundColor[2] = b;
+
+            valR.textContent = r.toFixed(2);
+            valG.textContent = g.toFixed(2);
+            valB.textContent = b.toFixed(2);
+
+            scheduleRender();
+        }
+
+        sliderR.addEventListener('input', updateColors);
+        sliderG.addEventListener('input', updateColors);
+        sliderB.addEventListener('input', updateColors);
+
+        // Execute DX11-WebGPU Wrapper Initialization
+        initWebGPU();
+    </script>
+</body>
+</html>

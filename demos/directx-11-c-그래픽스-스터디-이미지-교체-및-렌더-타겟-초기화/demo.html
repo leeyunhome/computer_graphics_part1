@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — 샘플 이미지 교체</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e; /* DX11 style background */
+            color: #f0f0f0;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        #webgpu-canvas {
+            width: 800px;
+            height: 600px;
+            display: block;
+            background-color: #000;
+            border: 1px solid #333;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #imgui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #252526; /* ImGui dark window background */
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+            width: 280px;
+            box-sizing: border-box;
+            color: #f0f0f0;
+            font-size: 14px;
+        }
+
+        #imgui-panel h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #f0f0f0;
+            font-size: 16px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        .imgui-slider-group {
+            margin-bottom: 15px;
+        }
+
+        .imgui-slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #c0c0c0;
+        }
+
+        .imgui-slider-group input[type="range"] {
+            width: calc(100% - 10px);
+            -webkit-appearance: none;
+            height: 4px;
+            background: #555;
+            outline: none;
+            border-radius: 2px;
+            margin: 0 5px;
+        }
+
+        .imgui-slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .imgui-slider-group input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .imgui-slider-group .slider-value {
+            float: right;
+            color: #f0f0f0;
+        }
+
+        #error-message {
+            color: #ff5555;
+            font-size: 1.2em;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="error-message">WebGPU를 지원하지 않는 브라우저입니다. Chrome Canary 또는 최신 Edge를 사용해 주세요.</div>
+    <canvas id="webgpu-canvas"></canvas>
+
+    <div id="imgui-panel">
+        <h3>파라미터</h3>
+        <div class="imgui-slider-group">
+            <label for="red-slider">빨강 곱셈:<span class="slider-value" id="red-value">1.00</span></label>
+            <input type="range" id="red-slider" min="0.0" max="2.0" step="0.01" value="1.0">
+        </div>
+        <div class="imgui-slider-group">
+            <label for="green-slider">초록 곱셈:<span class="slider-value" id="green-value">1.00</span></label>
+            <input type="range" id="green-slider" min="0.0" max="2.0" step="0.01" value="1.0">
+        </div>
+        <div class="imgui-slider-group">
+            <label for="blue-slider">파랑 곱셈:<span class="slider-value" id="blue-value">1.00</span></label>
+            <input type="range" id="blue-slider" min="0.0" max="2.0" step="0.01" value="1.0">
+        </div>
+        <div class="imgui-slider-group">
+            <label for="brightness-slider">밝기:<span class="slider-value" id="brightness-value">0.00</span></label>
+            <input type="range" id="brightness-slider" min="-0.5" max="0.5" step="0.01" value="0.0">
+        </div>
+    </div>
+
+    <script type="text/wgsl" id="computeShader">
+        // DX11: RWTexture2D<float4> (UAV) -> WebGPU: texture_storage_2d<rgba8unorm, write>
+        // DX11: [numthreads(8,8,1)] -> WebGPU: @workgroup_size(8,8)
+        // DX11: SV_DispatchThreadID -> WebGPU: @builtin(global_invocation_id)
+
+        @group(0) @binding(0) var<uniform> params: Params;
+        @group(0) @binding(1) var inputImage: texture_2d<f32>; // Input image
+        @group(0) @binding(2) var outputImage: texture_storage_2d<rgba8unorm, write>; // Compute result
+
+        struct Params {
+            red_multiplier: f32,
+            green_multiplier: f32,
+            blue_multiplier: f32,
+            brightness_offset: f32,
+        };
+
+        @workgroup_size(8, 8)
+        @compute
+        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            let dims: vec2<u32> = textureDimensions(inputImage);
+            if (global_id.x >= dims.x || global_id.y >= dims.y) {
+                return;
+            }
+
+            let coord = vec2<i32>(global_id.xy);
+            var color = textureLoad(inputImage, coord, 0);
+
+            // Apply multipliers and brightness from uniform buffer
+            color.r *= params.red_multiplier;
+            color.g *= params.green_multiplier;
+            color.b *= params.blue_multiplier;
+            color.rgb += params.brightness_offset;
+
+            textureStore(outputImage, coord, color);
+        }
+    </script>
+
+    <script type="text/wgsl" id="vertexShader">
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) uv: vec2f,
+        };
+
+        @vertex
+        fn main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+            var pos = array<vec2f, 6>(
+                vec2f(-1.0, -1.0), // Triangle 1
+                vec2f( 1.0, -1.0),
+                vec2f(-1.0,  1.0),
+
+                vec2f(-1.0,  1.0), // Triangle 2
+                vec2f( 1.0, -1.0),
+                vec2f( 1.0,  1.0)
+            );
+
+            var uv = array<vec2f, 6>(
+                vec2f(0.0, 1.0), // Triangle 1 (bottom-left)
+                vec2f(1.0, 1.0), // (bottom-right)
+                vec2f(0.0, 0.0), // (top-left)
+
+                vec2f(0.0, 0.0), // Triangle 2 (top-left)
+                vec2f(1.0, 1.0), // (bottom-right)
+                vec2f(1.0, 0.0)  // (top-right)
+            );
+
+            var output: VertexOutput;
+            output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+            output.uv = uv[vertexIndex];
+            return output;
+        }
+    </script>
+
+    <script type="text/wgsl" id="fragmentShader">
+        @group(0) @binding(0) var outputImageSampler: sampler;
+        @group(0) @binding(1) var outputImageTexture: texture_2d<f32>;
+
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) uv: vec2f,
+        };
+
+        @fragment
+        fn main(input: VertexOutput) -> @location(0) vec4f {
+            return textureSample(outputImageTexture, outputImageSampler, input.uv);
+        }
+    </script>
+
+    <script>
+        let adapter = null;
+        let device = null;
+        let context = null;
+        let presentationFormat = null;
+
+        let inputImageTexture = null; // The loaded image_4.jpg
+        let outputTexture = null; // The texture where compute shader writes its output
+
+        let computePipeline = null;
+        let computeBindGroup = null;
+        let renderPipeline = null;
+        let renderBindGroup = null;
+        let paramsBuffer = null;
+
+        let animationFrameId = null; // For requestAnimationFrame
+
+        // Parameters for the uniform buffer
+        const params = {
+            red_multiplier: 1.0,
+            green_multiplier: 1.0,
+            blue_multiplier: 1.0,
+            brightness_offset: 0.0,
+        };
+
+        // Placeholder for "image_4.jpg". Replace with your actual image path or base64 data.
+        // Using a public image URL for demonstration.
+        const image_url = "https://picsum.photos/id/1294/1200/800"; // Close to IMG_1294.HEIC context
+        let imageWidth = 0;
+        let imageHeight = 0;
+
+        async function initializeWebGPU() {
+            try {
+                adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    document.getElementById('error-message').style.display = 'block';
+                    throw new Error("No WebGPU adapter found.");
+                }
+
+                device = await adapter.requestDevice();
+                device.lost.then(() => {
+                    console.error("WebGPU device was lost.");
+                    cancelAnimationFrame(animationFrameId);
+                });
+
+                const canvas = document.getElementById('webgpu-canvas');
+                context = canvas.getContext('webgpu');
+                if (!context) {
+                    document.getElementById('error-message').style.display = 'block';
+                    throw new Error("Failed to get WebGPU context.");
+                }
+
+                presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+                context.configure({
+                    device,
+                    format: presentationFormat,
+                    alphaMode: 'opaque',
+                });
+
+                await loadImageAndCreateTextures(image_url);
+                createResources();
+                setupUI();
+                scheduleRender();
+
+            } catch (error) {
+                console.error("WebGPU initialization failed:", error);
+                if (document.getElementById('error-message').style.display === 'none') {
+                    document.getElementById('error-message').style.display = 'block';
+                }
+            }
+        }
+
+        async function loadImageAndCreateTextures(url) {
+            const img = new Image();
+            img.src = url;
+            await img.decode(); // Wait for image to load and decode
+
+            imageWidth = img.width;
+            imageHeight = img.height;
+
+            // Update canvas size to match image aspect ratio, or a default if image too small/large
+            const canvas = document.getElementById('webgpu-canvas');
+            const maxCanvasWidth = 1000;
+            const maxCanvasHeight = 800;
+
+            let displayWidth = imageWidth;
+            let displayHeight = imageHeight;
+
+            // Maintain aspect ratio while fitting within maxCanvasWidth/Height
+            if (imageWidth > maxCanvasWidth || imageHeight > maxCanvasHeight) {
+                const aspectRatio = imageWidth / imageHeight;
+                if (displayWidth / maxCanvasWidth > displayHeight / maxCanvasHeight) {
+                    displayWidth = maxCanvasWidth;
+                    displayHeight = Math.round(maxCanvasWidth / aspectRatio);
+                } else {
+                    displayHeight = maxCanvasHeight;
+                    displayWidth = Math.round(maxCanvasHeight * aspectRatio);
+                }
+            }
+            // Ensure minimum size for visibility if image is tiny
+            if (displayWidth < 100 || displayHeight < 100) {
+                 displayWidth = 400;
+                 displayHeight = 300;
+            }
+
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+
+            const bitmap = await createImageBitmap(img);
+
+            // Create input texture from the loaded image
+            inputImageTexture = device.createTexture({
+                size: [imageWidth, imageHeight, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+            device.queue.copyExternalImageToTexture(
+                { source: bitmap },
+                { texture: inputImageTexture },
+                [imageWidth, imageHeight]
+            );
+
+            // Create output storage texture for the compute shader
+            outputTexture = device.createTexture({
+                size: [imageWidth, imageHeight, 1],
+                format: 'rgba8unorm', // Match input format for simple copy/processing
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+        }
+
+
+        function createResources() {
+            if (!device || !inputImageTexture || !outputTexture) {
+                console.error("Device or textures not initialized.");
+                return;
+            }
+
+            // 1. Uniform Buffer 생성 — 파라미터 (색상, 위치, 반지름 등)
+            paramsBuffer = device.createBuffer({
+                size: 4 * Float32Array.BYTES_PER_ELEMENT, // 4 floats (r,g,b,brightness)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // Compute Pipeline
+            const computeShaderModule = device.createShaderModule({
+                code: document.getElementById('computeShader').textContent,
+            });
+
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            // Compute Bind Group
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: paramsBuffer,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: inputImageTexture.createView(),
+                    },
+                    {
+                        binding: 2,
+                        resource: outputTexture.createView(),
+                    },
+                ],
+            });
+
+            // Render Pipeline
+            const vertexShaderModule = device.createShaderModule({
+                code: document.getElementById('vertexShader').textContent,
+            });
+            const fragmentShaderModule = device.createShaderModule({
+                code: document.getElementById('fragmentShader').textContent,
+            });
+
+            // Sampler for the output texture
+            const outputSampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: vertexShaderModule,
+                    entryPoint: 'main',
+                },
+                fragment: {
+                    module: fragmentShaderModule,
+                    entryPoint: 'main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+            });
+
+            // Render Bind Group (for displaying compute result)
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: outputSampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: outputTexture.createView(),
+                    },
+                ],
+            });
+        }
+
+        function render() {
+            if (!device || !context || !computePipeline || !renderPipeline || !imageWidth || !imageHeight) {
+                return;
+            }
+
+            // Update uniform buffer with current parameters
+            const paramsArray = new Float32Array([
+                params.red_multiplier,
+                params.green_multiplier,
+                params.blue_multiplier,
+                params.brightness_offset
+            ]);
+            device.queue.writeBuffer(paramsBuffer, 0, paramsArray);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // Compute Pass
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            const workgroupSize = 8;
+            const dispatchX = Math.ceil(imageWidth / workgroupSize);
+            const dispatchY = Math.ceil(imageHeight / workgroupSize);
+            // DX11: Dispatch(W/8, H/8, 1) -> WebGPU: dispatchWorkgroups(ceil(W/8), ceil(H/8), 1)
+            computePass.dispatchWorkgroups(dispatchX, dispatchY);
+            computePass.end();
+
+            // Render Pass
+            const textureView = context.getCurrentTexture().createView();
+            const renderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: textureView,
+                        // DX11: float clearColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+                        clearValue: { r: 0.0, g: 0.0, b: 1.0, a: 1.0 }, // Clear to blue
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            };
+
+            const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6); // 6 vertices for a fullscreen quad
+            renderPass.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        let pendingRender = false;
+        function scheduleRender() {
+            if (!pendingRender) {
+                pendingRender = true;
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId); // Prevent multiple RAF calls
+                }
+                animationFrameId = requestAnimationFrame(() => {
+                    render();
+                    pendingRender = false;
+                    animationFrameId = null;
+                });
+            }
+        }
+
+        function setupUI() {
+            const sliders = [
+                { id: 'red-slider', param: 'red_multiplier', valueId: 'red-value' },
+                { id: 'green-slider', param: 'green_multiplier', valueId: 'green-value' },
+                { id: 'blue-slider', param: 'blue_multiplier', valueId: 'blue-value' },
+                { id: 'brightness-slider', param: 'brightness_offset', valueId: 'brightness-value' },
+            ];
+
+            sliders.forEach(s => {
+                const slider = document.getElementById(s.id);
+                const valueSpan = document.getElementById(s.valueId);
+
+                slider.value = params[s.param]; // Initialize slider value
+                valueSpan.textContent = params[s.param].toFixed(2); // Initialize span value
+
+                slider.oninput = (event) => {
+                    params[s.param] = parseFloat(event.target.value);
+                    valueSpan.textContent = params[s.param].toFixed(2);
+                    scheduleRender();
+                };
+            });
+        }
+
+        window.addEventListener('load', initializeWebGPU);
+    </script>
+</body>
+</html>

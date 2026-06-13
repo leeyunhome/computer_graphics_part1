@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Implement horizontal pass of BoxBlur5 separable convolution</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            color: #f0f0f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            border: 1px solid #3a3a5c;
+            background: #000;
+        }
+        canvas {
+            display: block;
+        }
+        /* ImGui Dark Style Panel */
+        .imgui-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background-color: rgba(28, 28, 38, 0.9);
+            border: 1px solid #4f4f6a;
+            border-radius: 4px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.6);
+            user-select: none;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        .imgui-header {
+            background-color: #252538;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #00ffff;
+            border-bottom: 1px solid #4f4f6a;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+        .imgui-body {
+            padding: 15px;
+        }
+        .imgui-row {
+            margin-bottom: 16px;
+        }
+        .imgui-row:last-child {
+            margin-bottom: 0;
+        }
+        .imgui-row label {
+            display: block;
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .imgui-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .imgui-slider {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            background: #11111a;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            border: 1px solid #3a3a5c;
+        }
+        .imgui-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 6px #00ffff;
+            transition: transform 0.1s;
+        }
+        .imgui-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .imgui-val {
+            font-size: 12px;
+            min-width: 35px;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ffff;
+            font-weight: bold;
+        }
+        .imgui-checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .imgui-checkbox {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #4f4f6a;
+            border-radius: 3px;
+            background-color: #11111a;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+        }
+        .imgui-checkbox:checked::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            background-color: #00ffff;
+            border-radius: 1px;
+            box-shadow: 0 0 4px #00ffff;
+        }
+        .imgui-checkbox-label {
+            font-size: 12px;
+            color: #ccc;
+        }
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            color: #8f8faf;
+            pointer-events: none;
+            background: rgba(26, 26, 46, 0.85);
+            padding: 6px 12px;
+            border-radius: 3px;
+            border: 1px solid #3a3a5c;
+        }
+        .status-bar span {
+            color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="webgpu-canvas" width="800" height="600"></canvas>
+
+        <!-- ImGui Dark Style Panel -->
+        <div class="imgui-panel">
+            <div class="imgui-header">DirectX 11 — BoxBlur5 Horizontal</div>
+            <div class="imgui-body">
+                <div class="imgui-row">
+                    <label class="imgui-checkbox-container">
+                        <input type="checkbox" id="blur-toggle" class="imgui-checkbox" checked>
+                        <span class="imgui-checkbox-label">가로 블러 활성화 (BoxBlur5)</span>
+                    </label>
+                </div>
+                
+                <div class="imgui-row">
+                    <label for="slider-iterations">반복 횟수 (Iterations)</label>
+                    <div class="imgui-slider-container">
+                        <input type="range" id="slider-iterations" class="imgui-slider" min="1" max="100" value="30">
+                        <span id="val-iterations" class="imgui-val">30</span>
+                    </div>
+                </div>
+
+                <div class="imgui-row">
+                    <label for="slider-brightness">밝기 조절 (Brightness)</label>
+                    <div class="imgui-slider-container">
+                        <input type="range" id="slider-brightness" class="imgui-slider" min="0.5" max="3.0" step="0.1" value="1.2">
+                        <span id="val-brightness" class="imgui-val">1.2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        API: <span>WebGPU</span> | Format: <span id="gpu-format">-</span> | Render Pass: <span id="gpu-pass">Horizontal Only</span>
+    </div>
+
+    <script type="module">
+        // --- WGSL Shaders ---
+
+        // 1. Compute Shader: 가로 방향 5-탭 박스 필터 블러 (Horizontal Pass)
+        const COMPUTE_SHADER = `
+            struct Params {
+                width: u32,
+                height: u32,
+                pad1: u32,
+                pad2: u32,
+            }
+
+            @group(0) @binding(0) var srcTex: texture_2d<f32>;
+            @group(0) @binding(1) var dstTex: texture_storage_2d<rgba8unorm, write>;
+            @group(0) @binding(2) var<uniform> params: Params;
+
+            @compute @workgroup_size(16, 16)
+            fn main(@builtin(global_invocation_id) id: vec3u) {
+                let coords = id.xy;
+                if (coords.x >= params.width || coords.y >= params.height) {
+                    return;
+                }
+
+                // Separable Convolution: Horizontal BoxBlur5
+                // [-2, -1, 0, 1, 2] 범위의 5개 픽셀 가로 샘플링
+                var colorSum = vec4f(0.0);
+                
+                for (var i: i32 = -2; i <= 2; i++) {
+                    let sampleX = clamp(i32(coords.x) + i, 0, i32(params.width) - 1);
+                    let sampleCoords = vec2i(sampleX, i32(coords.y));
+                    colorSum += textureLoad(srcTex, sampleCoords, 0);
+                }
+
+                let blurredColor = colorSum / 5.0;
+                textureStore(dstTex, coords, blurredColor);
+            }
+        `;
+
+        // 2. Render Shader: Fullscreen Triangle + Brightness Control
+        const RENDER_SHADER = `
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                var out: VertexOutput;
+                let uvs = array<vec2f, 3>(
+                    vec2f(0.0, 0.0),
+                    vec2f(2.0, 0.0),
+                    vec2f(0.0, 2.0)
+                );
+                let pos = array<vec4f, 3>(
+                    vec4f(-1.0, 1.0, 0.0, 1.0),
+                    vec4f(3.0, 1.0, 0.0, 1.0),
+                    vec4f(-1.0, -3.0, 0.0, 1.0)
+                );
+                out.position = pos[vertexIndex];
+                out.uv = uvs[vertexIndex];
+                return out;
+            }
+
+            @group(0) @binding(0) var t_diffuse: texture_2d<f32>;
+            @group(0) @binding(1) var s_diffuse: sampler;
+            @group(0) @binding(2) var<uniform> brightness: f32;
+
+            @fragment
+            fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+                let sampledColor = textureSample(t_diffuse, s_diffuse, in.uv);
+                
+                // DirectX 11 예제코드의 image.pixels[i].v[0] *= 1.2f 패턴 적용
+                let finalColor = vec4f(sampledColor.rgb * brightness, sampledColor.a);
+                return finalColor;
+            }
+        `;
+
+        // --- Application Setup ---
+
+        const canvas = document.getElementById('webgpu-canvas');
+        const W = canvas.width;
+        const H = canvas.height;
+
+        let device, context, presentationFormat;
+        let pipelineCompute, pipelineRender;
+        let texOriginal, texA, texB;
+        let computeBindGroup0, computeBindGroupAToB, computeBindGroupBToA;
+        let renderBindGroupOriginal, renderBindGroupA, renderBindGroupB;
+        let computeParamsBuffer, renderParamsBuffer;
+
+        // UI States
+        let iterations = 30;
+        let brightness = 1.2;
+        let blurEnabled = true;
+
+        async function loadImage(url, w, h) {
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.src = url;
+            });
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            return c;
+        }
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                document.body.innerHTML = `
+                    <div style="color: #ff3333; font-family: monospace; padding: 30px; text-align: center; background: #1a1a2e; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <h1 style="margin-bottom: 20px;">WebGPU 미지원 브라우저</h1>
+                        <p style="color: #ccc; font-size: 16px; max-width: 600px;">이 데모는 WebGPU API를 사용합니다. Chrome 113+, Edge 113+ 또는 최신 버전의 브라우저에서 실행해 주세요.</p>
+                    </div>
+                `;
+                throw new Error("WebGPU not supported");
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter.requestDevice();
+            context = canvas.getContext('webgpu');
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            document.getElementById('gpu-format').innerText = presentationFormat.toUpperCase();
+
+            context.configure({
+                device,
+                format: presentationFormat,
+                alphaMode: 'opaque'
+            });
+
+            // 1. 소스 이미지 로드 (실패 시 절차적 무늬로 대체)
+            let srcCanvas;
+            try {
+                srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+            } catch (e) {
+                console.warn("로컬 이미지를 찾을 수 없어 대체 이미지를 생성합니다.", e);
+                srcCanvas = document.createElement('canvas');
+                srcCanvas.width = W;
+                srcCanvas.height = H;
+                const ctx = srcCanvas.getContext('2d');
+                
+                // 역동적인 고대 로마 그래픽 스타일의 대체화면 생성 (블러 검출용 격자 포함)
+                const grad = ctx.createLinearGradient(0, 0, W, H);
+                grad.addColorStop(0, '#110022');
+                grad.addColorStop(0.3, '#440066');
+                grad.addColorStop(0.7, '#ff3300');
+                grad.addColorStop(1, '#ffcc00');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                // 고대 건축물 느낌의 실루엣 기둥
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                for (let i = 0; i < W; i += 60) {
+                    ctx.fillRect(i, 150, 20, H - 150);
+                }
+                ctx.fillRect(0, 120, W, 30);
+
+                // 원형 태양 패턴
+                ctx.beginPath();
+                ctx.arc(W / 2, H / 2, 120, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.shadowColor = '#ffaa00';
+                ctx.shadowBlur = 40;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 타이틀
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 32px sans-serif';
+                ctx.fillText('DIRECTX 11 — HORIZONTAL PASS', 50, 80);
+                ctx.font = '20px monospace';
+                ctx.fillStyle = '#00ffff';
+                ctx.fillText('BoxBlur5 Separable Convolution', 50, 115);
+            }
+
+            // 2. 텍스처 리소스 생성
+            const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
+
+            // 원본 원거리 텍스처 (Read)
+            texOriginal = device.createTexture({
+                size: [W, H],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+            device.queue.writeTexture(
+                { texture: texOriginal },
+                imgData.data,
+                { bytesPerRow: W * 4 },
+                { width: W, height: H }
+            );
+
+            // 핑퐁용 텍스처 A & B (Storage & Read 전용)
+            const pingPongDesc = {
+                size: [W, H],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST
+            };
+            texA = device.createTexture(pingPongDesc);
+            texB = device.createTexture(pingPongDesc);
+
+            // 3. 파이프라인 생성
+            pipelineCompute = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: device.createShaderModule({ code: COMPUTE_SHADER }),
+                    entryPoint: 'main',
+                }
+            });
+
+            pipelineRender = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: device.createShaderModule({ code: RENDER_SHADER }),
+                    entryPoint: 'vs_main',
+                },
+                fragment: {
+                    module: device.createShaderModule({ code: RENDER_SHADER }),
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: { topology: 'triangle-list' }
+            });
+
+            // 4. Uniform 버퍼 생성
+            computeParamsBuffer = device.createBuffer({
+                size: 16, // u32 x 4
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+            const compParamsData = new Uint32Array([W, H, 0, 0]);
+            device.queue.writeBuffer(computeParamsBuffer, 0, compParamsData);
+
+            renderParamsBuffer = device.createBuffer({
+                size: 16, // f32 x 4
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // 5. 바인드 그룹 정의 (Compute)
+            const computeLayout = pipelineCompute.getBindGroupLayout(0);
+            
+            computeBindGroup0 = device.createBindGroup({
+                layout: computeLayout,
+                entries: [
+                    { binding: 0, resource: texOriginal.createView() },
+                    { binding: 1, resource: texA.createView() },
+                    { binding: 2, resource: { buffer: computeParamsBuffer } }
+                ]
+            });
+
+            computeBindGroupAToB = device.createBindGroup({
+                layout: computeLayout,
+                entries: [
+                    { binding: 0, resource: texA.createView() },
+                    { binding: 1, resource: texB.createView() },
+                    { binding: 2, resource: { buffer: computeParamsBuffer } }
+                ]
+            });
+
+            computeBindGroupBToA = device.createBindGroup({
+                layout: computeLayout,
+                entries: [
+                    { binding: 0, resource: texB.createView() },
+                    { binding: 1, resource: texA.createView() },
+                    { binding: 2, resource: { buffer: computeParamsBuffer } }
+                ]
+            });
+
+            // 6. 바인드 그룹 정의 (Render)
+            const sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
+            const renderLayout = pipelineRender.getBindGroupLayout(0);
+
+            renderBindGroupOriginal = device.createBindGroup({
+                layout: renderLayout,
+                entries: [
+                    { binding: 0, resource: texOriginal.createView() },
+                    { binding: 1, resource: sampler },
+                    { binding: 2, resource: { buffer: renderParamsBuffer } }
+                ]
+            });
+
+            renderBindGroupA = device.createBindGroup({
+                layout: renderLayout,
+                entries: [
+                    { binding: 0, resource: texA.createView() },
+                    { binding: 1, resource: sampler },
+                    { binding: 2, resource: { buffer: renderParamsBuffer } }
+                ]
+            });
+
+            renderBindGroupB = device.createBindGroup({
+                layout: renderLayout,
+                entries: [
+                    { binding: 0, resource: texB.createView() },
+                    { binding: 1, resource: sampler },
+                    { binding: 2, resource: { buffer: renderParamsBuffer } }
+                ]
+            });
+
+            scheduleRender();
+        }
+
+        // --- Render Loop ---
+
+        let renderRequested = false;
+        function scheduleRender() {
+            if (renderRequested) return;
+            renderRequested = true;
+            requestAnimationFrame(() => {
+                draw();
+                renderRequested = false;
+            });
+        }
+
+        function draw() {
+            // Uniform 갱신 (Render Pass용 Brightness)
+            const renderParamsData = new Float32Array([brightness, 0, 0, 0]);
+            device.queue.writeBuffer(renderParamsBuffer, 0, renderParamsData);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            let activeRenderBindGroup = renderBindGroupOriginal;
+
+            // Compute Pass 순차 핑퐁 실행
+            if (blurEnabled && iterations > 0) {
+                // Pass 0: Original -> A
+                {
+                    const computePass = commandEncoder.beginComputePass();
+                    computePass.setPipeline(pipelineCompute);
+                    computePass.setBindGroup(0, computeBindGroup0);
+                    computePass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
+                    computePass.end();
+                }
+                activeRenderBindGroup = renderBindGroupA;
+
+                // Pass 1 ~ N: Ping-Pong
+                for (let i = 1; i < iterations; i++) {
+                    const computePass = commandEncoder.beginComputePass();
+                    computePass.setPipeline(pipelineCompute);
+                    
+                    if (i % 2 === 1) {
+                        computePass.setBindGroup(0, computeBindGroupAToB);
+                        activeRenderBindGroup = renderBindGroupB;
+                    } else {
+                        computePass.setBindGroup(0, computeBindGroupBToA);
+                        activeRenderBindGroup = renderBindGroupA;
+                    }
+
+                    computePass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
+                    computePass.end();
+                }
+            }
+
+            // Render Pass (Fullscreen Quad로 최종 드로잉)
+            const renderPassDescriptor = {
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store',
+                }],
+            };
+
+            const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+            renderPass.setPipeline(pipelineRender);
+            renderPass.setBindGroup(0, activeRenderBindGroup);
+            renderPass.draw(3); // Triangle 1개로 화면 채우기
+            renderPass.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        // --- UI Events ---
+
+        const blurToggle = document.getElementById('blur-toggle');
+        const sliderIterations = document.getElementById('slider-iterations');
+        const sliderBrightness = document.getElementById('slider-brightness');
+        const valIterations = document.getElementById('val-iterations');
+        const valBrightness = document.getElementById('val-brightness');
+
+        blurToggle.addEventListener('change', (e) => {
+            blurEnabled = e.target.checked;
+            scheduleRender();
+        });
+
+        sliderIterations.addEventListener('input', (e) => {
+            iterations = parseInt(e.target.value);
+            valIterations.innerText = iterations;
+            scheduleRender();
+        });
+
+        sliderBrightness.addEventListener('input', (e) => {
+            brightness = parseFloat(e.target.value);
+            valBrightness.innerText = brightness.toFixed(1);
+            scheduleRender();
+        });
+
+        // Initialize App
+        initWebGPU();
+
+    </script>
+</body>
+</html>

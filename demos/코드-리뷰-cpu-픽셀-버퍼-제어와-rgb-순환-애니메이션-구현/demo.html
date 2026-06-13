@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>DirectX 11 — Add color animation with RGB cycling and 300ms delay</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a2e;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: #e0e0e0;
+    overflow: hidden;
+    user-select: none;
+  }
+  #container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  canvas {
+    background-color: #000;
+    box-shadow: 0 0 30px rgba(0,0,0,0.9);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  /* ImGui Window Style */
+  .imgui-window {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    width: 350px;
+    background-color: rgba(28, 35, 51, 0.95);
+    border: 1px solid #4a5a80;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+    border-radius: 3px;
+    z-index: 10;
+  }
+  .imgui-header {
+    background: linear-gradient(90deg, #2d3d5a, #1f2b3e);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #4a5a80;
+    cursor: move;
+  }
+  .imgui-header-title {
+    color: #ffffff;
+    letter-spacing: 0.5px;
+  }
+  .imgui-header-buttons span {
+    margin-left: 6px;
+    cursor: pointer;
+    color: #a0a0a0;
+  }
+  .imgui-header-buttons span:hover {
+    color: #ffffff;
+  }
+  .imgui-content {
+    padding: 14px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .imgui-section {
+    margin-bottom: 14px;
+    border-bottom: 1px solid #2e384e;
+    padding-bottom: 14px;
+  }
+  .imgui-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .imgui-section-title {
+    color: #569cd6;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+  }
+  .imgui-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .imgui-label {
+    width: 45%;
+    color: #9cdcfe;
+  }
+  .imgui-value {
+    width: 55%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  input[type="range"] {
+    flex-grow: 1;
+    background: #141824;
+    border: 1px solid #3a4a6e;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007acc;
+    cursor: pointer;
+    border: 1px solid #4a5a80;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    background: #1f9aff;
+  }
+  select, button {
+    background-color: #2d3d5a;
+    color: #ffffff;
+    border: 1px solid #4a5a80;
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+  }
+  select:hover, button:hover {
+    background-color: #3d4f73;
+    border-color: #569cd6;
+  }
+  button:active {
+    background-color: #1f2b3e;
+  }
+  .btn-group {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+  }
+  .btn-group button {
+    flex: 1;
+  }
+  .imgui-stats {
+    background-color: #141824;
+    padding: 10px;
+    border-radius: 3px;
+    border: 1px solid #2e384e;
+    font-size: 11px;
+    color: #dcdcdc;
+  }
+  .color-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid #ffffff;
+    vertical-align: middle;
+    margin-right: 6px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.5);
+  }
+  #error-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(20,20,30,0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    color: #ff6b6b;
+    font-size: 16px;
+    font-weight: bold;
+    display: none;
+    text-align: center;
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <canvas id="gpuCanvas" width="512" height="512"></canvas>
+  
+  <!-- ImGui Control Panel -->
+  <div class="imgui-window">
+    <div class="imgui-header">
+      <span class="imgui-header-title">DirectX 11 — RGB Cycling & Delay</span>
+      <div class="imgui-header-buttons">
+        <span>_</span>
+        <span>X</span>
+      </div>
+    </div>
+    <div class="imgui-content">
+      
+      <!-- Simulation Controls -->
+      <div class="imgui-section">
+        <div class="imgui-section-title">Execution Controls</div>
+        <div class="imgui-row">
+          <span class="imgui-label">주기 (Delay)</span>
+          <div class="imgui-value">
+            <input type="range" id="delaySlider" min="50" max="2000" step="50" value="300">
+            <span id="delayValText" style="width: 45px; text-align: right;">300ms</span>
+          </div>
+        </div>
+        <div class="imgui-row">
+          <span class="imgui-label">그리드 해상도</span>
+          <div class="imgui-value">
+            <select id="gridSelect">
+              <option value="8">8 x 8</option>
+              <option value="16" selected>16 x 16</option>
+              <option value="32">32 x 32</option>
+              <option value="64">64 x 64</option>
+            </select>
+          </div>
+        </div>
+        <div class="imgui-row" style="margin-top: 10px;">
+          <div class="btn-group">
+            <button id="playPauseBtn">일시정지 (Pause)</button>
+            <button id="resetBtn">초기화 (Reset)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- State & Statistics -->
+      <div class="imgui-section">
+        <div class="imgui-section-title">DirectX Pipeline Statistics</div>
+        <div class="imgui-stats">
+          <div class="imgui-row">
+            <span>Active Pixel Index (i):</span>
+            <span id="idx-val" style="color: #b5cea8; font-weight: bold;">0</span>
+          </div>
+          <div class="imgui-row">
+            <span>Coordinate (X, Y):</span>
+            <span id="coord-val" style="color: #b5cea8;">(0, 0)</span>
+          </div>
+          <div class="imgui-row">
+            <span>Cycle Color:</span>
+            <span style="color: #b5cea8; display: flex; align-items: center;">
+              <span id="color-indicator" class="color-indicator" style="background-color: #ff0000;"></span>
+              <span id="color-val">Red (빨강)</span>
+            </span>
+          </div>
+          <div class="imgui-row" style="margin-top: 6px; border-top: 1px dashed #2e384e; padding-top: 6px;">
+            <span>Render Target:</span>
+            <span style="color: #e5c07b;">512 x 512 (Upscaled)</span>
+          </div>
+          <div class="imgui-row">
+            <span>Pipeline Mode:</span>
+            <span style="color: #e5c07b;">WebGPU CS Pipeline</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="error-overlay">WebGPU가 브라우저에서 실행되지 않았거나 지원하지 않습니다.</div>
+
+<script>
+// --- WGSL Shaders ---
+
+const computeShaderCode = `
+struct Params {
+  activeIndex: u32,
+  width: u32,
+  height: u32,
+  pad: u32,
+}
+
+@group(0) @binding(0) var outTex: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(1) var<uniform> params: Params;
+
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+  if (id.x >= params.width || id.y >= params.height) {
+    return;
+  }
+  
+  let index = id.y * params.width + id.x;
+  var color = vec4f(0.8, 0.8, 0.8, 1.0);
+  
+  if (index == params.activeIndex) {
+    let mode = params.activeIndex % 3u;
+    if (mode == 0u) {
+      color = vec4f(1.0, 0.0, 0.0, 1.0);
+    } else if (mode == 1u) {
+      color = vec4f(0.0, 1.0, 0.0, 1.0);
+    } else {
+      color = vec4f(0.0, 0.0, 1.0, 1.0);
+    }
+  }
+  
+  textureStore(outTex, id.xy, color);
+}
+`;
+
+const renderShaderCode = `
+struct VertexOutput {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+  var pos = array<vec2f, 6>(
+    vec2f(-1.0, -1.0),
+    vec2f( 1.0, -1.0),
+    vec2f(-1.0,  1.0),
+    vec2f(-1.0,  1.0),
+    vec2f( 1.0, -1.0),
+    vec2f( 1.0,  1.0)
+  );
+  var uv = array<vec2f, 6>(
+    vec2f(0.0, 1.0),
+    vec2f(1.0, 1.0),
+    vec2f(0.0, 0.0),
+    vec2f(0.0, 0.0),
+    vec2f(1.0, 1.0),
+    vec2f(1.0, 0.0)
+  );
+  
+  var out: VertexOutput;
+  out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+  out.uv = uv[vertexIndex];
+  return out;
+}
+
+@group(0) @binding(0) var t_color: texture_2d<f32>;
+
+@fragment
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let texSize = vec2f(textureDimensions(t_color));
+  let texCoord = clamp(vec2i(uv * texSize), vec2i(0), vec2i(texSize) - vec2i(1));
+  return textureLoad(t_color, texCoord, 0);
+}
+`;
+
+// --- WebGPU State & Logic ---
+
+let device = null;
+let context = null;
+let format = null;
+
+let computePipeline = null;
+let renderPipeline = null;
+
+let uniformBuffer = null;
+let storageTexture = null;
+let computeBindGroup = null;
+let renderBindGroup = null;
+
+let gridWidth = 16;
+let gridHeight = 16;
+let activeIndex = 0;
+let delay = 300;
+let isPaused = false;
+let lastUpdateTime = 0;
+
+function showError(message) {
+  const overlay = document.getElementById('error-overlay');
+  overlay.innerHTML = message;
+  overlay.style.display = 'flex';
+}
+
+async function initWebGPU() {
+  if (!navigator.gpu) {
+    showError("WebGPU를 지원하지 않는 브라우저입니다.<br>Chrome, Edge 혹은 WebGPU가 활성화된 브라우저를 사용하세요.");
+    return false;
+  }
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) {
+    showError("WebGPU 어댑터를 발견하지 못했습니다.");
+    return false;
+  }
+  device = await adapter.requestDevice();
+  
+  const canvas = document.getElementById("gpuCanvas");
+  context = canvas.getContext("webgpu");
+  format = navigator.gpu.getPreferredCanvasFormat();
+  context.configure({
+    device,
+    format,
+    alphaMode: "opaque"
+  });
+  
+  // Create Pipelines
+  computePipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: {
+      module: device.createShaderModule({ code: computeShaderCode }),
+      entryPoint: 'main'
+    }
+  });
+
+  renderPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module: device.createShaderModule({ code: renderShaderCode }),
+      entryPoint: 'vs_main'
+    },
+    fragment: {
+      module: device.createShaderModule({ code: renderShaderCode }),
+      entryPoint: 'fs_main',
+      targets: [{ format }]
+    },
+    primitive: {
+      topology: 'triangle-list'
+    }
+  });
+
+  // Create Uniform Buffer
+  const uniformBufferSize = 16; // struct aligned to 16 bytes
+  uniformBuffer = device.createBuffer({
+    size: uniformBufferSize,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  });
+
+  recreateStorageResources();
+  return true;
+}
+
+function recreateStorageResources() {
+  if (storageTexture) {
+    storageTexture.destroy();
+  }
+  
+  storageTexture = device.createTexture({
+    size: [gridWidth, gridHeight],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.STORAGE_BIND_GROUP | GPUTextureUsage.TEXTURE_BINDING
+  });
+
+  computeBindGroup = device.createBindGroup({
+    layout: computePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: storageTexture.createView() },
+      { binding: 1, resource: { buffer: uniformBuffer } }
+    ]
+  });
+
+  renderBindGroup = device.createBindGroup({
+    layout: renderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: storageTexture.createView() }
+    ]
+  });
+}
+
+function updateUniforms() {
+  const arrayBuffer = new ArrayBuffer(16);
+  const view = new DataView(arrayBuffer);
+  view.setUint32(0, activeIndex, true);
+  view.setUint32(4, gridWidth, true);
+  view.setUint32(8, gridHeight, true);
+  view.setUint32(12, 0, true); // padding
+  device.queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+}
+
+let renderPending = false;
+function scheduleRender() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => {
+    renderPending = false;
+    draw();
+  });
+}
+
+function draw() {
+  updateUniforms();
+  
+  const commandEncoder = device.createCommandEncoder();
+  
+  // 1. Compute Pass
+  const computePass = commandEncoder.beginComputePass();
+  computePass.setPipeline(computePipeline);
+  computePass.setBindGroup(0, computeBindGroup);
+  
+  const dispatchX = Math.ceil(gridWidth / 8);
+  const dispatchY = Math.ceil(gridHeight / 8);
+  computePass.dispatchWorkgroups(dispatchX, dispatchY);
+  computePass.end();
+  
+  // 2. Render Pass
+  const renderPassDescriptor = {
+    colorAttachments: [{
+      view: context.getCurrentTexture().createView(),
+      clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+      loadOp: 'clear',
+      storeOp: 'store'
+    }]
+  };
+  
+  const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+  renderPass.setPipeline(renderPipeline);
+  renderPass.setBindGroup(0, renderBindGroup);
+  renderPass.draw(6);
+  renderPass.end();
+  
+  device.queue.submit([commandEncoder.finish()]);
+}
+
+// --- Frame loop ticker ---
+
+function tick(now) {
+  if (!isPaused) {
+    if (!lastUpdateTime) lastUpdateTime = now;
+    const elapsed = now - lastUpdateTime;
+    
+    if (elapsed >= delay) {
+      const steps = Math.floor(elapsed / delay);
+      const totalPixels = gridWidth * gridHeight;
+      activeIndex = (activeIndex + steps) % totalPixels;
+      lastUpdateTime = now - (elapsed % delay);
+      
+      scheduleRender();
+      updateUIStats();
+    }
+  } else {
+    // Keep timing current so pause -> play doesn't skip instantly
+    lastUpdateTime = now;
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateUIStats() {
+  document.getElementById('idx-val').innerText = activeIndex;
+  
+  const x = activeIndex % gridWidth;
+  const y = Math.floor(activeIndex / gridWidth);
+  document.getElementById('coord-val').innerText = `(${x}, ${y})`;
+  
+  const mode = activeIndex % 3;
+  let colorName = '';
+  let hexColor = '';
+  if (mode === 0) {
+    colorName = 'Red (빨강)';
+    hexColor = '#ff0000';
+  } else if (mode === 1) {
+    colorName = 'Green (초록)';
+    hexColor = '#00ff00';
+  } else {
+    colorName = 'Blue (파랑)';
+    hexColor = '#0000ff';
+  }
+  document.getElementById('color-val').innerText = colorName;
+  document.getElementById('color-indicator').style.backgroundColor = hexColor;
+}
+
+// --- Interaction / DOM Handlers ---
+
+window.onload = async () => {
+  const initialized = await initWebGPU();
+  if (!initialized) return;
+  
+  // Event listeners
+  const delaySlider = document.getElementById('delaySlider');
+  const delayValText = document.getElementById('delayValText');
+  delaySlider.addEventListener('input', (e) => {
+    delay = parseInt(e.target.value);
+    delayValText.innerText = `${delay}ms`;
+  });
+  
+  const gridSelect = document.getElementById('gridSelect');
+  gridSelect.addEventListener('change', (e) => {
+    gridWidth = parseInt(e.target.value);
+    gridHeight = gridWidth;
+    activeIndex = 0;
+    recreateStorageResources();
+    scheduleRender();
+    updateUIStats();
+  });
+  
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  playPauseBtn.addEventListener('click', () => {
+    isPaused = !isPaused;
+    playPauseBtn.innerText = isPaused ? '재생 (Play)' : '일시정지 (Pause)';
+  });
+  
+  const resetBtn = document.getElementById('resetBtn');
+  resetBtn.addEventListener('click', () => {
+    activeIndex = 0;
+    scheduleRender();
+    updateUIStats();
+  });
+
+  // Make ImGui panel draggable
+  const imguiWindow = document.querySelector('.imgui-window');
+  const imguiHeader = document.querySelector('.imgui-header');
+  let isDragging = false;
+  let offsetX, offsetY;
+
+  imguiHeader.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    offsetX = e.clientX - imguiWindow.getBoundingClientRect().left;
+    offsetY = e.clientY - imguiWindow.getBoundingClientRect().top;
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      imguiWindow.style.left = `${e.clientX - offsetX}px`;
+      imguiWindow.style.top = `${e.clientY - offsetY}px`;
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+  
+  // Initial frame & start loop
+  scheduleRender();
+  updateUIStats();
+  requestAnimationFrame(tick);
+};
+</script>
+
+</body>
+</html>

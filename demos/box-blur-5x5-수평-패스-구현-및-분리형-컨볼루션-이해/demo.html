@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGPU — BoxBlur5 Horizontal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #bbbbbb;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #container {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            position: relative; /* For error message */
+        }
+
+        canvas {
+            display: block;
+            background-color: black;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure image fits within canvas container */
+        }
+
+        #sidebar {
+            width: 300px;
+            background-color: #252526;
+            padding: 15px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #f0f0f0;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-weight: normal;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .param-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #323232;
+            border-radius: 3px;
+        }
+
+        .param-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #dddddd;
+            font-size: 0.95em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .param-group input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 8px;
+            background: #555;
+            border-radius: 4px;
+            outline: none;
+            transition: opacity .2s;
+        }
+
+        .param-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+            border: 2px solid #007acc;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .param-group input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+            border: 2px solid #007acc;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .param-value {
+            color: #ccc;
+            font-size: 0.9em;
+            min-width: 30px; /* Ensure space for values like 1.25 */
+            text-align: right;
+        }
+
+        .error-message {
+            position: absolute; /* Changed to absolute for better placement within canvas-container */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            background-color: #ff4444;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            z-index: 1000;
+            font-family: monospace;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-message" id="error-message" style="display: none;">
+        WebGPU is not supported in this browser or device. Please try a browser like Chrome or Edge,
+        and ensure your GPU drivers are up to date.
+    </div>
+
+    <div id="container">
+        <div id="canvas-container">
+            <canvas id="gpu-canvas"></canvas>
+        </div>
+        <div id="sidebar">
+            <h2>BoxBlur5 Horizontal</h2>
+            <div class="param-group">
+                <label for="blurIterations">
+                    블러 반복 횟수: <span id="blurIterationsValue" class="param-value">0</span>
+                </label>
+                <input type="range" id="blurIterations" min="0" max="200" value="0" step="1">
+            </div>
+            <div class="param-group">
+                <label for="brightness">
+                    밝기: <span id="brightnessValue" class="param-value">1.2</span>
+                </label>
+                <input type="range" id="brightness" min="0.0" max="3.0" value="1.2" step="0.05">
+            </div>
+            <p style="margin-top: 20px; font-size: 0.85em; color: #888;">원본 이미지: colosseum.jpg</p>
+        </div>
+    </div>
+
+    <script type="module">
+        const canvas = document.getElementById('gpu-canvas');
+        const errorMessage = document.getElementById('error-message');
+        const blurIterationsSlider = document.getElementById('blurIterations');
+        const blurIterationsValueSpan = document.getElementById('blurIterationsValue');
+        const brightnessSlider = document.getElementById('brightness');
+        const brightnessValueSpan = document.getElementById('brightnessValue');
+
+        let device, context, presentationFormat;
+        let originalImageTexture, pingTexture, pongTexture;
+        let imageWidth = 0, imageHeight = 0;
+
+        let blurParamsBuffer;
+        let imageProcessingPipeline, boxBlurPipeline, renderPipeline;
+        let imageProcessingBindGroup, blurBindGroupPingPong, blurBindGroupPongPing, renderBindGroup;
+        let linearSampler;
+
+        let animationFrameId = 0;
+        let needsRender = false;
+
+        const IMAGE_URL = 'colosseum.jpg'; // Using the specified image from DX11 example
+
+        // WGSL Shaders
+        const imageProcessingWGSL = `
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var srcTexture: texture_2d<f32>; // Original image
+            @group(0) @binding(2) var destTexture: texture_storage_2d<rgba8unorm, write>; // Brightened output
+
+            struct Params {
+                imageWidth: u32,
+                imageHeight: u32,
+                brightness: f32
+            };
+
+            @compute @workgroup_size(8, 8)
+            fn main(
+                @builtin(global_invocation_id) global_id: vec3<u32>
+            ) {
+                let x = global_id.x;
+                let y = global_id.y;
+
+                let width = params.imageWidth;
+                let height = params.imageHeight;
+
+                if x >= width || y >= height {
+                    return;
+                }
+
+                var color = textureLoad(srcTexture, vec2<i32>(x, y), 0);
+                
+                // Apply brightness adjustment to RGB channels
+                color.r *= params.brightness;
+                color.g *= params.brightness;
+                color.b *= params.brightness;
+
+                textureStore(destTexture, vec2<i32>(x, y), color);
+            }
+        `;
+
+        const boxBlurWGSL = `
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var srcTexture: texture_2d<f32>; // Read-only input
+            @group(0) @binding(2) var destTexture: texture_storage_2d<rgba8unorm, write>; // Write-only output
+
+            struct Params {
+                imageWidth: u32,
+                imageHeight: u32,
+                brightness: f32 // Not used in blur, but part of shared buffer
+            };
+
+            @compute @workgroup_size(8, 8)
+            fn main(
+                @builtin(global_invocation_id) global_id: vec3<u32>
+            ) {
+                let x = global_id.x;
+                let y = global_id.y;
+
+                let width = params.imageWidth;
+                let height = params.imageHeight;
+
+                // Check if we are within the image bounds
+                if x >= width || y >= height {
+                    return;
+                }
+
+                var neighborColorSum = vec4f(0.0, 0.0, 0.0, 0.0);
+
+                // BoxBlur5 horizontal pass
+                // Kernel size 5, offsets -2, -1, 0, 1, 2
+                for (var si = -2; si <= 2; si++) {
+                    let neighbor_x = i32(x) + si;
+                    
+                    // Clamp neighbor_x to valid texture coordinates
+                    let clamped_neighbor_x = clamp(neighbor_x, 0, i32(width) - 1);
+                    
+                    // textureLoad expects integer coordinates
+                    let neighborColor = textureLoad(srcTexture, vec2<i32>(clamped_neighbor_x, i32(y)), 0);
+                    neighborColorSum += neighborColor;
+                }
+
+                // Average the colors (divide by 5.0)
+                let finalColor = neighborColorSum * (1.0 / 5.0);
+
+                // Write to the output texture
+                textureStore(destTexture, vec2<i32>(x, y), finalColor);
+            }
+        `;
+
+        const renderWGSL = `
+            @group(0) @binding(0) var linearSampler: sampler;
+            @group(0) @binding(1) var renderTexture: texture_2d<f32>;
+
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                let pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0),
+                    vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0)
+                ); // Fullscreen quad positions
+
+                let uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0),
+                    vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(0.0, 0.0)
+                ); // Fullscreen quad UVs (flipped Y for WebGPU default)
+
+                var output: VertexOutput;
+                output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                output.uv = uv[vertexIndex];
+                return output;
+            }
+
+            @fragment
+            fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(renderTexture, linearSampler, uv);
+            }
+        `;
+
+        async function initializeWebGPU() {
+            if (!navigator.gpu) {
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            context = canvas.getContext('webgpu');
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            context.configure({
+                device,
+                format: presentationFormat,
+                alphaMode: 'opaque',
+            });
+
+            // Uniform buffer for parameters (image dimensions, brightness)
+            blurParamsBuffer = device.createBuffer({
+                size: 4 * 4, // 3 u32s + 1 f32 = 16 bytes (vec4f aligned)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // Sampler for rendering
+            linearSampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
+
+            await loadImageAndSetupTextures();
+            createPipelines();
+            createBindGroups();
+
+            // Set initial UI values
+            blurIterationsValueSpan.textContent = blurIterationsSlider.value;
+            brightnessValueSpan.textContent = brightnessSlider.value;
+
+            attachEventListeners();
+            scheduleRender();
+        }
+
+        async function loadImageAndSetupTextures() {
+            const img = new Image();
+            img.src = IMAGE_URL;
+            await img.decode();
+
+            imageWidth = img.width;
+            imageHeight = img.height;
+
+            // Adjust canvas size to match image aspect ratio, within limits
+            const maxCanvasHeight = window.innerHeight - 50; // Some padding
+            const maxCanvasWidth = window.innerWidth - 350; // For sidebar
+            const aspectRatio = imageWidth / imageHeight;
+
+            if (imageWidth > maxCanvasWidth || imageHeight > maxCanvasHeight) {
+                if (maxCanvasWidth / maxCanvasHeight > aspectRatio) { // Canvas is wider, limit by height
+                    canvas.height = maxCanvasHeight;
+                    canvas.width = Math.round(maxCanvasHeight * aspectRatio);
+                } else { // Canvas is taller, limit by width
+                    canvas.width = maxCanvasWidth;
+                    canvas.height = Math.round(maxCanvasWidth / aspectRatio);
+                }
+            } else {
+                canvas.width = imageWidth;
+                canvas.height = imageHeight;
+            }
+
+            originalImageTexture = device.createTexture({
+                size: [imageWidth, imageHeight],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+
+            device.queue.copyExternalImageToTexture(
+                { source: img },
+                { texture: originalImageTexture },
+                [imageWidth, imageHeight]
+            );
+
+            // Ping-pong textures for compute shaders
+            const textureDescriptor = {
+                size: [imageWidth, imageHeight],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+            };
+            pingTexture = device.createTexture(textureDescriptor);
+            pongTexture = device.createTexture(textureDescriptor);
+        }
+
+        function createPipelines() {
+            // Compute shader for initial image processing (brightness)
+            const imageProcessingShaderModule = device.createShaderModule({ code: imageProcessingWGSL });
+            imageProcessingPipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: imageProcessingShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            // Compute shader for Box Blur (horizontal pass)
+            const boxBlurShaderModule = device.createShaderModule({ code: boxBlurWGSL });
+            boxBlurPipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: boxBlurShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            // Render pipeline to display the final texture
+            const renderShaderModule = device.createShaderModule({ code: renderWGSL });
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderShaderModule,
+                    entryPoint: 'vs_main',
+                },
+                fragment: {
+                    module: renderShaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+            });
+        }
+
+        function createBindGroups() {
+            // Bind group for initial image processing (original -> pingTexture with brightness)
+            imageProcessingBindGroup = device.createBindGroup({
+                layout: imageProcessingPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: blurParamsBuffer },
+                    },
+                    {
+                        binding: 1,
+                        resource: originalImageTexture.createView(),
+                    },
+                    {
+                        binding: 2,
+                        resource: pongTexture.createView(), // Initial output goes to pong
+                    },
+                ],
+            });
+
+            // Bind groups for ping-pong blurring
+            blurBindGroupPingPong = device.createBindGroup({
+                layout: boxBlurPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: blurParamsBuffer },
+                    },
+                    {
+                        binding: 1,
+                        resource: pingTexture.createView(), // Read from ping
+                    },
+                    {
+                        binding: 2,
+                        resource: pongTexture.createView(), // Write to pong
+                    },
+                ],
+            });
+
+            blurBindGroupPongPing = device.createBindGroup({
+                layout: boxBlurPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: blurParamsBuffer },
+                    },
+                    {
+                        binding: 1,
+                        resource: pongTexture.createView(), // Read from pong
+                    },
+                    {
+                        binding: 2,
+                        resource: pingTexture.createView(), // Write to ping
+                    },
+                ],
+            });
+
+            // Initial render bind group (will be updated dynamically)
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: linearSampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: pongTexture.createView(), // Default to pong, will be updated
+                    },
+                ],
+            });
+        }
+
+        function updateUniforms() {
+            const blurIterations = parseInt(blurIterationsSlider.value);
+            const brightness = parseFloat(brightnessSlider.value);
+
+            const uniformData = new Float32Array([
+                imageWidth, imageHeight, 0, 0, // vec4f alignment
+                brightness, 0, 0, 0 // vec4f alignment
+            ]);
+            device.queue.writeBuffer(blurParamsBuffer, 0, uniformData);
+
+            blurIterationsValueSpan.textContent = blurIterations;
+            brightnessValueSpan.textContent = brightness.toFixed(2);
+        }
+
+        function render() {
+            if (!device) return;
+
+            updateUniforms();
+
+            const commandEncoder = device.createCommandEncoder();
+
+            const blurIterations = parseInt(blurIterationsSlider.value);
+
+            // Step 1: Initial Image Processing (Brightness adjustment)
+            // Reads from originalImageTexture, writes to pongTexture
+            {
+                const computePass = commandEncoder.beginComputePass();
+                computePass.setPipeline(imageProcessingPipeline);
+                computePass.setBindGroup(0, imageProcessingBindGroup);
+                const workgroupX = Math.ceil(imageWidth / 8);
+                const workgroupY = Math.ceil(imageHeight / 8);
+                computePass.dispatchWorkgroups(workgroupX, workgroupY);
+                computePass.end();
+            }
+
+            // Reference to the current source and destination textures for ping-pong
+            let currentSrcTexture = pongTexture; // After initial processing, pongTexture holds the brightened image
+            let currentDstTexture = pingTexture;
+
+            // Step 2: Box Blur horizontal pass (multiple iterations if requested)
+            for (let i = 0; i < blurIterations; i++) {
+                const computePass = commandEncoder.beginComputePass();
+                computePass.setPipeline(boxBlurPipeline);
+
+                if (i % 2 === 0) { // First blur pass: pong -> ping (or if currentSrc is pong, currentDst is ping)
+                    computePass.setBindGroup(0, device.createBindGroup({ // Recreate to bind correct textures
+                        layout: boxBlurPipeline.getBindGroupLayout(0),
+                        entries: [
+                            { binding: 0, resource: { buffer: blurParamsBuffer } },
+                            { binding: 1, resource: currentSrcTexture.createView() },
+                            { binding: 2, resource: currentDstTexture.createView() },
+                        ],
+                    }));
+                } else { // Second blur pass: ping -> pong (or if currentSrc is ping, currentDst is pong)
+                    computePass.setBindGroup(0, device.createBindGroup({ // Recreate to bind correct textures
+                        layout: boxBlurPipeline.getBindGroupLayout(0),
+                        entries: [
+                            { binding: 0, resource: { buffer: blurParamsBuffer } },
+                            { binding: 1, resource: currentSrcTexture.createView() },
+                            { binding: 2, resource: currentDstTexture.createView() },
+                        ],
+                    }));
+                }
+                
+                const workgroupX = Math.ceil(imageWidth / 8);
+                const workgroupY = Math.ceil(imageHeight / 8);
+                computePass.dispatchWorkgroups(workgroupX, workgroupY);
+                computePass.end();
+
+                // Swap ping-pong textures for next iteration
+                [currentSrcTexture, currentDstTexture] = [currentDstTexture, currentSrcTexture];
+            }
+            
+            // The final blurred texture is `currentSrcTexture` after the loop (because it was the last *source*).
+            const finalRenderTexture = blurIterations === 0 ? pongTexture : currentSrcTexture; // If 0 iterations, show brightened image from pongTexture
+
+
+            // Update render bind group with the final texture
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: linearSampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: finalRenderTexture.createView(),
+                    },
+                ],
+            });
+
+
+            // Step 3: Render the final texture to the canvas
+            const textureView = context.getCurrentTexture().createView();
+            const renderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: textureView,
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            };
+
+            const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+            passEncoder.setPipeline(renderPipeline);
+            passEncoder.setBindGroup(0, renderBindGroup);
+            passEncoder.draw(6); // Draw fullscreen quad with 6 vertices
+            passEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            needsRender = false;
+        }
+
+        function scheduleRender() {
+            if (!needsRender) {
+                needsRender = true;
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                animationFrameId = requestAnimationFrame(render);
+            }
+        }
+
+        function attachEventListeners() {
+            blurIterationsSlider.addEventListener('input', scheduleRender);
+            brightnessSlider.addEventListener('input', scheduleRender);
+            window.addEventListener('resize', () => {
+                // Re-initialize WebGPU to adjust canvas size and textures
+                if (device) {
+                    // Dispose existing textures and re-create them with new dimensions if necessary
+                    originalImageTexture.destroy();
+                    pingTexture.destroy();
+                    pongTexture.destroy();
+                    loadImageAndSetupTextures().then(() => {
+                        createBindGroups(); // Recreate bind groups with new texture views
+                        scheduleRender();
+                    });
+                }
+            });
+        }
+
+        initializeWebGPU();
+    </script>
+</body>
+</html>

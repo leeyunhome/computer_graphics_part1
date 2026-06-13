@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DirectX 11 — Animate red pixel moving across canvas frame by frame</title>
+  <style>
+    :root {
+      --bg-color: #1a1a2e;
+      --panel-bg: #161622;
+      --panel-border: #3f3f5f;
+      --text-color: #f0f0f0;
+      --accent-color: #e94560;
+      --accent-hover: #ff6b81;
+      --widget-bg: #0f0f1a;
+      --widget-border: #4e4e7a;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* DirectX 11 Style Window Header */
+    header {
+      background-color: #0f0f1a;
+      border-bottom: 2px solid var(--panel-border);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      letter-spacing: 1px;
+      font-size: 14px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .window-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .window-title::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background-color: var(--accent-color);
+      border-radius: 50%;
+    }
+
+    /* Main Layout */
+    .main-container {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Sidebar Control Panel (ImGui Style) */
+    .control-panel {
+      width: 320px;
+      background-color: var(--panel-bg);
+      border-right: 2px solid var(--panel-border);
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+
+    .panel-section {
+      border: 1px solid var(--panel-border);
+      background-color: var(--widget-bg);
+      padding: 15px;
+      border-radius: 4px;
+    }
+
+    .panel-section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #8f8fbf;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 4px;
+      font-weight: bold;
+    }
+
+    /* Canvas Viewport */
+    .viewport {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #0b0b14;
+      position: relative;
+      padding: 20px;
+    }
+
+    canvas {
+      background-color: #000;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 2px solid var(--panel-border);
+      image-rendering: pixelated; /* Sharp pixel zoom-in */
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 1 / 1;
+    }
+
+    /* ImGui Style Widgets */
+    .widget-group {
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .widget-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      font-size: 12px;
+      color: #b0b0d0;
+    }
+
+    .value-display {
+      float: right;
+      color: var(--accent-color);
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: #252538;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+      border: 1px solid var(--widget-border);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      border: 1px solid #fff;
+      transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--accent-hover);
+    }
+
+    select, button {
+      background-color: #252538;
+      border: 1px solid var(--widget-border);
+      color: var(--text-color);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    select:hover, button:hover {
+      background-color: #353552;
+      border-color: var(--accent-color);
+    }
+
+    button.primary {
+      background-color: var(--accent-color);
+      border-color: transparent;
+      font-weight: bold;
+    }
+
+    button.primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .info-text {
+      font-size: 11px;
+      color: #8f8fbf;
+      line-height: 1.5;
+      font-family: monospace;
+    }
+
+    /* WebGPU Error Overlay */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(11, 11, 20, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      color: #ff4a4a;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    #error-overlay h2 {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="window-title">DirectX 11 — Animate red pixel moving across canvas frame by frame</div>
+    <div style="font-size: 12px; color: #8f8fbf; font-family: monospace;">WebGPU Backend</div>
+  </header>
+
+  <div class="main-container">
+    <!-- WebGPU Error Overlay -->
+    <div id="error-overlay" style="display: none;">
+      <h2>WebGPU 지원되지 않음</h2>
+      <p>이 브라우저는 WebGPU를 지원하지 않거나 비활성화되어 있습니다.<br>Chrome, Edge, Opera 최신 버전 또는 Safari 기술 미리보기를 사용하세요.</p>
+    </div>
+
+    <!-- ImGui Control Panel -->
+    <div class="control-panel">
+      
+      <div class="panel-section">
+        <div class="panel-section-title">시뮬레이션 제어</div>
+        <div class="widget-group">
+          <button id="btn-play-pause" class="primary">일시정지 (Space)</button>
+        </div>
+        <div class="widget-group">
+          <button id="btn-reset">처음부터 재생 (Reset)</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">속도 및 해상도</div>
+        <div class="widget-group">
+          <label>업데이트 속도 (FPS) <span id="val-fps" class="value-display">30</span></label>
+          <input type="range" id="slider-fps" min="1" max="120" value="30">
+        </div>
+        <div class="widget-group">
+          <label>가상 해상도 (Canvas Size)</label>
+          <select id="select-resolution">
+            <option value="16">16 x 16 (큰 픽셀)</option>
+            <option value="32">32 x 32</option>
+            <option value="64" selected>64 x 64 (기본)</option>
+            <option value="128">128 x 128</option>
+            <option value="256">256 x 256 (작은 픽셀)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">수동 픽셀 위치</div>
+        <div class="widget-group">
+          <label>픽셀 인덱스 (1D) <span id="val-index" class="value-display">0</span></label>
+          <input type="range" id="slider-index" min="0" max="4095" value="0">
+        </div>
+        <div class="widget-group">
+          <label>2D 격자 좌표 <span id="val-coords" class="value-display">(0, 0)</span></label>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">시스템 상태</div>
+        <div class="info-text">
+          - 캔버스 크기: <span id="info-res">64x64</span> px<br>
+          - 전체 픽셀 수: <span id="info-total">4096</span><br>
+          - 렌더 상태: <span id="info-status" style="color:#00ffcc;">Running</span><br>
+          - Shader: Compute WGSL<br>
+          - Rasterizer: PS Fullscreen Quad
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="viewport">
+      <canvas id="gpu-canvas" width="512" height="512"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // --- WGSL Shaders ---
+
+    // Compute Shader to update storage texture
+    const COMPUTE_SHADER_CODE = `
+      struct Params {
+        width: u32,
+        height: u32,
+        red_index: u32,
+        pad: u32,
+      };
+
+      @group(0) @binding(0) var<uniform> params: Params;
+      @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+
+      @compute @workgroup_size(8, 8)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        if (id.x >= params.width || id.y >= params.height) {
+          return;
+        }
+
+        // DX11 방식과 동일하게 1차원 인덱스 매핑 수행
+        // DX11 pixels[i] = Vec4{ 1.0f, 0.0f, 0.0f, 1.0f }; 나머지는 0.8f 회색
+        let idx = id.y * params.width + id.x;
+        
+        var color = vec4f(0.8, 0.8, 0.8, 1.0);
+        if (idx == params.red_index) {
+          color = vec4f(1.0, 0.0, 0.0, 1.0);
+        }
+
+        textureStore(out_tex, id.xy, color);
+      }
+    `;
+
+    // Fullscreen Render Shaders (Vertex + Fragment)
+    const RENDER_SHADER_CODE = `
+      struct VSOutput {
+        @builtin(position) pos: vec4f,
+        @location(0) uv: vec2f,
+      };
+
+      @vertex
+      fn vs_main(@builtin(vertex_index) idx: u32) -> VSOutput {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+          vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+        );
+        var uv = array<vec2f, 6>(
+          vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+          vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+        );
+        var out: VSOutput;
+        out.pos = vec4f(pos[idx], 0.0, 1.0);
+        out.uv = uv[idx];
+        return out;
+      }
+
+      @group(0) @binding(0) var t_tex: texture_2d<f32>;
+      @group(0) @binding(1) var s_sampler: sampler;
+
+      @fragment
+      fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        // Nearest 필터링으로 축소/확대 시 계단현상(픽셀아트 효과)을 그대로 보여줌
+        return textureSample(t_tex, s_sampler, uv);
+      }
+    `;
+
+    // --- WebGPU & App States ---
+    let device, context;
+    let computePipeline, renderPipeline;
+    let storageTexture, storageTextureView;
+    let uniformBuffer;
+    let computeBindGroup, renderBindGroup;
+    let sampler;
+
+    // Simulation Configs
+    let canvasSize = 64; // Default: 64x64
+    let currentIndex = 0;
+    let isPlaying = true;
+    let targetFPS = 30;
+    let lastFrameTime = 0;
+
+    // UI elements
+    const canvas = document.getElementById('gpu-canvas');
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const sliderFPS = document.getElementById('slider-fps');
+    const valFPS = document.getElementById('val-fps');
+    const selectRes = document.getElementById('select-resolution');
+    const sliderIndex = document.getElementById('slider-index');
+    const valIndex = document.getElementById('val-index');
+    const valCoords = document.getElementById('val-coords');
+    const infoRes = document.getElementById('info-res');
+    const infoTotal = document.getElementById('info-total');
+    const infoStatus = document.getElementById('info-status');
+    const errorOverlay = document.getElementById('error-overlay');
+
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        errorOverlay.style.display = 'flex';
+        throw new Error("WebGPU not supported");
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        errorOverlay.style.display = 'flex';
+        throw new Error("No GPU adapter found");
+      }
+
+      device = await adapter.requestDevice();
+      context = canvas.getContext('webgpu');
+
+      const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device: device,
+        format: canvasFormat,
+        alphaMode: 'opaque'
+      });
+
+      // Compile Shaders
+      const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_CODE });
+      const renderModule = device.createShaderModule({ code: RENDER_SHADER_CODE });
+
+      // Create Compute Pipeline
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'main',
+        }
+      });
+
+      // Create Render Pipeline
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: renderModule,
+          entryPoint: 'vs_main'
+        },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: canvasFormat }]
+        },
+        primitive: {
+          topology: 'triangle-list'
+        }
+      });
+
+      // Create nearest-neighbor sampler for pixel-art style display
+      sampler = device.createSampler({
+        magFilter: 'nearest',
+        minFilter: 'nearest',
+      });
+
+      setupResources();
+    }
+
+    function setupResources() {
+      const totalPixels = canvasSize * canvasSize;
+
+      // Update UI Limits
+      sliderIndex.max = totalPixels - 1;
+      if (currentIndex >= totalPixels) {
+        currentIndex = 0;
+      }
+      sliderIndex.value = currentIndex;
+      valIndex.textContent = currentIndex;
+      updateCoordsDisplay();
+
+      infoRes.textContent = `${canvasSize}x${canvasSize}`;
+      infoTotal.textContent = totalPixels;
+
+      // Create storage texture matching our simulation resolution
+      storageTexture = device.createTexture({
+        size: [canvasSize, canvasSize, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+      storageTextureView = storageTexture.createView();
+
+      // Uniform buffer matching 'Params' struct: 4 bytes * 4 = 16 bytes alignment
+      uniformBuffer = device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // Compute Bind Group
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: storageTextureView }
+        ]
+      });
+
+      // Render Bind Group
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: storageTextureView },
+          { binding: 1, resource: sampler }
+        ]
+      });
+
+      updateUniforms();
+      scheduleRender();
+    }
+
+    function updateUniforms() {
+      // struct Params { width, height, red_index, pad }
+      const paramsArray = new Uint32Array([canvasSize, canvasSize, currentIndex, 0]);
+      device.queue.writeBuffer(uniformBuffer, 0, paramsArray);
+    }
+
+    function updateCoordsDisplay() {
+      const x = currentIndex % canvasSize;
+      const y = Math.floor(currentIndex / canvasSize);
+      valCoords.textContent = `(${x}, ${y})`;
+    }
+
+    let isRenderScheduled = false;
+    function scheduleRender() {
+      if (isRenderScheduled) return;
+      isRenderScheduled = true;
+      requestAnimationFrame(renderFrame);
+    }
+
+    function renderFrame(timestamp) {
+      isRenderScheduled = false;
+
+      // FPS Timing Control for Simulation
+      if (isPlaying) {
+        const elapsed = timestamp - lastFrameTime;
+        const frameInterval = 1000 / targetFPS;
+
+        if (elapsed >= frameInterval) {
+          // Frame step (DX11 logic)
+          const totalPixels = canvasSize * canvasSize;
+          currentIndex++;
+          if (currentIndex >= totalPixels) {
+            currentIndex = 0;
+          }
+
+          sliderIndex.value = currentIndex;
+          valIndex.textContent = currentIndex;
+          updateCoordsDisplay();
+          updateUniforms();
+
+          lastFrameTime = timestamp - (elapsed % frameInterval);
+        }
+      }
+
+      // GPU Commands Recording
+      const commandEncoder = device.createCommandEncoder();
+
+      // 1. Compute Pass
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      
+      // Dispatch workgroups (8x8 tile size)
+      const workgroupX = Math.ceil(canvasSize / 8);
+      const workgroupY = Math.ceil(canvasSize / 8);
+      computePass.dispatchWorkgroups(workgroupX, workgroupY);
+      computePass.end();
+
+      // 2. Render Pass to Draw Fullscreen Quad
+      const renderPassDesc = {
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      };
+
+      const renderPass = commandEncoder.beginRenderPass(renderPassDesc);
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6); // Fullscreen Quad (6 vertices)
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+
+      // If playing, keep scheduling frames
+      if (isPlaying) {
+        scheduleRender();
+      }
+    }
+
+    // --- UI Listeners & Interactions ---
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        btnPlayPause.textContent = "일시정지 (Space)";
+        btnPlayPause.classList.add('primary');
+        infoStatus.textContent = "Running";
+        infoStatus.style.color = "#00ffcc";
+        lastFrameTime = performance.now();
+        scheduleRender();
+      } else {
+        btnPlayPause.textContent = "재생 시작 (Space)";
+        btnPlayPause.classList.remove('primary');
+        infoStatus.textContent = "Paused";
+        infoStatus.style.color = "#ff6b81";
+      }
+    }
+
+    btnPlayPause.addEventListener('click', togglePlay);
+
+    btnReset.addEventListener('click', () => {
+      currentIndex = 0;
+      sliderIndex.value = 0;
+      valIndex.textContent = 0;
+      updateCoordsDisplay();
+      updateUniforms();
+      scheduleRender();
+    });
+
+    sliderFPS.addEventListener('input', (e) => {
+      targetFPS = parseInt(e.target.value);
+      valFPS.textContent = targetFPS;
+    });
+
+    selectRes.addEventListener('change', (e) => {
+      canvasSize = parseInt(e.target.value);
+      setupResources();
+    });
+
+    sliderIndex.addEventListener('input', (e) => {
+      // Manual control pauses the animation for precision
+      if (isPlaying) {
+        togglePlay();
+      }
+      currentIndex = parseInt(e.target.value);
+      valIndex.textContent = currentIndex;
+      updateCoordsDisplay();
+      updateUniforms();
+      scheduleRender();
+    });
+
+    // Spacebar shortcut
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    // Initialize application
+    initWebGPU().catch(err => {
+      console.error(err);
+    });
+  </script>
+</body>
+</html>

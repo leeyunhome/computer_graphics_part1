@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Add blue pixel at position (2, 0) in canvas initialization</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e; /* Dark background as requested */
+            color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        #app {
+            display: flex;
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+        #webgpu-canvas {
+            border: 1px solid #555;
+            background-color: black;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        #error-message {
+            color: #ff6b6b;
+            font-size: 1.2em;
+            text-align: center;
+            padding: 20px;
+            background-color: #2e3b4e;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        /* ImGui style dark theme simulation */
+        #imgui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #252a3a; /* Darker than body */
+            border: 1px solid #3e4451;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            color: #abb2bf; /* Light text */
+            font-family: 'Consolas', monospace;
+            max-height: calc(100% - 40px);
+            overflow-y: auto;
+            min-width: 300px;
+            box-sizing: border-box;
+        }
+        .imgui-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #61afef; /* Blueish title */
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #3e4451;
+            text-transform: uppercase;
+        }
+        .imgui-section-title {
+            font-size: 1em;
+            font-weight: bold;
+            color: #98c379; /* Greenish for section titles */
+            margin-top: 15px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px dotted #3e4451;
+        }
+        .imgui-label {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #c678dd; /* Purplish for labels */
+            display: block;
+        }
+        .imgui-slider-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .imgui-slider-label {
+            flex-basis: 80px;
+            text-align: right;
+            margin-right: 15px;
+            font-size: 0.85em;
+            color: #e06c75; /* Reddish for slider labels */
+        }
+        .imgui-slider-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+        .imgui-slider {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #5c6370;
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s, background-color .2s;
+            margin: 0 10px;
+        }
+        .imgui-slider:hover {
+            opacity: 1;
+            background: #7d8491;
+        }
+        .imgui-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #61afef;
+            cursor: pointer;
+            border: 2px solid #abb2bf;
+            transition: background-color .2s, border-color .2s;
+        }
+        .imgui-slider::-webkit-slider-thumb:hover {
+            background: #528cde;
+            border-color: #ffffff;
+        }
+        .imgui-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #61afef;
+            cursor: pointer;
+            border: 2px solid #abb2bf;
+            transition: background-color .2s, border-color .2s;
+        }
+        .imgui-slider::-moz-range-thumb:hover {
+            background: #528cde;
+            border-color: #ffffff;
+        }
+        .imgui-value-display {
+            min-width: 40px;
+            text-align: right;
+            font-size: 0.85em;
+            color: #abb2bf;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <canvas id="webgpu-canvas"></canvas>
+        <div id="error-message">
+            WebGPU를 지원하지 않는 브라우저입니다. Chrome, Edge, Firefox의 최신 버전을 사용해주세요.
+        </div>
+        <div id="imgui-container">
+            <div class="imgui-title">WebGPU Compute Shader Example</div>
+
+            <div class="imgui-section-title">캔버스 초기화 (고정 픽셀)</div>
+            <p style="font-size:0.8em; margin-left:10px;">
+                (0,0): <span style="color:red;">빨강</span>, (1,0): <span style="color:yellow;">노랑</span>, (2,0): <span style="color:blue;">파랑</span> 픽셀은 초기화 시 고정으로 표시됩니다.
+            </p>
+
+            <div class="imgui-section-title">배경 색상</div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">R</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="bgR" min="0" max="100" value="80">
+                    <span class="imgui-value-display" id="bgRValue">0.8</span>
+                </div>
+            </div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">G</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="bgG" min="0" max="100" value="80">
+                    <span class="imgui-value-display" id="bgGValue">0.8</span>
+                </div>
+            </div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">B</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="bgB" min="0" max="100" value="80">
+                    <span class="imgui-value-display" id="bgBValue">0.8</span>
+                </div>
+            </div>
+
+            <div class="imgui-section-title">동적 픽셀 (슬라이더 조작)</div>
+            <div class="imgui-label">위치</div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">X</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="pixelX" min="0" max="255" value="10">
+                    <span class="imgui-value-display" id="pixelXValue">10</span>
+                </div>
+            </div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">Y</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="pixelY" min="0" max="255" value="10">
+                    <span class="imgui-value-display" id="pixelYValue">10</span>
+                </div>
+            </div>
+
+            <div class="imgui-label">색상</div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">R</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="pixelR" min="0" max="100" value="100">
+                    <span class="imgui-value-display" id="pixelRValue">1.0</span>
+                </div>
+            </div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">G</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="pixelG" min="0" max="100" value="0">
+                    <span class="imgui-value-display" id="pixelGValue">0.0</span>
+                </div>
+            </div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">B</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="pixelB" min="0" max="100" value="0">
+                    <span class="imgui-value-display" id="pixelBValue">0.0</span>
+                </div>
+            </div>
+            <div class="imgui-slider-group">
+                <span class="imgui-slider-label">A</span>
+                <div class="imgui-slider-wrapper">
+                    <input type="range" class="imgui-slider" id="pixelA" min="0" max="100" value="100">
+                    <span class="imgui-value-display" id="pixelAValue">1.0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/wgsl" id="compute-shader">
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+        // 커밋 메시지: Add blue pixel at position (2, 0) in canvas initialization
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+        @group(0) @binding(0) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+        @group(0) @binding(1) var<uniform> params: Params;
+
+        struct Params {
+            canvasWidth: u32,
+            canvasHeight: u32,
+            defaultColor: vec4f, // 배경 색상
+            dynamicPixelPos: vec2u, // 동적 픽셀 위치
+            dynamicPixelColor: vec4f, // 동적 픽셀 색상
+        };
+
+        @compute @workgroup_size(8, 8)
+        fn main(@builtin(global_invocation_id) global_id: vec3u) {
+            let x = global_id.x;
+            let y = global_id.y;
+
+            let canvasWidth = params.canvasWidth;
+            let canvasHeight = params.canvasHeight;
+
+            if (x >= canvasWidth || y >= canvasHeight) {
+                return;
+            }
+
+            var color = params.defaultColor;
+
+            // DirectX 11 코드에 따라 고정된 픽셀 초기화
+            if (x == 0u && y == 0u) {
+                color = vec4f(1.0, 0.0, 0.0, 1.0); // 빨강
+            } else if (x == 1u && y == 0u) {
+                color = vec4f(1.0, 1.0, 0.0, 1.0); // 노랑
+            } else if (x == 2u && y == 0u) {
+                color = vec4f(0.0, 0.0, 1.0, 1.0); // 파랑 (주제)
+            }
+            // 슬라이더로 조작하는 동적 픽셀
+            else if (x == params.dynamicPixelPos.x && y == params.dynamicPixelPos.y) {
+                color = params.dynamicPixelColor;
+            }
+
+            textureStore(outputTexture, vec2u(x, y), color);
+        }
+    </script>
+
+    <script type="text/wgsl" id="vertex-shader">
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+        // 커밋 메시지: Add blue pixel at position (2, 0) in canvas initialization
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) tex_coord: vec2f,
+        };
+
+        @vertex
+        fn main(@builtin(vertex_index) vertex_index : u32) -> VertexOutput {
+            var pos = array<vec2f, 6>(
+                vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+            );
+            var uv = array<vec2f, 6>(
+                vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+            );
+
+            var output: VertexOutput;
+            output.position = vec4f(pos[vertex_index], 0.0, 1.0);
+            output.tex_coord = uv[vertex_index];
+            return output;
+        }
+    </script>
+
+    <script type="text/wgsl" id="fragment-shader">
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+        // 커밋 메시지: Add blue pixel at position (2, 0) in canvas initialization
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+        @group(0) @binding(0) var mySampler: sampler;
+        @group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) tex_coord: vec2f,
+        };
+
+        @fragment
+        fn main(input: VertexOutput) -> @location(0) vec4f {
+            return textureSample(myTexture, mySampler, input.tex_coord);
+        }
+    </script>
+
+    <script>
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+        // 커밋 메시지: Add blue pixel at position (2, 0) in canvas initialization
+        // Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+        let device, context, format;
+        let computePipeline, renderPipeline;
+        let uniformBuffer, storageTexture, sampler;
+        let computeBindGroup, renderBindGroup;
+
+        const canvas = document.getElementById('webgpu-canvas');
+        const errorMessage = document.getElementById('error-message');
+        const CANVAS_WIDTH = 256;
+        const CANVAS_HEIGHT = 256;
+
+        let animationFrameId = null;
+
+        // UI Parameter State
+        const params = {
+            canvasWidth: CANVAS_WIDTH,
+            canvasHeight: CANVAS_HEIGHT,
+            defaultColor: { r: 0.8, g: 0.8, b: 0.8, a: 1.0 }, // 배경 색상
+            dynamicPixelPos: { x: 10, y: 10 },
+            dynamicPixelColor: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
+        };
+
+        function showWebGPUError() {
+            canvas.style.display = 'none';
+            document.getElementById('imgui-container').style.display = 'none';
+            errorMessage.style.display = 'block';
+        }
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                showWebGPUError();
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                showWebGPUError();
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            if (!device) {
+                showWebGPUError();
+                return;
+            }
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            context = canvas.getContext('webgpu');
+            format = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device,
+                format,
+                alphaMode: 'premultiplied',
+            });
+
+            // 1. Uniform Buffer 생성
+            // layout: canvasWidth (u32), canvasHeight (u32), padding, defaultColor (vec4f), dynamicPixelPos (vec2u), padding, dynamicPixelColor (vec4f)
+            // WGSL u32 is 4 bytes, vec4f is 16 bytes, vec2u is 8 bytes.
+            // Std140/Std430 alignment rules:
+            // u32: 4 bytes
+            // vec2u: 8 bytes
+            // vec4f: 16 bytes
+            // Struct alignment is max member alignment.
+            // Params:
+            //   canvasWidth: u32 (4 bytes)
+            //   canvasHeight: u32 (4 bytes)
+            //   (padding to 8 for next member if it was vec2f/u)
+            //   defaultColor: vec4f (16 bytes, aligned to 16)
+            //   dynamicPixelPos: vec2u (8 bytes, aligned to 8)
+            //   dynamicPixelColor: vec4f (16 bytes, aligned to 16)
+            // Total size: 4+4+8(padding)+16+8+8(padding)+16 = 64 bytes
+            // Let's use a conservative size aligned to 16 bytes, or just calculate exactly.
+            // WGSL struct packing rules are usually `std140` or similar.
+            // vec4f requires 16 byte alignment. u32 requires 4 byte alignment. vec2u requires 8 byte alignment.
+            // Correct uniform buffer layout:
+            // canvasWidth: u32 (4 bytes)
+            // canvasHeight: u32 (4 bytes)
+            // (8 bytes padding to align next vec4f)
+            // defaultColor: vec4f (16 bytes)
+            // dynamicPixelPos: vec2u (8 bytes)
+            // (8 bytes padding to align next vec4f)
+            // dynamicPixelColor: vec4f (16 bytes)
+            // Total: 4 + 4 + 8 + 16 + 8 + 8 + 16 = 64 bytes
+            uniformBuffer = device.createBuffer({
+                size: 64, // Sufficient size for Params struct
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // 2. Storage Texture 생성
+            storageTexture = device.createTexture({
+                size: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, depthOrArrayLayers: 1 },
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+            });
+
+            sampler = device.createSampler({
+                magFilter: 'nearest',
+                minFilter: 'nearest',
+            });
+
+            // Compute Shader Pipeline
+            const computeShaderModule = device.createShaderModule({
+                code: document.getElementById('compute-shader').textContent,
+            });
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            // Render Shader Pipeline
+            const vertexShaderModule = device.createShaderModule({
+                code: document.getElementById('vertex-shader').textContent,
+            });
+            const fragmentShaderModule = device.createShaderModule({
+                code: document.getElementById('fragment-shader').textContent,
+            });
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: vertexShaderModule,
+                    entryPoint: 'main',
+                },
+                fragment: {
+                    module: fragmentShaderModule,
+                    entryPoint: 'main',
+                    targets: [{ format }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+            });
+
+            // Compute Bind Group (for storage texture and uniform buffer)
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: storageTexture.createView(),
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: uniformBuffer,
+                        },
+                    },
+                ],
+            });
+
+            // Render Bind Group (for sampling the storage texture)
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: sampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: storageTexture.createView(),
+                    },
+                ],
+            });
+
+            setupUI(); // Initialize UI elements and event listeners
+            scheduleRender(); // Initial render
+            window.addEventListener('resize', handleResize);
+
+        }
+
+        function updateUniformBuffer() {
+            // Data structure:
+            //   canvasWidth: u32, canvasHeight: u32 (8 bytes)
+            //   padding: 8 bytes (to align defaultColor to 16)
+            //   defaultColor: vec4f (16 bytes)
+            //   dynamicPixelPos: vec2u (8 bytes)
+            //   padding: 8 bytes (to align dynamicPixelColor to 16)
+            //   dynamicPixelColor: vec4f (16 bytes)
+            // Total: 64 bytes
+
+            const uniformData = new Float32Array(16); // 16 * 4 bytes = 64 bytes
+
+            // canvasWidth (u32, 4 bytes)
+            uniformData[0] = params.canvasWidth;
+            // canvasHeight (u32, 4 bytes)
+            uniformData[1] = params.canvasHeight;
+            // padding [2], [3]
+
+            // defaultColor: vec4f (at offset 16, index 4)
+            uniformData[4] = params.defaultColor.r;
+            uniformData[5] = params.defaultColor.g;
+            uniformData[6] = params.defaultColor.b;
+            uniformData[7] = params.defaultColor.a;
+
+            // dynamicPixelPos: vec2u (at offset 32, index 8)
+            uniformData[8] = params.dynamicPixelPos.x; // WGSL `u32` can be sent as `f32` if values fit, WebGPU handles conversion.
+            uniformData[9] = params.dynamicPixelPos.y;
+            // padding [10], [11]
+
+            // dynamicPixelColor: vec4f (at offset 48, index 12)
+            uniformData[12] = params.dynamicPixelColor.r;
+            uniformData[13] = params.dynamicPixelColor.g;
+            uniformData[14] = params.dynamicPixelColor.b;
+            uniformData[15] = params.dynamicPixelColor.a;
+
+            device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+        }
+
+        function scheduleRender() {
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationFrameId = requestAnimationFrame(render);
+        }
+
+        function render() {
+            updateUniformBuffer();
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // 3. Compute Pipeline + Compute Pass
+            const computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setPipeline(computePipeline);
+            computePassEncoder.setBindGroup(0, computeBindGroup);
+            const workgroupX = Math.ceil(CANVAS_WIDTH / 8);
+            const workgroupY = Math.ceil(CANVAS_HEIGHT / 8);
+            computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY, 1);
+            computePassEncoder.end();
+
+            // 4. Render Pipeline + Render Pass
+            const renderPassEncoder = commandEncoder.beginRenderPass({
+                colorAttachments: [
+                    {
+                        view: context.getCurrentTexture().createView(),
+                        loadOp: 'clear',
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }, // Clear to black before drawing
+                        storeOp: 'store',
+                    },
+                ],
+            });
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroup);
+            renderPassEncoder.draw(6); // 6 vertices for a fullscreen quad
+            renderPassEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+            animationFrameId = null; // Reset for next scheduled render
+        }
+
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            scheduleRender();
+        }
+
+        function setupUI() {
+            // Helper to get slider value and update display
+            function setupSlider(id, targetObj, prop, scale = 1, displayId = null, parser = parseFloat) {
+                const slider = document.getElementById(id);
+                const display = displayId ? document.getElementById(displayId) : null;
+
+                const updateValue = () => {
+                    targetObj[prop] = parser(slider.value) / scale;
+                    if (display) {
+                        display.textContent = (targetObj[prop] * 100).toFixed(0) === '100' ? targetObj[prop].toFixed(0) : targetObj[prop].toFixed(1);
+                        if (scale === 1) display.textContent = targetObj[prop].toFixed(0); // For integer values
+                    }
+                    scheduleRender();
+                };
+
+                slider.addEventListener('input', updateValue);
+                // Set initial display value
+                if (display) {
+                    display.textContent = (targetObj[prop] * 100).toFixed(0) === '100' ? targetObj[prop].toFixed(0) : targetObj[prop].toFixed(1);
+                    if (scale === 1) display.textContent = targetObj[prop].toFixed(0);
+                }
+            }
+
+            // Background color sliders
+            setupSlider('bgR', params.defaultColor, 'r', 100, 'bgRValue');
+            setupSlider('bgG', params.defaultColor, 'g', 100, 'bgGValue');
+            setupSlider('bgB', params.defaultColor, 'b', 100, 'bgBValue');
+
+            // Dynamic pixel position sliders
+            document.getElementById('pixelX').max = CANVAS_WIDTH - 1;
+            document.getElementById('pixelY').max = CANVAS_HEIGHT - 1;
+            setupSlider('pixelX', params.dynamicPixelPos, 'x', 1, 'pixelXValue', parseInt);
+            setupSlider('pixelY', params.dynamicPixelPos, 'y', 1, 'pixelYValue', parseInt);
+
+            // Dynamic pixel color sliders
+            setupSlider('pixelR', params.dynamicPixelColor, 'r', 100, 'pixelRValue');
+            setupSlider('pixelG', params.dynamicPixelColor, 'g', 100, 'pixelGValue');
+            setupSlider('pixelB', params.dynamicPixelColor, 'b', 100, 'pixelBValue');
+            setupSlider('pixelA', params.dynamicPixelColor, 'a', 100, 'pixelAValue');
+        }
+
+
+        initWebGPU().catch(err => {
+            console.error("WebGPU 초기화 실패:", err);
+            showWebGPUError();
+        });
+    </script>
+</body>
+</html>

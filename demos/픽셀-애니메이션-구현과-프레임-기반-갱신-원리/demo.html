@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>WebGPU — Animate red pixel moving across canvas frame by frame</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e; /* Dark theme background */
+            color: #e0e0e0; /* Light text color */
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-color: #2b2b3b; /* Slightly lighter than body for "window" */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            border: 1px solid #444; /* Border for window frame effect */
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 10px;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #bbb;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 200px;
+            height: 8px;
+            background: #555;
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007acc; /* Blue for DirectX feel */
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .slider-value {
+            min-width: 30px;
+            text-align: right;
+            color: #e0e0e0;
+        }
+        h2 {
+            color: #007acc; /* Blue title */
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        canvas {
+            border: 1px solid #444;
+            background-color: #000; /* Canvas background can be black */
+        }
+        #error-message {
+            color: #ff4444;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h2>WebGPU — Animate red pixel moving across canvas frame by frame</h2>
+        <canvas id="webgpu-canvas" width="512" height="512"></canvas>
+        <div id="controls">
+            <label>
+                픽셀 속도:
+                <input type="range" id="pixelSpeedSlider" min="1" max="100" value="1">
+                <span id="pixelSpeedValue" class="slider-value">1</span>
+            </label>
+            <div>캔버스 크기: <span id="canvasSizeDisplay"></span></div>
+        </div>
+        <div id="error-message" style="display: none;"></div>
+    </div>
+
+    <script type="module">
+        const canvas = document.getElementById('webgpu-canvas');
+        const errorMessage = document.getElementById('error-message');
+        const pixelSpeedSlider = document.getElementById('pixelSpeedSlider');
+        const pixelSpeedValueSpan = document.getElementById('pixelSpeedValue');
+        const canvasSizeDisplay = document.getElementById('canvasSizeDisplay');
+
+        let device;
+        let presentationContext;
+        let renderRequested = false;
+
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        let currentPixelIndex = 0;
+        let pixelSpeed = parseInt(pixelSpeedSlider.value);
+
+        let uniformBuffer;
+        let outputTexture;
+        let outputTextureView;
+        let outputTextureSampler;
+
+        let computePipeline;
+        let computeBindGroup;
+        let renderPipeline;
+        let renderBindGroup;
+
+        // WGSL Shaders
+        const computeShaderCode = `
+            struct Params {
+                pixelIndex: u32,
+                canvasWidth: u32,
+                canvasHeight: u32,
+                pixelSpeed: u32, // Not directly used for animation logic in shader, but kept for uniform structure.
+            }
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                let x = global_id.x;
+                let y = global_id.y;
+
+                if (x >= params.canvasWidth || y >= params.canvasHeight) {
+                    return;
+                }
+
+                let idx = y * params.canvasWidth + x;
+
+                if (idx == params.pixelIndex) {
+                    textureStore(outputTexture, vec2<i32>(x, y), vec4f(1.0, 0.0, 0.0, 1.0)); // Red pixel
+                } else {
+                    textureStore(outputTexture, vec2<i32>(x, y), vec4f(0.8, 0.8, 0.8, 1.0)); // Gray background
+                }
+            }
+        `;
+
+        const vertexShaderCode = `
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0), // Triangle 1
+                    vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0)  // Triangle 2
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0),
+                    vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(0.0, 0.0)
+                );
+                var output: VertexOutput;
+                output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                output.uv = uv[vertexIndex];
+                return output;
+            }
+        `;
+
+        const fragmentShaderCode = `
+            @group(0) @binding(0) var textureSampler: sampler;
+            @group(0) @binding(1) var computedTexture: texture_2d<f32>;
+
+            @fragment
+            fn fs_main(@location(0) uv : vec2f) -> @location(0) vec4f {
+                return textureSample(computedTexture, textureSampler, uv);
+            }
+        `;
+
+        async function initializeWebGPU() {
+            if (!navigator.gpu) {
+                errorMessage.textContent = 'WebGPU를 지원하지 않는 브라우저입니다. Chrome Canary 또는 Edge Canary를 사용해 보세요.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                errorMessage.textContent = 'WebGPU 어댑터를 찾을 수 없습니다.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            if (!device) {
+                errorMessage.textContent = 'WebGPU 장치를 생성할 수 없습니다.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            device.lost.then(() => {
+                errorMessage.textContent = 'WebGPU 장치가 손실되었습니다. 페이지를 새로고침하세요.';
+                errorMessage.style.display = 'block';
+            });
+
+            presentationContext = canvas.getContext('webgpu');
+            const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            presentationContext.configure({
+                device,
+                format: presentationFormat,
+                alphaMode: 'premultiplied',
+            });
+
+            canvasSizeDisplay.textContent = `${canvasWidth} x ${canvasHeight}`;
+
+            // 1. Uniform Buffer Creation (pixelIndex, canvasWidth, canvasHeight, pixelSpeed)
+            uniformBuffer = device.createBuffer({
+                size: 4 * Uint32Array.BYTES_PER_ELEMENT, // 4 u32s = 16 bytes
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // 2. Storage Texture Creation
+            outputTexture = device.createTexture({
+                size: [canvasWidth, canvasHeight, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+            });
+            outputTextureView = outputTexture.createView();
+
+            // Sampler for the render pipeline
+            outputTextureSampler = device.createSampler({
+                magFilter: 'nearest', // Pixel art style
+                minFilter: 'nearest',
+            });
+
+            // 3. Compute Pipeline + Compute Pass setup
+            const computeBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0, // Params uniform
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'uniform' },
+                    },
+                    {
+                        binding: 1, // Output storage texture
+                        visibility: GPUShaderStage.COMPUTE,
+                        storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' },
+                    },
+                ],
+            });
+
+            const computePipelineLayout = device.createPipelineLayout({
+                bindGroupLayouts: [computeBindGroupLayout],
+            });
+
+            computePipeline = await device.createComputePipelineAsync({
+                layout: computePipelineLayout,
+                compute: {
+                    module: device.createShaderModule({ code: computeShaderCode }),
+                    entryPoint: 'main',
+                },
+            });
+
+            computeBindGroup = device.createBindGroup({
+                layout: computeBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: uniformBuffer },
+                    },
+                    {
+                        binding: 1,
+                        resource: outputTextureView,
+                    },
+                ],
+            });
+
+            // 4. Render Pipeline + Render Pass setup
+            const renderBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0, // Sampler
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: { type: 'filtering' },
+                    },
+                    {
+                        binding: 1, // Computed texture to sample
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: { sampleType: 'float' },
+                    },
+                ],
+            });
+
+            const renderPipelineLayout = device.createPipelineLayout({
+                bindGroupLayouts: [renderBindGroupLayout],
+            });
+
+            renderPipeline = await device.createRenderPipelineAsync({
+                layout: renderPipelineLayout,
+                vertex: {
+                    module: device.createShaderModule({ code: vertexShaderCode }),
+                    entryPoint: 'vs_main',
+                },
+                fragment: {
+                    module: device.createShaderModule({ code: fragmentShaderCode }),
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: outputTextureSampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: outputTextureView,
+                    },
+                ],
+            });
+
+            scheduleRender(); // Start the animation loop
+        }
+
+        // Updates the animation state
+        function update() {
+            // Move the red pixel
+            currentPixelIndex = (currentPixelIndex + pixelSpeed) % (canvasWidth * canvasHeight);
+
+            // Update uniform buffer with new animation parameters
+            const uniformData = new Uint32Array([
+                currentPixelIndex,
+                canvasWidth,
+                canvasHeight,
+                pixelSpeed,
+            ]);
+            device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+        }
+
+        // Executes the WebGPU compute and render passes
+        function draw() {
+            if (!device) return;
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // Compute Pass: Calculate pixel data and write to outputTexture
+            const computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setPipeline(computePipeline);
+            computePassEncoder.setBindGroup(0, computeBindGroup);
+            const workgroupX = Math.ceil(canvasWidth / 8);
+            const workgroupY = Math.ceil(canvasHeight / 8);
+            computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY);
+            computePassEncoder.end();
+
+            // Render Pass: Display the computed texture on the canvas
+            const textureView = presentationContext.getCurrentTexture().createView();
+            const renderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: textureView,
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }, // Clear background for canvas
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            };
+
+            const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroup);
+            renderPassEncoder.draw(6); // Draw a full-screen quad using 6 vertices
+            renderPassEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        // Main animation loop function, called by requestAnimationFrame
+        function animate() {
+            renderRequested = false; // Reset the flag as we are now processing the render request
+
+            update(); // Update animation state
+            draw();   // Render the current state
+
+            // Schedule the next frame for continuous animation
+            requestAnimationFrame(animate);
+        }
+
+        // Schedules a render if one isn't already pending (prevents duplicate RAF calls within a frame)
+        function scheduleRender() {
+            if (!renderRequested) {
+                renderRequested = true;
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // UI Event Listeners
+        pixelSpeedSlider.addEventListener('input', (event) => {
+            pixelSpeed = parseInt(event.target.value);
+            pixelSpeedValueSpan.textContent = pixelSpeed;
+            // For continuous animation, update() will pick up the new speed next frame.
+            // No explicit scheduleRender() needed here unless animation was paused.
+        });
+
+        // Initialize WebGPU and start the animation
+        initializeWebGPU();
+    </script>
+</body>
+</html>

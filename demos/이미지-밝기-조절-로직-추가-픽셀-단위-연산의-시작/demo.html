@@ -111,40 +111,18 @@ input[type=range]::-webkit-slider-thumb {
 <script>
 const W = 250, H = 200;
 
-// --- Procedural source image via Canvas2D ---
-function drawSourceImage(canvas) {
-  const ctx = canvas.getContext('2d');
-  // Diagonal gradient corners
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0,   '#ff2020');
-  grad.addColorStop(0.33,'#2020ff');
-  grad.addColorStop(0.66,'#20ff20');
-  grad.addColorStop(1,   '#ffff20');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  // Horizontal stripes overlay (semi-transparent) to make brightness effect visible
-  for (let y = 0; y < H; y += 20) {
-    ctx.fillStyle = `rgba(255,255,255,${y % 40 === 0 ? 0.12 : 0.04})`;
-    ctx.fillRect(0, y, W, 10);
-  }
-
-  // 5 colored circles
-  const circles = [
-    { x: 45,  y: 50,  r: 28, color: '#ff8c00' },
-    { x: 200, y: 40,  r: 22, color: '#00e5ff' },
-    { x: 125, y: 100, r: 30, color: '#ffffff' },
-    { x: 60,  y: 155, r: 20, color: '#ff69b4' },
-    { x: 190, y: 160, r: 25, color: '#7fff00' },
-  ];
-  circles.forEach(c => {
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-    ctx.fillStyle = c.color;
-    ctx.globalAlpha = 0.85;
-    ctx.fill();
-    ctx.globalAlpha = 1.0;
+// --- Load source image ---
+async function loadImage(url, w, h) {
+  const img = new Image();
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+    img.src = url;
   });
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return c;
 }
 
 // --- scheduleRender pattern ---
@@ -194,15 +172,15 @@ struct V { @builtin(position) pos: vec4f, @location(0) uv: vec2f }
 @fragment fn main(v: V) -> @location(0) vec4f { return textureSample(t, s, v.uv); }`;
 
 async function init() {
-  const srcCanvas = document.getElementById('srcCanvas');
-  drawSourceImage(srcCanvas);
-
   if (!navigator.gpu) { showError('WebGPU를 지원하지 않는 브라우저입니다.'); return; }
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) { showError('WebGPU 어댑터를 찾을 수 없습니다.'); return; }
   device = await adapter.requestDevice();
 
-  // Upload procedural image to WebGPU texture
+  const srcCanvas = document.getElementById('srcCanvas');
+  const loaded = await loadImage('../../images/colosseum.jpg', W, H);
+  srcCanvas.getContext('2d').drawImage(loaded, 0, 0);
+
   const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
 
   inputTex = device.createTexture({

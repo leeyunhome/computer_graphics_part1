@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DirectX 11 — first commit</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e; /* ImGui-style dark blue-purple background */
+            color: #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        #container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            background-color: #252526; /* Darker background for the main content area */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            border: 1px solid #3d3d3d; /* Subtle border for structure */
+        }
+        #webgpu-canvas {
+            background-color: #000;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+        }
+        #controls {
+            width: 280px;
+            padding: 15px;
+            background-color: #2d2d30; /* Slightly lighter than container for controls */
+            border-radius: 8px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3); /* Inner shadow for depth */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid #3d3d3d;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 5px;
+        }
+        label {
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none; /* Remove default styling for Chrome/Safari */
+            appearance: none;
+            height: 8px;
+            background: #444; /* Track color */
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #007acc; /* ImGui-like blue thumb */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 1px solid #005f99; /* Darker border for thumb */
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #007acc;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 1px solid #005f99;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+        h2 {
+            color: #eee;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 1px solid #3d3d3d; /* Separator line */
+            padding-bottom: 10px;
+        }
+        #error-message {
+            color: #ff5555;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="error-message" style="display: none;">
+        WebGPU를 지원하지 않는 브라우저입니다. Chrome Canary 또는 최신 Chrome을 사용해 보세요.
+    </div>
+
+    <div id="container">
+        <canvas id="webgpu-canvas" width="800" height="600"></canvas>
+        <div id="controls">
+            <h2>파라미터</h2>
+            <div class="control-group">
+                <label for="colorR">빨간색 (R)</label>
+                <input type="range" id="colorR" min="0" max="100" value="100">
+            </div>
+            <div class="control-group">
+                <label for="colorG">초록색 (G)</label>
+                <input type="range" id="colorG" min="0" max="100" value="0">
+            </div>
+            <div class="control-group">
+                <label for="colorB">파란색 (B)</label>
+                <input type="range" id="colorB" min="0" max="100" value="0">
+            </div>
+        </div>
+    </div>
+
+    <script type="text/wgsl" id="compute-shader">
+        // WGSL Compute Shader for "first commit"
+        // Simply writes a uniform color to each pixel of the output texture.
+
+        // Uniform buffer structure for parameters
+        struct Params {
+            color: vec4f, // RGBA color
+        }
+
+        // Bindings for uniform buffer and storage texture
+        @group(0) @binding(0) var<uniform> params: Params;
+        @group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+
+        // Workgroup size matching DX11 numthreads(8,8,1)
+        @workgroup_size(8, 8)
+        fn main(@builtin(global_invocation_id) global_id: vec3u) {
+            let width = textureDimensions(outputTexture).x;
+            let height = textureDimensions(outputTexture).y;
+
+            // Ensure we don't write out of bounds, as dispatchWorkgroups might over-launch threads
+            if global_id.x >= width || global_id.y >= height {
+                return;
+            }
+
+            // Write the uniform color directly to the pixel
+            textureStore(outputTexture, vec2u(global_id.xy), params.color);
+        }
+    </script>
+
+    <script type="text/wgsl" id="render-shader-vertex">
+        // WGSL Vertex Shader for drawing a fullscreen quad
+        // Generates 6 vertices (2 triangles) to cover the entire screen.
+        // UV coordinates are set up to map the texture correctly (top-left is 0,0).
+
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) uv: vec2f,
+        }
+
+        @vertex
+        fn main(@builtin(vertex_index) vertexIndex : u32) -> VertexOutput {
+            var output: VertexOutput;
+
+            // Fullscreen quad positions (-1 to 1 clip space)
+            let positions = array<vec2f, 6>(
+                vec2f(-1.0, -1.0), // Triangle 1 (bottom-left)
+                vec2f( 1.0, -1.0), // (bottom-right)
+                vec2f(-1.0,  1.0), // (top-left)
+
+                vec2f(-1.0,  1.0), // Triangle 2 (top-left)
+                vec2f( 1.0, -1.0), // (bottom-right)
+                vec2f( 1.0,  1.0), // (top-right)
+            );
+
+            // Corresponding UV coordinates (0 to 1 texture space, (0,0) is top-left)
+            let uvs = array<vec2f, 6>(
+                vec2f(0.0, 1.0), // Corresponds to (-1,-1)
+                vec2f(1.0, 1.0), // Corresponds to (1,-1)
+                vec2f(0.0, 0.0), // Corresponds to (-1,1)
+
+                vec2f(0.0, 0.0), // Corresponds to (-1,1)
+                vec2f(1.0, 1.0), // Corresponds to (1,-1)
+                vec2f(1.0, 0.0), // Corresponds to (1,1)
+            );
+
+            output.position = vec4f(positions[vertexIndex], 0.0, 1.0);
+            output.uv = uvs[vertexIndex];
+            return output;
+        }
+    </script>
+
+    <script type="text/wgsl" id="render-shader-fragment">
+        // WGSL Fragment Shader to display the compute shader's output texture.
+        // Samples the texture and outputs the color to the screen.
+
+        // Bindings for the texture and sampler
+        @group(0) @binding(0) var renderTexture: texture_2d<f32>;
+        @group(0) @binding(1) var linearSampler: sampler;
+
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @color(0) vec4f {
+            // Sample the texture at the given UV coordinate
+            return textureSample(renderTexture, linearSampler, uv);
+        }
+    </script>
+
+    <script>
+        // Define canvas dimensions
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+
+        // WebGPU objects
+        let device;
+        let context;
+        let presentationFormat;
+
+        // Compute Pipeline objects
+        let computePipeline;
+        let computeBindGroup;
+        let computeUniformBuffer;
+        let computeStorageTexture; // Output of compute shader, input to render shader
+
+        // Render Pipeline objects
+        let renderPipeline;
+        let renderBindGroup;
+        let renderSampler;
+
+        // State for requestAnimationFrame to avoid duplicate renders
+        let renderRequested = false;
+
+        // UI Parameters, stored as a Float32Array for direct buffer writing
+        const params = {
+            color: new Float32Array([1.0, 0.0, 0.0, 1.0]), // Initial RGBA color (Red)
+        };
+
+        /**
+         * Initializes WebGPU adapter, device, and canvas context.
+         * Sets up pipelines and UI, then requests the first render.
+         */
+        async function initWebGPU() {
+            // Check for WebGPU support
+            if (!navigator.gpu) {
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('container').style.display = 'none'; // Hide main content
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                document.getElementById('error-message').innerText = 'WebGPU 어댑터를 찾을 수 없습니다. 하드웨어 가속이 활성화되어 있는지 확인하거나 다른 브라우저를 시도해 보세요.';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('container').style.display = 'none';
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            // Handle device loss gracefully
+            device.lost.then(() => {
+                console.error('WebGPU device lost');
+                document.getElementById('error-message').innerText = 'WebGPU 장치가 손실되었습니다. 페이지를 새로고침하거나 브라우저를 다시 시작해 보세요.';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('container').style.display = 'none';
+            });
+
+            const canvas = document.getElementById('webgpu-canvas');
+            context = canvas.getContext('webgpu');
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            context.configure({
+                device: device,
+                format: presentationFormat,
+                alphaMode: 'opaque', // No transparency for the canvas background
+            });
+
+            await setupPipelines(); // Initialize compute and render pipelines
+            setupUI(); // Setup UI event listeners
+            scheduleRender(); // Request the initial render
+        }
+
+        /**
+         * Sets up the WebGPU compute and render pipelines including buffers, textures,
+         * bind groups, and shader modules.
+         */
+        async function setupPipelines() {
+            // --- 1. Uniform Buffer Creation ---
+            // This buffer will hold the color parameter for the compute shader.
+            computeUniformBuffer = device.createBuffer({
+                size: params.color.byteLength, // Size of the Float32Array (vec4f)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, // Uniform for shaders, copy_dst for CPU updates
+            });
+            // Write initial parameter data to the uniform buffer
+            device.queue.writeBuffer(computeUniformBuffer, 0, params.color);
+
+            // --- 2. Storage Texture Creation ---
+            // This texture will store the output of the compute shader.
+            // It will then be used as input for the render shader.
+            computeStorageTexture = device.createTexture({
+                size: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, depthOrArrayLayers: 1 },
+                format: 'rgba8unorm', // 8-bit RGBA, unnormalized, suitable for display
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+
+            // --- 3. Compute Pipeline + Compute Pass Setup ---
+            const computeShaderModule = device.createShaderModule({
+                code: document.getElementById('compute-shader').textContent,
+            });
+
+            // Define the layout of resources for the compute shader
+            const computeBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0, // Slot 0: Uniform buffer (params)
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'uniform' },
+                    },
+                    {
+                        binding: 1, // Slot 1: Storage Texture (outputTexture)
+                        visibility: GPUShaderStage.COMPUTE,
+                        storageTexture: { format: 'rgba8unorm', access: 'write-only', viewDimension: '2d' },
+                    },
+                ],
+            });
+
+            // Create the compute pipeline
+            computePipeline = await device.createComputePipeline({
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [computeBindGroupLayout],
+                }),
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            // Create the bind group, linking actual resources to the layout
+            computeBindGroup = device.createBindGroup({
+                layout: computeBindGroupLayout,
+                entries: [
+                    { binding: 0, resource: { buffer: computeUniformBuffer } },
+                    { binding: 1, resource: computeStorageTexture.createView() },
+                ],
+            });
+
+            // --- 4. Render Pipeline + Render Pass Setup ---
+            const renderVertexShaderModule = device.createShaderModule({
+                code: document.getElementById('render-shader-vertex').textContent,
+            });
+            const renderFragmentShaderModule = device.createShaderModule({
+                code: document.getElementById('render-shader-fragment').textContent,
+            });
+
+            // Create a sampler for texture filtering (linear for smooth results)
+            renderSampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
+
+            // Define the layout of resources for the render shader
+            const renderBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0, // Slot 0: The texture to render (computeStorageTexture)
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: { sampleType: 'float', viewDimension: '2d' },
+                    },
+                    {
+                        binding: 1, // Slot 1: Sampler for the texture
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: { type: 'filtering' },
+                    },
+                ],
+            });
+
+            // Create the render pipeline
+            renderPipeline = await device.createRenderPipeline({
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [renderBindGroupLayout],
+                }),
+                vertex: {
+                    module: renderVertexShaderModule,
+                    entryPoint: 'main',
+                },
+                fragment: {
+                    module: renderFragmentShaderModule,
+                    entryPoint: 'main',
+                    targets: [{ format: presentationFormat }], // Output to the canvas
+                },
+                primitive: {
+                    topology: 'triangle-list', // Drawing a fullscreen quad using two triangles
+                },
+            });
+
+            // Create the bind group, linking actual resources to the layout
+            // Note: computeStorageTexture is now used as a read-only texture
+            renderBindGroup = device.createBindGroup({
+                layout: renderBindGroupLayout,
+                entries: [
+                    { binding: 0, resource: computeStorageTexture.createView() },
+                    { binding: 1, resource: renderSampler },
+                ],
+            });
+        }
+
+        /**
+         * Sets up event listeners for the UI sliders to update parameters and trigger renders.
+         */
+        function setupUI() {
+            // Sliders for R, G, B color components
+            document.getElementById('colorR').addEventListener('input', (event) => {
+                params.color[0] = parseFloat(event.target.value) / 100.0;
+                scheduleRender();
+            });
+            document.getElementById('colorG').addEventListener('input', (event) => {
+                params.color[1] = parseFloat(event.target.value) / 100.0;
+                scheduleRender();
+            });
+            document.getElementById('colorB').addEventListener('input', (event) => {
+                params.color[2] = parseFloat(event.target.value) / 100.0;
+                scheduleRender();
+            });
+
+            // Set initial slider values based on default parameters
+            document.getElementById('colorR').value = params.color[0] * 100;
+            document.getElementById('colorG').value = params.color[1] * 100;
+            document.getElementById('colorB').value = params.color[2] * 100;
+        }
+
+        /**
+         * Schedules a render operation using requestAnimationFrame.
+         * Ensures that `render()` is called only once per frame, preventing redundant calls.
+         */
+        function scheduleRender() {
+            if (!renderRequested) {
+                renderRequested = true;
+                requestAnimationFrame(render);
+            }
+        }
+
+        /**
+         * The main render loop function.
+         * - Updates uniform buffers.
+         * - Executes the compute pass.
+         * - Executes the render pass to display the result.
+         */
+        function render() {
+            if (!device) return; // Ensure device is initialized
+
+            renderRequested = false; // Reset flag for next frame
+
+            // --- 5. Update Uniform Buffer (if parameters changed) ---
+            // Transfer current slider values to the GPU uniform buffer.
+            device.queue.writeBuffer(computeUniformBuffer, 0, params.color);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // --- Compute Pass ---
+            // This pass executes the compute shader to calculate pixel values.
+            const computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setPipeline(computePipeline);
+            computePassEncoder.setBindGroup(0, computeBindGroup);
+            const workgroupSize = 8; // Matching @workgroup_size(8,8)
+            // Dispatch workgroups: ceil(W/workgroup_x), ceil(H/workgroup_y)
+            const dispatchX = Math.ceil(CANVAS_WIDTH / workgroupSize);
+            const dispatchY = Math.ceil(CANVAS_HEIGHT / workgroupSize);
+            computePassEncoder.dispatchWorkgroups(dispatchX, dispatchY);
+            computePassEncoder.end();
+
+            // --- Render Pass ---
+            // This pass uses the result from the compute shader (computeStorageTexture)
+            // and renders it to the canvas using a fullscreen quad.
+            const renderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: context.getCurrentTexture().createView(), // The canvas texture
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }, // Clear canvas background to black
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            };
+
+            const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroup); // Binds the compute output texture and sampler
+            renderPassEncoder.draw(6); // Draw 6 vertices (2 triangles) for the fullscreen quad
+            renderPassEncoder.end();
+
+            // Submit all encoded commands to the GPU queue
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        // Initialize WebGPU when the window loads
+        window.addEventListener('load', initWebGPU);
+    </script>
+</body>
+</html>
