@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — 픽셀 생성기</title>
+    <style>
+        /* CSS: ImGui 스타일 다크 테마 */
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e; /* 요구사항 배경 색상 */
+            color: #eeeeee;
+        }
+
+        #container {
+            background-color: #252526; /* ImGui window background */
+            border: 1px solid #3c3c3c;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            width: fit-content;
+            min-width: 800px; /* Adjust as needed */
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #3f3f40; /* ImGui title bar */
+            color: #f0f0f0;
+            padding: 10px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #4a4a4b;
+            cursor: grab; /* Indicates draggable, though not implemented here */
+            font-size: 1.1em;
+        }
+
+        .content {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        canvas {
+            border: 1px solid #3c3c3c;
+            background-color: #1e1e1e; /* Canvas background */
+            display: block;
+            flex-shrink: 0;
+        }
+
+        #controls {
+            flex-grow: 1;
+            background-color: #2d2d2d; /* ImGui panel background */
+            padding: 15px;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.9em;
+            color: #bbbbbb;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none; /* Remove default browser styling */
+            appearance: none;
+            height: 8px;
+            background: #4a4a4b;
+            outline: none;
+            border-radius: 4px;
+            transition: opacity .2s;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #569cd6; /* ImGui primary color */
+            cursor: pointer;
+            border: 1px solid #569cd6;
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #569cd6;
+            cursor: pointer;
+            border: 1px solid #569cd6;
+        }
+
+        .control-group .value-display {
+            font-size: 0.8em;
+            color: #999999;
+            text-align: right;
+        }
+
+        #webgpu-unsupported {
+            color: #ff4444;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background-color: #3a1a1a;
+            border-radius: 5px;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="header">DirectX 11 — 픽셀 생성기</div>
+        <div class="content">
+            <div id="webgpu-unsupported">
+                WebGPU를 지원하지 않는 브라우저입니다. Chrome 또는 Edge의 최신 버전을 사용해주세요.
+            </div>
+            <canvas id="webgpu-canvas" width="512" height="512"></canvas>
+            <div id="controls">
+                <div class="control-group">
+                    <label for="slider-radius">반지름</label>
+                    <input type="range" id="slider-radius" min="0.01" max="0.5" step="0.005" value="0.2">
+                    <div class="value-display" id="value-radius">0.20</div>
+                </div>
+                <div class="control-group">
+                    <label for="slider-centerX">중심 X</label>
+                    <input type="range" id="slider-centerX" min="0.0" max="1.0" step="0.01" value="0.5">
+                    <div class="value-display" id="value-centerX">0.50</div>
+                </div>
+                <div class="control-group">
+                    <label for="slider-centerY">중심 Y</label>
+                    <input type="range" id="slider-centerY" min="0.0" max="1.0" step="0.01" value="0.5">
+                    <div class="value-display" id="value-centerY">0.50</div>
+                </div>
+                <div class="control-group">
+                    <label for="slider-colorR">색상 R</label>
+                    <input type="range" id="slider-colorR" min="0.0" max="1.0" step="0.01" value="0.9">
+                    <div class="value-display" id="value-colorR">0.90</div>
+                </div>
+                <div class="control-group">
+                    <label for="slider-colorG">색상 G</label>
+                    <input type="range" id="slider-colorG" min="0.0" max="1.0" step="0.01" value="0.2">
+                    <div class="value-display" id="value-colorG">0.20</div>
+                </div>
+                <div class="control-group">
+                    <label for="slider-colorB">색상 B</label>
+                    <input type="range" id="slider-colorB" min="0.0" max="1.0" step="0.01" value="0.8">
+                    <div class="value-display" id="value-colorB">0.80</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // WGSL Shaders
+        const computeShaderWGSL = `
+            // DX11: RWTexture2D<float4> (UAV) -> WebGPU: texture_storage_2d<rgba8unorm, write>
+            @group(0) @binding(0) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+            // DX11: cbuffer { float4 x; } -> WebGPU: struct Params { x: vec4f } + var<uniform>
+            @group(0) @binding(1) var<uniform> params: Params;
+
+            struct Params {
+                // Uniforms are 16-byte aligned. These will pack into a vec4f implicitly.
+                radius: f32,
+                centerX: f32,
+                centerY: f32,
+                _padding1: f32, // Padding to align next field to 16 bytes.
+                // This vec4f starts at offset 16, which is 16-byte aligned.
+                colorR: f32,
+                colorG: f32,
+                colorB: f32,
+                colorA: f32, // Not currently used, but good for struct consistency.
+            };
+
+            // DX11: [numthreads(8,8,1)] -> WebGPU: @workgroup_size(8,8)
+            @workgroup_size(8, 8, 1) // Using 1 for Z dimension as we have 2D texture
+            @compute
+            // DX11: SV_DispatchThreadID -> WebGPU: @builtin(global_invocation_id)
+            fn main(@builtin(global_invocation_id) global_id: vec3u) {
+                let width = textureDimensions(outputTexture).x;
+                let height = textureDimensions(outputTexture).y;
+
+                let x = f32(global_id.x);
+                let y = f32(global_id.y);
+
+                // Boundary check (important for dispatchWorkgroups(ceil(W/WG_X), ...))
+                if (x >= f32(width) || y >= f32(height)) {
+                    return;
+                }
+
+                // Normalize coordinates to [0, 1]
+                let normalizedX = x / (f32(width) - 1.0); // Adjust to get 0 to 1 range inclusively
+                let normalizedY = y / (f32(height) - 1.0);
+
+                // Calculate distance from the center (normalized)
+                let dist_sq = pow(normalizedX - params.centerX, 2.0) + pow(normalizedY - params.centerY, 2.0);
+                let radius_sq = pow(params.radius, 2.0);
+
+                var pixelColor = vec4f(0.0, 0.0, 0.0, 1.0); // Default black background
+
+                if (dist_sq < radius_sq) {
+                    pixelColor = vec4f(params.colorR, params.colorG, params.colorB, 1.0);
+                }
+
+                textureStore(outputTexture, vec2u(global_id.xy), pixelColor);
+            }
+        `;
+
+        const renderShaderWGSL = `
+            // Vertex shader for fullscreen quad
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
+                // Generate a full-screen quad from a single vertex index
+                // Two triangles covering the clip space (-1 to 1)
+                let pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0), // Triangle 1 (bottom-left, bottom-right, top-right)
+                    vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0)  // Triangle 2 (bottom-left, top-right, top-left)
+                );
+                return vec4f(pos[vertexIndex], 0.0, 1.0);
+            }
+
+            // Fragment shader to sample the computed texture
+            @group(0) @binding(0) var mySampler: sampler;
+            @group(0) @binding(1) var myTexture: texture_2d<f32>; // The storage texture is read here
+
+            @fragment
+            fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
+                // Convert fragment coordinates (pixel space) to UV coordinates (0-1)
+                let uv = fragCoord.xy / vec2f(textureDimensions(myTexture));
+                return textureSample(myTexture, mySampler, uv);
+            }
+        `;
+
+        // WebGPU Global Variables
+        let device = null;
+        let context = null;
+        let presentationFormat = null;
+        let computePipeline = null;
+        let renderPipeline = null;
+        let computeBindGroup = null;
+        let renderBindGroup = null;
+        let uniformBuffer = null;
+        let storageTexture = null;
+        let sampler = null;
+
+        const CANVAS_WIDTH = 512;
+        const CANVAS_HEIGHT = 512;
+        const WORKGROUP_SIZE = 8; // Matches @workgroup_size(8,8,1) in WGSL
+
+        // Parameters for the compute shader
+        const params = {
+            radius: 0.2,
+            centerX: 0.5,
+            centerY: 0.5,
+            colorR: 0.9,
+            colorG: 0.2,
+            colorB: 0.8,
+            colorA: 1.0, // Always 1.0 for now
+        };
+
+        // Uniform Buffer structure for JS (Float32Array)
+        // Corresponds to WGSL struct Params for alignment
+        // radius, centerX, centerY, _padding1 (4 floats)
+        // colorR, colorG, colorB, colorA (4 floats)
+        const uniformBufferSize = 4 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT; // 8 floats total (32 bytes)
+        const uniformBufferData = new Float32Array(8); // 8 floats = 32 bytes
+
+        let renderRequested = false;
+
+        async function initWebGPU() {
+            const canvas = document.getElementById('webgpu-canvas');
+            const unsupportedDiv = document.getElementById('webgpu-unsupported');
+
+            if (!navigator.gpu) {
+                unsupportedDiv.style.display = 'block';
+                canvas.style.display = 'none';
+                return;
+            } else {
+                unsupportedDiv.style.display = 'none';
+                canvas.style.display = 'block';
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                unsupportedDiv.style.display = 'block';
+                canvas.style.display = 'none';
+                console.error("No WebGPU adapter found.");
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            context = canvas.getContext('webgpu');
+
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: presentationFormat,
+                alphaMode: 'opaque',
+            });
+
+            // 1. Uniform Buffer 생성 — 파라미터
+            uniformBuffer = device.createBuffer({
+                size: uniformBufferSize,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // 2. Storage Texture 생성 — GPU 연산 결과 저장
+            storageTexture = device.createTexture({
+                size: [CANVAS_WIDTH, CANVAS_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+            });
+
+            // Sampler for the render pipeline to read the storage texture
+            sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
+
+            // 3. Compute Pipeline + Compute Pass — 픽셀 값 계산
+            const computeShaderModule = device.createShaderModule({
+                code: computeShaderWGSL,
+            });
+
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: storageTexture.createView(),
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: uniformBuffer,
+                        },
+                    },
+                ],
+            });
+
+            // 4. Render Pipeline + Render Pass — Storage Texture를 fullscreen quad로 표시
+            const renderShaderModule = device.createShaderModule({
+                code: renderShaderWGSL,
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderShaderModule,
+                    entryPoint: 'vs_main',
+                },
+                fragment: {
+                    module: renderShaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: sampler,
+                    },
+                    {
+                        binding: 1,
+                        resource: storageTexture.createView(),
+                    },
+                ],
+            });
+
+            setupUI();
+            scheduleRender(); // Initial render
+        }
+
+        function setupUI() {
+            const sliders = {
+                radius: document.getElementById('slider-radius'),
+                centerX: document.getElementById('slider-centerX'),
+                centerY: document.getElementById('slider-centerY'),
+                colorR: document.getElementById('slider-colorR'),
+                colorG: document.getElementById('slider-colorG'),
+                colorB: document.getElementById('slider-colorB'),
+            };
+
+            const valueDisplays = {
+                radius: document.getElementById('value-radius'),
+                centerX: document.getElementById('value-centerX'),
+                centerY: document.getElementById('value-centerY'),
+                colorR: document.getElementById('value-colorR'),
+                colorG: document.getElementById('value-colorG'),
+                colorB: document.getElementById('value-colorB'),
+            };
+
+            for (const key in sliders) {
+                sliders[key].value = params[key];
+                valueDisplays[key].textContent = params[key].toFixed(2);
+                sliders[key].addEventListener('input', (event) => {
+                    params[key] = parseFloat(event.target.value);
+                    valueDisplays[key].textContent = params[key].toFixed(2);
+                    scheduleRender(); // 5. 슬라이더 변경 → device.queue.writeBuffer → scheduleRender()
+                });
+            }
+        }
+
+        function scheduleRender() {
+            if (!renderRequested && device) {
+                renderRequested = true;
+                requestAnimationFrame(render);
+            }
+        }
+
+        function render() {
+            renderRequested = false;
+
+            // Update uniform buffer
+            uniformBufferData[0] = params.radius;
+            uniformBufferData[1] = params.centerX;
+            uniformBufferData[2] = params.centerY;
+            uniformBufferData[3] = 0; // Padding
+            uniformBufferData[4] = params.colorR;
+            uniformBufferData[5] = params.colorG;
+            uniformBufferData[6] = params.colorB;
+            uniformBufferData[7] = params.colorA; // Alpha
+
+            // DX11: CPU 픽셀 루프 -> WebGPU: GPU Compute Pass
+            // DX11: device.queue.writeBuffer
+            device.queue.writeBuffer(uniformBuffer, 0, uniformBufferData.buffer);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // Compute Pass
+            const computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setPipeline(computePipeline);
+            computePassEncoder.setBindGroup(0, computeBindGroup);
+            // DX11: Dispatch(W/8, H/8, 1) -> WebGPU: dispatchWorkgroups(ceil(W/8), ceil(H/8))
+            const workgroupCountX = Math.ceil(CANVAS_WIDTH / WORKGROUP_SIZE);
+            const workgroupCountY = Math.ceil(CANVAS_HEIGHT / WORKGROUP_SIZE);
+            computePassEncoder.dispatchWorkgroups(workgroupCountX, workgroupCountY, 1);
+            computePassEncoder.end();
+
+            // Render Pass
+            const textureView = context.getCurrentTexture().createView();
+            const renderPassEncoder = commandEncoder.beginRenderPass({
+                colorAttachments: [
+                    {
+                        view: textureView,
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }, // Clear with black before drawing
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            });
+            // DX11: GPU 텍스처 fullscreen render -> WebGPU: Vertex(6 verts) + Fragment Shader
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroup);
+            renderPassEncoder.draw(6); // 6 vertices for a fullscreen quad
+            renderPassEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        window.addEventListener('load', initWebGPU);
+    </script>
+</body>
+</html>

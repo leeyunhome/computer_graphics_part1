@@ -71,6 +71,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [학습자 커밋 분석: add source code](학습자-커밋-분석-add-source-code.md)
+
+
+[→ 데모 열기](학습자-커밋-분석-add-source-code.md){.md-button}
+
+
+---
+
+
 ## [학습자의 directx 11 c 그래픽스 스터디 커밋 분석 입력 이미지](학습자의-directx-11-c-그래픽스-스터디-커밋-분석-입력-이미지-.md)
 
 
