@@ -242,7 +242,7 @@
 
         // Placeholder for "image_4.jpg". Replace with your actual image path or base64 data.
         // Using a public image URL for demonstration.
-        const image_url = "https://picsum.photos/id/1294/1200/800"; // Close to IMG_1294.HEIC context
+        const image_url = "../../images/colosseum.jpg";
         let imageWidth = 0;
         let imageHeight = 0;
 
@@ -325,15 +325,21 @@
 
             const bitmap = await createImageBitmap(img);
 
-            // Create input texture from the loaded image
+            // Create input texture from the loaded image (writeTexture - RENDER_ATTACHMENT 불필요)
+            const offscreen = document.createElement('canvas');
+            offscreen.width = imageWidth; offscreen.height = imageHeight;
+            offscreen.getContext('2d').drawImage(img, 0, 0);
+            const imgData = offscreen.getContext('2d').getImageData(0, 0, imageWidth, imageHeight);
+
             inputImageTexture = device.createTexture({
                 size: [imageWidth, imageHeight, 1],
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
             });
-            device.queue.copyExternalImageToTexture(
-                { source: bitmap },
+            device.queue.writeTexture(
                 { texture: inputImageTexture },
+                imgData.data,
+                { bytesPerRow: imageWidth * 4, rowsPerImage: imageHeight },
                 [imageWidth, imageHeight]
             );
 
