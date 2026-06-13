@@ -123,6 +123,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리</strong><br><br>
+<a href="demos/코드-리뷰-separable-5-tap-box-blur-가로-패스-구현-/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현</strong><br><br>
 <a href="demos/코드-리뷰-separable-convolution을-활용한-box-blu/">데모 보기 →</a>
 </div>
