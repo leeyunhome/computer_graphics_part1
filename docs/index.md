@@ -108,6 +108,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] CPU 픽셀 버퍼 제어와 RGB 순환 애니메이션 구현</strong><br><br>
+<a href="demos/코드-리뷰-cpu-픽셀-버퍼-제어와-rgb-순환-애니메이션-구현/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>픽셀 버퍼 애니메이션 이해와 DirectX 11 적용</strong><br><br>
 <a href="demos/픽셀-버퍼-애니메이션-이해와-directx-11-적용/">데모 보기 →</a>
 </div>
