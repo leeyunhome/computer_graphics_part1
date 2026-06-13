@@ -83,7 +83,7 @@ Copy `.env copy.example` to `.env` and fill in the Gemini API key:
 GEMINI_API_KEY=your_key_here
 ```
 
-**Gemini model:** `gemini-2.5-flash` (do NOT use `gemini-2.0-flash` — deprecated June 2026)
+**Gemini model:** `gemini-3.5-flash`
 
 ## Content Generation Rules
 

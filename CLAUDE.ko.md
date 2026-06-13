@@ -83,7 +83,7 @@ venv\Scripts\pip install mkdocs-material gitpython google-genai python-dotenv
 GEMINI_API_KEY=발급받은_키_입력
 ```
 
-**Gemini 모델:** `gemini-2.5-flash` (`gemini-2.0-flash`는 2026년 6월에 deprecated됨 — 사용 금지)
+**Gemini 모델:** `gemini-3.5-flash`
 
 ## 콘텐츠 생성 규칙
 
