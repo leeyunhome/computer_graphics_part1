@@ -365,7 +365,10 @@ def create_demo_page(title, demo_slug):
 def update_mkdocs_nav(demo_title, demo_slug):
     """mkdocs.yml의 인터랙티브 데모 섹션에 새 항목을 추가합니다."""
     mkdocs_path = os.path.join(PORTFOLIO_REPO_PATH, 'mkdocs.yml')
-    nav_entry = f"    - {demo_title}: demos/{demo_slug}.md"
+    # YAML 특수문자(콜론, 대괄호 등)가 포함된 제목은 따옴표로 감싸야 파싱 오류 방지
+    needs_quote = ':' in demo_title or demo_title.startswith('[')
+    safe_title = f'"{demo_title}"' if needs_quote else demo_title
+    nav_entry = f"    - {safe_title}: demos/{demo_slug}.md"
 
     with open(mkdocs_path, 'r', encoding='utf-8') as f:
         content = f.read()
