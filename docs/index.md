@@ -38,6 +38,11 @@ graph LR
 <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>1차원 배열을 통한 2D 캔버스 제어와 CPU-GPU 메모리 매핑</strong><br><br>
+<a href="demos/1차원-배열을-통한-2d-캔버스-제어와-cpu-gpu-메모리-매핑/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해</strong><br><br>
 <a href="demos/box-blur-5x5-수평-패스-구현-및-분리형-컨볼루션-이해/">데모 보기 →</a>
 </div>
