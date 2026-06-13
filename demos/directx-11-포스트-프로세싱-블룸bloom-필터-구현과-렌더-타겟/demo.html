@@ -531,7 +531,7 @@
         computePass.setBindGroup(0, computeBindGroup);
         // Dispatch(W/8, H/8, 1) 적용
         computePass.dispatchWorkgroups(Math.ceil(canvas.width / 8), Math.ceil(canvas.height / 8));
-        computePass.endPass();
+        computePass.end();
 
         // 3) Render Pass (결과 Storage Texture 렌더링)
         const renderPass = commandEncoder.beginRenderPass({
@@ -545,7 +545,7 @@
         renderPass.setPipeline(renderPipeline);
         renderPass.setBindGroup(0, renderBindGroup);
         renderPass.draw(6); // Fullscreen Quad
-        renderPass.endPass();
+        renderPass.end();
 
         device.queue.submit([commandEncoder.finish()]);
       }
