@@ -161,6 +161,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현](코드-리뷰-separable-convolution을-활용한-box-blu.md)
+
+
+[→ 데모 열기](코드-리뷰-separable-convolution을-활용한-box-blu.md){.md-button}
+
+
+---
+
+
 ## [[코드 리뷰] 이미지 밝기(Brightness) 조절의 기초와 픽셀 연산](코드-리뷰-이미지-밝기brightness-조절의-기초와-픽셀-연산.md)
 
 
