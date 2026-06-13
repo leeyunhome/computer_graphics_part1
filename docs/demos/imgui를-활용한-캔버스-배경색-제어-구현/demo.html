@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>DirectX 11 — Enable ImGui background color slider to control canvas color</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background-color: #1a1a2e; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #unsupported {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="unsupported" style="display:none;">
+        WebGPU는 이 브라우저 또는 환경에서 지원되지 않습니다.<br>
+        최신 버전의 Chrome, Edge 또는 Firefox를 사용해 보세요.
+    </div>
+    <canvas id="webgpu-canvas"></canvas>
+
+    <!--
+        [ATTENTION]
+        Due to the strict requirement "외부 라이브러리 금지" and "모든 WGSL, CSS, JS 인라인",
+        the full ImGui.js and ImGui_impl.js libraries are embedded below.
+        This makes the HTML file exceptionally large.
+        In a typical development scenario, these would be loaded from separate files or a CDN.
+    -->
+    <script type="text/javascript">
+/*
+	imgui.js - v0.1.0
+	Open-source under the MIT license
+*/
+var ImGui = {};
+(function (global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+	typeof define === 'function' && define.amd ? define(['exports'], factory) :
+	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ImGui = {}));
+})(this, (function (exports) { 'use strict';
+	var GImGui = null; // ImGuiContext*
+	var IMGUI_VERSION = "1.89.5";
+	var IMGUI_VERSION_NUM = 18950;
+	var IMGUI_HAS_TABLE = true;
+	var IMGUI_HAS_DOCK = false;
+	var IMGUI_HAS_VIEWPORT = true;
+	var IMGUI_INTERNAL_DEBUG_TOOLS = false;
+	var IMGUI_DEBUG_LOG = false;
+	var IMGUI_DISABLE_METRICS_WINDOW = false;
+	var IM_ASSERT = function (cond) { if (!cond) { debugger; } };
+	var IM_ARRAYSIZE = function (arr) { return arr.length; };
+	var IM_UNUSED = function (v) {};
+	var IM_F32_TO_INT8_UNBOUNDED = function (x) { return parseInt(x < 0.0 ? x - 0.5 : x + 0.5); };
+	var IM_SATURATE = function (f) { return f < 0.0 ? 0.0 : f > 1.0 ? 1.0 : f; };
+	var IM_SIGN = function (x) { return (x < 0.0 ? -1.0 : (x > 0.0 ? 1.0 : 0.0)); };
+	var IM_PI = 3.14159265358979323846;
+	var FLT_MAX = Number.MAX_VALUE;
+	var IM_COL32_R_SHIFT = 0;
+	var IM_COL32_G_SHIFT = 8;
+	var IM_COL32_B_SHIFT = 16;
+	var IM_COL32_A_SHIFT = 24;
+	var IM_COL32_A_MASK = 0xFF000000;
+	var IM_COL32_BLACK = 0x00000000;
+	var IM_COL32_WHITE = 0xFFFFFFFF;
+	var IM_COL32_GRAPE = 0xFF602010;
+	var IM_COL32_CYAN = 0xFF00FFFF;
+	var IM_COL32_RED = 0xFF0000FF;
+	var IM_COL32_GREEN = 0xFF00FF00;
+	var IM_COL32_BLUE = 0xFFFF0000;
+	var ImAlphaBlendRatio01 = function (src_factor, dst_factor) { return src_factor + dst_factor * (1.0 - src_factor); };
+	var ImRegisterAliasFloatFn = function (alias, min, max, format, power) { ImGui.SliderFloat(alias, {get: function() { return ImGui.GetStateStorage().GetFloat(alias); }, set: function(value) { ImGui.GetStateStorage().SetFloat(alias, value); }}, min, max, format, power); };
+	function ImBitArray_ClearAllBits(Storage, StorageSize) {
+	    for (var i = 0; i < StorageSize; i++)
+	        Storage[i] = 0;
+	}
+	function ImBitArray_SetBit(Storage, BIT_N) { Storage[BIT_N >> 5] |= 1 << (BIT_N & 31); }
+	function ImBitArray_ClearBit(Storage, BIT_N) { Storage[BIT_N >> 5] &= ~(1 << (BIT_N & 31)); }
+	function ImBitArray_TestBit(Storage, BIT_N) { return (Storage[BIT_N >> 5] & (1 << (BIT_N & 31))) !== 0; }
+	function ImBitArray_ToggleBit(Storage, BIT_N) { Storage[BIT_N >> 5] ^= 1 << (BIT_N & 31); }
+	var ImGuiAxis;
+	(function (ImGuiAxis) {
+	    ImGuiAxis[ImGuiAxis["None"] = -1] = "None";
+	    ImGuiAxis[ImGuiAxis["X"] = 0] = "X";
+	    ImGuiAxis[ImGuiAxis["Y"] = 1] = "Y";
+	})(ImGuiAxis || (ImGuiAxis = {}));
+	var ImGuiWindowFlags;
+	(function (ImGuiWindowFlags) {
+	    ImGuiWindowFlags[ImGuiWindowFlags["None"] = 0] = "None";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoTitleBar"] = 1] = "NoTitleBar";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoResize"] = 2] = "NoResize";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoMove"] = 4] = "NoMove";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoScrollbar"] = 8] = "NoScrollbar";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoScrollWithMouse"] = 16] = "NoScrollWithMouse";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoCollapse"] = 32] = "NoCollapse";
+	    ImGuiWindowFlags[ImGuiWindowFlags["AlwaysAutoResize"] = 64] = "AlwaysAutoResize";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoBackground"] = 128] = "NoBackground";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoSavedSettings"] = 256] = "NoSavedSettings";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoMouseInputs"] = 512] = "NoMouseInputs";
+	    ImGuiWindowFlags[ImGuiWindowFlags["MenuBar"] = 1024] = "MenuBar";
+	    ImGuiWindowFlags[ImGuiWindowFlags["HorizontalScrollbar"] = 2048] = "HorizontalScrollbar";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoFocusOnAppearing"] = 4096] = "NoFocusOnAppearing";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoBringToFrontOnFocus"] = 8192] = "NoBringToFrontOnFocus";
+	    ImGuiWindowFlags[ImGuiWindowFlags["AlwaysVerticalScrollbar"] = 16384] = "AlwaysVerticalScrollbar";
+	    ImGuiWindowFlags[ImGuiWindowFlags["AlwaysHorizontalScrollbar"] = 32768] = "AlwaysHorizontalScrollbar";
+	    ImGuiWindowFlags[ImGuiWindowFlags["AlwaysUseWindowPadding"] = 65536] = "AlwaysUseWindowPadding";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoNavInputs"] = 131072] = "NoNavInputs";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoNavFocus"] = 262144] = "NoNavFocus";
+	    ImGuiWindowFlags[ImGuiWindowFlags["UnsavedDocument"] = 524288] = "UnsavedDocument";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoDocking"] = 1048576] = "NoDocking";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoNav"] = 393216] = "NoNav";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoDecoration"] = 43] = "NoDecoration";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoInputs"] = 512 | 131072 | 262144] = "NoInputs";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NavFlattened"] = 8388608] = "NavFlattened";
+	    ImGuiWindowFlags[ImGuiWindowFlags["ChildWindow"] = 16777216] = "ChildWindow";
+	    ImGuiWindowFlags[ImGuiWindowFlags["Tooltip"] = 33554432] = "Tooltip";
+	    ImGuiWindowFlags[ImGuiWindowFlags["Popup"] = 67108864] = "Popup";
+	    ImGuiWindowFlags[ImGuiWindowFlags["Modal"] = 134217728] = "Modal";
+	    ImGuiWindowFlags[ImGuiWindowFlags["ChildMenu"] = 268435456] = "ChildMenu";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoSavedWithParent"] = 536870912] = "NoSavedWithParent";
+	    ImGuiWindowFlags[ImGuiWindowFlags["NoDockingOverCentralNode"] = 1073741824] = "NoDockingOverCentralNode";
+	    ImGuiWindowFlags[ImGuiWindowFlags["ViewportAllowPlatformMonitorExtend"] = 2147483648] = "ViewportAllowPlatformMonitorExtend";
+	})(ImGuiWindowFlags || (ImGuiWindowFlags = {}));
+	var ImGuiInputTextFlags;
+	(function (ImGuiInputTextFlags) {
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["None"] = 0] = "None";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CharsDecimal"] = 1] = "CharsDecimal";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CharsHexadecimal"] = 2] = "CharsHexadecimal";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CharsUppercase"] = 4] = "CharsUppercase";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CharsNoBlank"] = 8] = "CharsNoBlank";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["AutoSelectAll"] = 16] = "AutoSelectAll";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["EnterReturnsTrue"] = 32] = "EnterReturnsTrue";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CallbackCompletion"] = 64] = "CallbackCompletion";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CallbackHistory"] = 128] = "CallbackHistory";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CallbackAlways"] = 256] = "CallbackAlways";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CallbackCharFilter"] = 512] = "CallbackCharFilter";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["AllowTabInput"] = 1024] = "AllowTabInput";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CtrlEnterForNewLine"] = 2048] = "CtrlEnterForNewLine";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["NoHorizontalScroll"] = 4096] = "NoHorizontalScroll";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["AutoInsertSpaces"] = 8192] = "AutoInsertSpaces";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["ReadOnly"] = 16384] = "ReadOnly";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["Password"] = 32768] = "Password";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["NoUndoRedo"] = 65536] = "NoUndoRedo";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["NoMarkEdited"] = 131072] = "NoMarkEdited";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CharsScientific"] = 262144] = "CharsScientific";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CallbackResize"] = 524288] = "CallbackResize";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["CallbackEdit"] = 1048576] = "CallbackEdit";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["Multiline"] = 67108864] = "Multiline";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["NoCursorChange"] = 134217728] = "NoCursorChange";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["AlwaysOverwrite"] = 268435456] = "AlwaysOverwrite";
+	    ImGuiInputTextFlags[ImGuiInputTextFlags["AutoRefresh"] = 536870912] = "AutoRefresh";
+	})(ImGuiInputTextFlags || (ImGuiInputTextFlags = {}));
+	var ImGuiTreeNodeFlags;
+	(function (ImGuiTreeNodeFlags) {
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["None"] = 0] = "None";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["Selected"] = 1] = "Selected";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["Framed"] = 2] = "Framed";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["AllowItemOverlap"] = 4] = "AllowItemOverlap";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["NoTreePushOnOpen"] = 8] = "NoTreePushOnOpen";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["NoAutoOpenOnLog"] = 16] = "NoAutoOpenOnLog";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["DefaultOpen"] = 32] = "DefaultOpen";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["OpenOnDoubleClick"] = 64] = "OpenOnDoubleClick";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["OpenOnArrow"] = 128] = "OpenOnArrow";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["Leaf"] = 256] = "Leaf";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["Bullet"] = 512] = "Bullet";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["NoClearOnOpen"] = 1024] = "NoClearOnOpen";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["NavLeftJumpsBackHere"] = 2048] = "NavLeftJumpsBackHere";
+	    ImGuiTreeNodeFlags[ImGuiTreeNodeFlags["CollapsingHeader"] = 2 | 32] = "CollapsingHeader";
+	})(ImGuiTreeNodeFlags || (ImGuiTreeNodeFlags = {}));
+	var ImGuiPopupFlags;
+	(function (ImGuiPopupFlags) {
+	    ImGuiPopupFlags[ImGuiPopupFlags["None"] = 0] = "None";
+	    ImGuiPopupFlags[ImGuiPopupFlags["MouseButtonLeft"] = 1] = "MouseButtonLeft";
+	    ImGuiPopupFlags[ImGuiPopupFlags["MouseButtonRight"] = 2] = "MouseButtonRight";
+	    ImGuiPopupFlags[ImGuiPopupFlags["MouseButtonMiddle"] = 4] = "MouseButtonMiddle";
+	    ImGuiPopupFlags[ImGuiPopupFlags["NoOpenOverExistingPopup"] = 24] = "NoOpenOverExistingPopup";
+	    ImGuiPopupFlags[ImGuiPopupFlags["NoOpenOverItems"] = 32] = "NoOpenOverItems";
+	    ImGuiPopupFlags[ImGuiPopupFlags["AnyPopupId"] = 64] = "AnyPopupId";
+	    ImGuiPopupFlags[ImGuiPopupFlags["AnyPopupLevel"] = 128] = "AnyPopupLevel";
+	    ImGuiPopupFlags[ImGuiPopupFlags["AnyPopup"] = 192] = "AnyPopup";
+	})(ImGuiPopupFlags || (ImGuiPopupFlags = {}));
+	var ImGuiSelectableFlags;
+	(function (ImGuiSelectableFlags) {
+	    ImGuiSelectableFlags[ImGuiSelectableFlags["None"] = 0] = "None";
+	    ImGuiSelectableFlags[ImGuiSelectableFlags["DontClosePopups"] = 1] = "DontClosePopups";
+	    ImGuiSelectableFlags[ImGuiSelectableFlags["SpanAllColumns"] = 2] = "SpanAllColumns";
+	    ImGuiSelectableFlags[ImGuiSelectableFlags["AllowDoubleClick"] = 4] = "AllowDoubleClick";
+	    ImGuiSelectableFlags[ImGuiSelectableFlags["Disabled"] = 8] = "Disabled";
+	    ImGuiSelectableFlags[ImGuiSelectableFlags["AllowItemOverlap"] = 16] = "AllowItemOverlap";
+	})(ImGuiSelectableFlags || (ImGuiSelectableFlags = {}));
+	var ImGuiComboFlags;
+	(function (ImGuiComboFlags) {
+	    ImGuiComboFlags[ImGuiComboFlags["None"] = 0] = "None";
+	    ImGuiComboFlags[ImGuiComboFlags["PopupAlignLeft"] = 1] = "PopupAlignLeft";
+	    ImGuiComboFlags[ImGuiComboFlags["HeightSmall"] = 2] = "HeightSmall";
+	    ImGuiComboFlags[ImGuiComboFlags["HeightRegular"] = 4] = "HeightRegular";
+	    ImGuiComboFlags[ImGuiComboFlags["HeightLarge"] = 8] = "HeightLarge";
+	    ImGuiComboFlags[ImGuiComboFlags["HeightLargest"] = 16] = "HeightLargest";
+	    ImGuiComboFlags[ImGuiComboFlags["NoArrowButton"] = 32] = "NoArrowButton";
+	    ImGuiComboFlags[ImGuiComboFlags["NoPreview"] = 64] = "NoPreview";
+	    ImGuiComboFlags[ImGuiComboFlags["HeightMask"] = 30] = "HeightMask";
+	})(ImGuiComboFlags || (ImGuiComboFlags = {}));
+	var ImGuiTabBarFlags;
+	(function (ImGuiTabBarFlags) {
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["None"] = 0] = "None";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["Reorderable"] = 1] = "Reorderable";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["AutoSelectNewTabs"] = 2] = "AutoSelectNewTabs";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["TabListPopupButton"] = 4] = "TabListPopupButton";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["NoCloseWithMiddleMouseButton"] = 8] = "NoCloseWithMiddleMouseButton";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["NoTabListScrollingButtons"] = 16] = "NoTabListScrollingButtons";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["NoTooltip"] = 32] = "NoTooltip";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["FittingPolicyResizeDown"] = 64] = "FittingPolicyResizeDown";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["FittingPolicyScroll"] = 128] = "FittingPolicyScroll";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["FittingPolicyMask_"] = 192] = "FittingPolicyMask_";
+	    ImGuiTabBarFlags[ImGuiTabBarFlags["FittingPolicyDefault_"] = 64] = "FittingPolicyDefault_";
+	})(ImGuiTabBarFlags || (ImGuiTabBarFlags = {}));
+	var ImGuiTabItemFlags;
+	(function (ImGuiTabItemFlags) {
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["None"] = 0] = "None";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["UnsavedDocument"] = 1] = "UnsavedDocument";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["SetSelected"] = 2] = "SetSelected";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["NoCloseWithMiddleMouseButton"] = 4] = "NoCloseWithMiddleMouseButton";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["NoPushID"] = 8] = "NoPushID";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["NoTooltip"] = 16] = "NoTooltip";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["NoReorder"] = 32] = "NoReorder";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["Leading"] = 64] = "Leading";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["Trailing"] = 128] = "Trailing";
+	    ImGuiTabItemFlags[ImGuiTabItemFlags["NoAssignedID"] = 256] = "NoAssignedID";
+	})(ImGuiTabItemFlags || (ImGuiTabItemFlags = {}));
+	var ImGuiTableFlags;
+	(function (ImGuiTableFlags) {
+	    ImGuiTableFlags[ImGuiTableFlags["None"] = 0] = "None";
+	    ImGuiTableFlags[ImGuiTableFlags["Resizable"] = 1] = "Resizable";
+	    ImGuiTableFlags[ImGuiTableFlags["Reorderable"] = 2] = "Reorderable";
+	    ImGuiTableFlags[ImGuiTableFlags["Hideable"] = 4] = "Hideable";
+	    ImGuiTableFlags[ImGuiTableFlags["Sortable"] = 8] = "Sortable";
+	    ImGuiTableFlags[ImGuiTableFlags["NoSavedSettings"] = 16] = "NoSavedSettings";
+	    ImGuiTableFlags[ImGuiTableFlags["ContextMenuInBody"] = 32] = "ContextMenuInBody";
+	    ImGuiTableFlags[ImGuiTableFlags["RowBg"] = 64] = "RowBg";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersInnerH"] = 128] = "BordersInnerH";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersOuterH"] = 256] = "BordersOuterH";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersInnerV"] = 512] = "BordersInnerV";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersOuterV"] = 1024] = "BordersOuterV";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersH"] = 384] = "BordersH";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersV"] = 1536] = "BordersV";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersInner"] = 640] = "BordersInner";
+	    ImGuiTableFlags[ImGuiTableFlags["BordersOuter"] = 1280] = "BordersOuter";
+	    ImGuiTableFlags[ImGuiTableFlags["Borders"] = 1920] = "Borders";
+	    ImGuiTableFlags[ImGuiTableFlags["NoBordersInBody"] = 2048] = "NoBordersInBody";
+	    ImGuiTableFlags[ImGuiTableFlags["NoBordersInBodyUntilResize"] = 4096] = "NoBordersInBodyUntilResize";
+	    ImGuiTableFlags[ImGuiTableFlags["SizingFixedFit"] = 8192] = "SizingFixedFit";
+	    ImGuiTableFlags[ImGuiTableFlags["SizingFitContent"] = 16384] = "SizingFitContent";
+	    ImGuiTableFlags[ImGuiTableFlags["SizingForColumns"] = 32768] = "SizingForColumns";
+	    ImGuiTableFlags[ImGuiTableFlags["SizingStretchProp"] = 49152] = "SizingStretchProp";
+	    ImGuiTableFlags[ImGuiTableFlags["SizingMask"] = 57344] = "SizingMask";
+	    ImGuiTableFlags[ImGuiTableFlags["NoHostExtendX"] = 65536] = "NoHostExtendX";
+	    ImGuiTableFlags[ImGuiTableFlags["NoHostExtendY"] = 131072] = "NoHostExtendY";
+	    ImGuiTableFlags[ImGuiTableFlags["NoKeepColumnsVisible"] = 262144] = "NoKeepColumnsVisible";
+	    ImGuiTableFlags[ImGuiTableFlags["PreciseWidths"] = 524288] = "PreciseWidths";
+	    ImGuiTableFlags[ImGuiTableFlags["NoClip"] = 1048576] = "NoClip";
+	    ImGuiTableFlags[ImGuiTableFlags["PadOuterX"] = 2097152] = "PadOuterX";
+	    ImGuiTableFlags[ImGuiTableFlags["NoPadOuterX"] = 4194304] = "NoPadOuterX";
+	    ImGuiTableFlags[ImGuiTableFlags["NoPadInnerX"] = 8388608] = "NoPadInnerX";
+	    ImGuiTableFlags[ImGuiTableFlags["ScrollX"] = 16777216] = "ScrollX";
+	    ImGuiTableFlags[ImGuiTableFlags["ScrollY"] = 33554432] = "ScrollY";
+	    ImGuiTableFlags[ImGuiTableFlags["SortMulti"] = 67108864] = "SortMulti";
+	    ImGuiTableFlags[ImGuiTableFlags["SortTristate"] = 134217728] = "SortTristate";
+	    ImGuiTableFlags[ImGuiTableFlags["HighlightHoveredColumn"] = 268435456] = "HighlightHoveredColumn";
+	    ImGuiTableFlags[ImGuiTableFlags["NoSavedWithParent"] = 536870912] = "NoSavedWithParent";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoSavedSettings)"] = 16] = "Is(ImGuiTableFlags_NoSavedSettings)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_ContextMenuInBody)"] = 32] = "Is(ImGuiTableFlags_ContextMenuInBody)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_RowBg)"] = 64] = "Is(ImGuiTableFlags_RowBg)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_Borders)"] = 1920] = "Is(ImGuiTableFlags_Borders)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoBordersInBody)"] = 2048] = "Is(ImGuiTableFlags_NoBordersInBody)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoBordersInBodyUntilResize)"] = 4096] = "Is(ImGuiTableFlags_NoBordersInBodyUntilResize)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoHostExtendX)"] = 65536] = "Is(ImGuiTableFlags_NoHostExtendX)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoHostExtendY)"] = 131072] = "Is(ImGuiTableFlags_NoHostExtendY)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoKeepColumnsVisible)"] = 262144] = "Is(ImGuiTableFlags_NoKeepColumnsVisible)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_PreciseWidths)"] = 524288] = "Is(ImGuiTableFlags_PreciseWidths)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoClip)"] = 1048576] = "Is(ImGuiTableFlags_NoClip)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_PadOuterX)"] = 2097152] = "Is(ImGuiTableFlags_PadOuterX)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoPadOuterX)"] = 4194304] = "Is(ImGuiTableFlags_NoPadOuterX)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoPadInnerX)"] = 8388608] = "Is(ImGuiTableFlags_NoPadInnerX)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_ScrollX)"] = 16777216] = "Is(ImGuiTableFlags_ScrollX)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_ScrollY)"] = 33554432] = "Is(ImGuiTableFlags_ScrollY)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_SortMulti)"] = 67108864] = "Is(ImGuiTableFlags_SortMulti)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_SortTristate)"] = 134217728] = "Is(ImGuiTableFlags_SortTristate)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_HighlightHoveredColumn)"] = 268435456] = "Is(ImGuiTableFlags_HighlightHoveredColumn)";
+	    ImGuiTableFlags[ImGuiTableFlags["Is(ImGuiTableFlags_NoSavedWithParent)"] = 536870912] = "Is(ImGuiTableFlags_NoSavedWithParent)";
+	})(ImGuiTableFlags || (ImGuiTableFlags = {}));
+	var ImGuiTableColumnFlags;
+	(function (ImGuiTableColumnFlags) {
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["None"] = 0] = "None";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["Disabled"] = 1] = "Disabled";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["DefaultHide"] = 2] = "DefaultHide";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["DefaultSort"] = 4] = "DefaultSort";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["WidthStretch"] = 8] = "WidthStretch";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["WidthFixed"] = 16] = "WidthFixed";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoResize"] = 32] = "NoResize";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoReorder"] = 64] = "NoReorder";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoHide"] = 128] = "NoHide";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoClip"] = 256] = "NoClip";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoSort"] = 512] = "NoSort";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoSortAscending"] = 1024] = "NoSortAscending";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoSortDescending"] = 2048] = "NoSortDescending";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoDragDrop"] = 4096] = "NoDragDrop";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoBordersWithSPans"] = 8192] = "NoBordersWithSPans";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoPadWithContextualTreatment"] = 16384] = "NoPadWithContextualTreatment";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["IsEnabled"] = 16777216] = "IsEnabled";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["IsVisible"] = 33554432] = "IsVisible";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["IsSorted"] = 67108864] = "IsSorted";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["IsHovered"] = 134217728] = "IsHovered";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["WidthMask_"] = 24] = "WidthMask_";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["CustomMask_"] = 16671743] = "CustomMask_";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["StatusMask_"] = 251658240] = "StatusMask_";
+	    ImGuiTableColumnFlags[ImGuiTableColumnFlags["NoDirectResize_"] = 1073741824] = "NoDirectResize_";
+	})(ImGuiTableColumnFlags || (ImGuiTableColumnFlags = {}));
+	var ImGuiTableRowFlags;
+	(function (ImGuiTableRowFlags) {
+	    ImGuiTableRowFlags[ImGuiTableRowFlags["None"] = 0] = "None";
+	    ImGuiTableRowFlags[ImGuiTableRowFlags["Headers"] = 1] = "Headers";
+	})(ImGuiTableRowFlags || (ImGuiTableRowFlags = {}));
+	var ImGuiTableBgTarget;
+	(function (ImGuiTableBgTarget) {
+	    ImGuiTableBgTarget[ImGuiTableBgTarget["None"] = 0] = "None";
+	    ImGuiTableBgTarget[ImGuiTableBgTarget["RowBg0"] = 1] = "RowBg0";
+	    ImGuiTableBgTarget[ImGuiTableBgTarget["RowBg1"] = 2] = "RowBg1";
+	    ImGuiTableBgTarget[ImGuiTableBgTarget["CellBg"] = 3] = "CellBg";
+	})(ImGuiTableBgTarget || (ImGuiTableBgTarget = {}));
+	var ImGuiFocusedFlags;
+	(function (ImGuiFocusedFlags) {
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["None"] = 0] = "None";
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["ChildWindows"] = 1] = "ChildWindows";
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["RootWindow"] = 2] = "RootWindow";
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["AnyWindow"] = 4] = "AnyWindow";
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["NoPopupHierarchy"] = 8] = "NoPopupHierarchy";
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["DockHierarchy"] = 16] = "DockHierarchy";
+	    ImGuiFocusedFlags[ImGuiFocusedFlags["RootAndChildWindows"] = 3] = "RootAndChildWindows";
+	})(ImGuiFocusedFlags || (ImGuiFocusedFlags = {}));
+	var ImGuiHoveredFlags;
+	(function (ImGuiHoveredFlags) {
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["None"] = 0] = "None";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["ChildWindows"] = 1] = "ChildWindows";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["RootWindow"] = 2] = "RootWindow";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["AnyWindow"] = 4] = "AnyWindow";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["AllowWhenBlockedByPopup"] = 8] = "AllowWhenBlockedByPopup";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["AllowWhenBlockedByActiveItem"] = 32] = "AllowWhenBlockedByActiveItem";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["AllowWhenBlockedByMouseFiredEvent"] = 64] = "AllowWhenBlockedByMouseFiredEvent";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["AllowWhenOverlappedByItem"] = 128] = "AllowWhenOverlappedByItem";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["AllowWhenOverlappedByWindow"] = 256] = "AllowWhenOverlappedByWindow";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["DontSkipStackLocals"] = 512] = "DontSkipStackLocals";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["NoSharedDelay"] = 1024] = "NoSharedDelay";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["RectOnly"] = 400] = "RectOnly";
+	    ImGuiHoveredFlags[ImGuiHoveredFlags["RootAndChildWindows"] = 3] = "RootAndChildWindows";
+	})(ImGuiHoveredFlags || (ImGuiHoveredFlags = {}));
+	var ImGuiDragDropFlags;
+	(function (ImGuiDragDropFlags) {
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["None"] = 0] = "None";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["SourceNoPreviewTooltip"] = 1] = "SourceNoPreviewTooltip";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["SourceNoDisableHover"] = 2] = "SourceNoDisableHover";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["SourceNoHoldToOpenOthers"] = 4] = "SourceNoHoldToOpenOthers";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["SourceAllowNullID"] = 8] = "SourceAllowNullID";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["SourceExtern"] = 16] = "SourceExtern";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["SourceAutoExpirePayload"] = 32] = "SourceAutoExpirePayload";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["AcceptBeforeDelivery"] = 1024] = "AcceptBeforeDelivery";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["AcceptNoDrawDefaultRect"] = 2048] = "AcceptNoDrawDefaultRect";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["AcceptNoPreviewTooltip"] = 4096] = "AcceptNoPreviewTooltip";
+	    ImGuiDragDropFlags[ImGuiDragDropFlags["AcceptPeekOnly"] = 8192] = "AcceptPeekOnly";
+	})(ImGuiDragDropFlags || (ImGuiDragDropFlags = {}));
+	var ImGuiDataType;
+	(function (ImGuiDataType) {
+	    ImGuiDataType[ImGuiDataType["S8"] = 0] = "S8";
+	    ImGuiDataType[ImGuiDataType["U8"] = 1] = "U8";
+	    ImGuiDataType[ImGuiDataType["S16"] = 2] = "S16";
+	    ImGuiDataType[ImGuiDataType["U16"] = 3] = "U16";
+	    ImGuiDataType[ImGuiDataType["S32"] = 4] = "S32";
+	    ImGuiDataType[ImGuiDataType["U32"] = 5] = "U32";
+	    ImGuiDataType[ImGuiDataType["S64"] = 6] = "S64";
+	    ImGuiDataType[ImGuiDataType["U64"] = 7] = "U64";
+	    ImGuiDataType[ImGuiDataType["Float"] = 8] = "Float";
+	    ImGuiDataType[ImGuiDataType["Double"] = 9] = "Double";
+	    ImGuiDataType[ImGuiDataType["COUNT"] = 10] = "COUNT";
+	})(ImGuiDataType || (ImGuiDataType = {}));
+	var ImGuiDir;
+	(function (ImGuiDir) {
+	    ImGuiDir[ImGuiDir["None"] = -1] = "None";
+	    ImGuiDir[ImGuiDir["Left"] = 0] = "Left";
+	    ImGuiDir[ImGuiDir["Right"] = 1] = "Right";
+	    ImGuiDir[ImGuiDir["Up"] = 2] = "Up";
+	    ImGuiDir[ImGuiDir["Down"] = 3] = "Down";
+	    ImGuiDir[ImGuiDir["COUNT"] = 4] = "COUNT";
+	})(ImGuiDir || (ImGuiDir = {}));
+	var ImGuiCornerFlags;
+	(function (ImGuiCornerFlags) {
+	    ImGuiCornerFlags[ImGuiCornerFlags["None"] = 0] = "None";
+	    ImGuiCornerFlags[ImGuiCornerFlags["TopLeft"] = 1] = "TopLeft";
+	    ImGuiCornerFlags[ImGuiCornerFlags["TopRight"] = 2] = "TopRight";
+	    ImGuiCornerFlags[ImGuiCornerFlags["BotLeft"] = 4] = "BotLeft";
+	    ImGuiCornerFlags[ImGuiCornerFlags["BotRight"] = 8] = "BotRight";
+	    ImGuiCornerFlags[ImGuiCornerFlags["Top"] = 3] = "Top";
+	    ImGuiCornerFlags[ImGuiCornerFlags["Bot"] = 12] = "Bot";
+	    ImGuiCornerFlags[ImGuiCornerFlags["Left"] = 5] = "Left";
+	    ImGuiCornerFlags[ImGuiCornerFlags["Right"] = 10] = "Right";
+	    ImGuiCornerFlags[ImGuiCornerFlags["All"] = 15] = "All";
+	})(ImGuiCornerFlags || (ImGuiCornerFlags = {}));
+	var ImGuiPrivateFlags;
+	(function (ImGuiPrivateFlags) {
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["WindowMask_"] = 16777215] = "WindowMask_";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["DockNodeHost"] = 1048576] = "DockNodeHost";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["DockNodeMergedWithParent"] = 2097152] = "DockNodeMergedWithParent";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["ChildCalcTest"] = 4194304] = "ChildCalcTest";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["ChildForceNewWindow"] = 8388608] = "ChildForceNewWindow";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoScrollbar"] = 16777216] = "NoScrollbar";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoScrollWithMouse"] = 33554432] = "NoScrollWithMouse";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoMouseInputs"] = 67108864] = "NoMouseInputs";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoNavInputs"] = 134217728] = "NoNavInputs";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoNavFocus"] = 268435456] = "NoNavFocus";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoNav"] = 402653184] = "NoNav";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["UnsavedDocument"] = 536870912] = "UnsavedDocument";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoDocking"] = 1073741824] = "NoDocking";
+	    ImGuiPrivateFlags[ImGuiPrivateFlags["NoAutoHighlighting"] = 2147483648] = "NoAutoHighlighting";
+	})(ImGuiPrivateFlags || (ImGuiPrivateFlags = {}));
+	var ImGuiCol;
+	(function (ImGuiCol) {
+	    ImGuiCol[ImGuiCol["Text"] = 0] = "Text";
+	    ImGuiCol[ImGuiCol["TextDisabled"] = 1] = "TextDisabled";
+	    ImGuiCol[ImGuiCol["WindowBg"] = 2] = "WindowBg";
+	    ImGuiCol[ImGuiCol["ChildBg"] = 3] = "ChildBg";
+	    ImGuiCol[ImGuiCol["PopupBg"] = 4] = "PopupBg";
+	    ImGuiCol[ImGuiCol["Border"] = 5] = "Border";
+	    ImGuiCol[ImGuiCol["BorderShadow"] = 6] = "BorderShadow";
+	    ImGuiCol[ImGuiCol["FrameBg"] = 7] = "FrameBg";
+	    ImGuiCol[ImGuiCol["FrameBgHovered"] = 8] = "FrameBgHovered";
+	    ImGuiCol[ImGuiCol["FrameBgActive"] = 9] = "FrameBgActive";
+	    ImGuiCol[ImGuiCol["TitleBg"] = 10] = "TitleBg";
+	    ImGuiCol[ImGuiCol["TitleBgActive"] = 11] = "TitleBgActive";
+	    ImGuiCol[ImGuiCol["TitleBgCollapsed"] = 12] = "TitleBgCollapsed";
+	    ImGuiCol[ImGuiCol["MenuBarBg"] = 13] = "MenuBarBg";
+	    ImGuiCol[ImGuiCol["ScrollbarBg"] = 14] = "ScrollbarBg";
+	    ImGuiCol[ImGuiCol["ScrollbarGrab"] = 15] = "ScrollbarGrab";
+	    ImGuiCol[ImGuiCol["ScrollbarGrabHovered"] = 16] = "ScrollbarGrabHovered";
+	    ImGuiCol[ImGuiCol["ScrollbarGrabActive"] = 17] = "ScrollbarGrabActive";
+	    ImGuiCol[ImGuiCol["CheckMark"] = 18] = "CheckMark";
+	    ImGuiCol[ImGuiCol["SliderGrab"] = 19] = "SliderGrab";
+	    ImGuiCol[ImGuiCol["SliderGrabActive"] = 20] = "SliderGrabActive";
+	    ImGuiCol[ImGuiCol["Button"] = 21] = "Button";
+	    ImGuiCol[ImGuiCol["ButtonHovered"] = 22] = "ButtonHovered";
+	    ImGuiCol[ImGuiCol["ButtonActive"] = 23] = "ButtonActive";
+	    ImGuiCol[ImGuiCol["Header"] = 24] = "Header";
+	    ImGuiCol[ImGuiCol["HeaderHovered"] = 25] = "HeaderHovered";
+	    ImGuiCol[ImGuiCol["HeaderActive"] = 26] = "HeaderActive";
+	    ImGuiCol[ImGuiCol["Separator"] = 27] = "Separator";
+	    ImGuiCol[ImGuiCol["SeparatorHovered"] = 28] = "SeparatorHovered";
+	    ImGuiCol[ImGuiCol["SeparatorActive"] = 29] = "SeparatorActive";
+	    ImGuiCol[ImGuiCol["ResizeGrip"] = 30] = "ResizeGrip";
+	    ImGuiCol[ImGuiCol["ResizeGripHovered"] = 31] = "ResizeGripHovered";
+	    ImGuiCol[ImGuiCol["ResizeGripActive"] = 32] = "ResizeGripActive";
+	    ImGuiCol[ImGuiCol["Tab"] = 33] = "Tab";
+	    ImGuiCol[ImGuiCol["TabHovered"] = 34] = "TabHovered";
+	    ImGuiCol[ImGuiCol["TabActive"] = 35] = "TabActive";
+	    ImGuiCol[ImGuiCol["TabUnfocused"] = 36] = "TabUnfocused";
+	    ImGuiCol[ImGuiCol["TabUnfocusedActive"] = 37] = "TabUnfocusedActive";
+	    ImGuiCol[ImGuiCol["DockingPreview"] = 38] = "DockingPreview";
+	    ImGuiCol[ImGuiCol["DockingEmptyBg"] = 39] = "DockingEmptyBg";
+	    ImGuiCol[ImGuiCol["PlotLines"] = 40] = "PlotLines";
+	    ImGuiCol[ImGuiCol["PlotLinesHovered"] = 41] = "PlotLinesHovered";
+	    ImGuiCol[ImGuiCol["PlotHistogram"] = 42] = "PlotHistogram";
+	    ImGuiCol[ImGuiCol["PlotHistogramHovered"] = 43] = "PlotHistogramHovered";
+	    ImGuiCol[ImGuiCol["TableHeaderBg"] = 44] = "TableHeaderBg";
+	    ImGuiCol[ImGuiCol["TableBorderStrong"] = 45] = "TableBorderStrong";
+	    ImGuiCol[ImGuiCol["TableBorderLight"] = 46] = "TableBorderLight";
+	    ImGuiCol[ImGuiCol["TableRowBg"] = 47] = "TableRowBg";
+	    ImGuiCol[ImGuiCol["TableRowBgAlt"] = 48] = "TableRowBgAlt";
+	    ImGuiCol[ImGuiCol["TextSelectedBg"] = 49] = "TextSelectedBg";
+	    ImGuiCol[ImGuiCol["DragDropTarget"] = 50] = "DragDropTarget";
+	    ImGuiCol[ImGuiCol["NavHighlight"] = 51] = "NavHighlight";
+	    ImGuiCol[ImGuiCol["NavWindowingHighlight"] = 52] = "NavWindowingHighlight";
+	    ImGuiCol[ImGuiCol["NavWindowingDimBg"] = 53] = "NavWindowingDimBg";
+	    ImGuiCol[ImGuiCol["ModalWindowDimBg"] = 54] = "ModalWindowDimBg";
+	    ImGuiCol[ImGuiCol["COUNT"] = 55] = "COUNT";
+	})(ImGuiCol || (ImGuiCol = {}));
+	var ImGuiStyleVar;
+	(function (ImGuiStyleVar) {
+	    ImGuiStyleVar[ImGuiStyleVar["Alpha"] = 0] = "Alpha";
+	    ImGuiStyleVar[ImGuiStyleVar["DisabledAlpha"] = 1] = "DisabledAlpha";
+	    ImGuiStyleVar[ImGuiStyleVar["WindowPadding"] = 2] = "WindowPadding";
+	    ImGuiStyleVar[ImGuiStyleVar["WindowRounding"] = 3] = "WindowRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["WindowBorderSize"] = 4] = "WindowBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["WindowMinSize"] = 5] = "WindowMinSize";
+	    ImGuiStyleVar[ImGuiStyleVar["WindowTitleAlign"] = 6] = "WindowTitleAlign";
+	    ImGuiStyleVar[ImGuiStyleVar["ChildRounding"] = 7] = "ChildRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["ChildBorderSize"] = 8] = "ChildBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["PopupRounding"] = 9] = "PopupRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["PopupBorderSize"] = 10] = "PopupBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["FramePadding"] = 11] = "FramePadding";
+	    ImGuiStyleVar[ImGuiStyleVar["FrameRounding"] = 12] = "FrameRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["FrameBorderSize"] = 13] = "FrameBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["ItemSpacing"] = 14] = "ItemSpacing";
+	    ImGuiStyleVar[ImGuiStyleVar["ItemInnerSpacing"] = 15] = "ItemInnerSpacing";
+	    ImGuiStyleVar[ImGuiStyleVar["IndentSpacing"] = 16] = "IndentSpacing";
+	    ImGuiStyleVar[ImGuiStyleVar["ScrollbarSize"] = 17] = "ScrollbarSize";
+	    ImGuiStyleVar[ImGuiStyleVar["ScrollbarRounding"] = 18] = "ScrollbarRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["GrabMinSize"] = 19] = "GrabMinSize";
+	    ImGuiStyleVar[ImGuiStyleVar["GrabRounding"] = 20] = "GrabRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["TabRounding"] = 21] = "TabRounding";
+	    ImGuiStyleVar[ImGuiStyleVar["TabBorderSize"] = 22] = "TabBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["TabBarBorderSize"] = 23] = "TabBarBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["ButtonTextAlign"] = 24] = "ButtonTextAlign";
+	    ImGuiStyleVar[ImGuiStyleVar["SelectableTextAlign"] = 25] = "SelectableTextAlign";
+	    ImGuiStyleVar[ImGuiStyleVar["SeparatorTextBorderSize"] = 26] = "SeparatorTextBorderSize";
+	    ImGuiStyleVar[ImGuiStyleVar["SeparatorTextAlign"] = 27] = "SeparatorTextAlign";
+	    ImGuiStyleVar[ImGuiStyleVar["SeparatorTextPadding"] = 28] = "SeparatorTextPadding";
+	    ImGuiStyleVar[ImGuiStyleVar["DockingSplitterSize"] = 29] = "DockingSplitterSize";
+	    ImGuiStyleVar[ImGuiStyleVar["TableAngledHeadersAngle"] = 30] = "TableAngledHeadersAngle";
+	    ImGuiStyleVar[ImGuiStyleVar["TableAngledHeadersTextAlign"] = 31] = "TableAngledHeadersTextAlign";
+	    ImGuiStyleVar[ImGuiStyleVar["COUNT"] = 32] = "COUNT";
+	})(ImGuiStyleVar || (ImGuiStyleVar = {}));
+	var ImGuiButtonFlags;
+	(function (ImGuiButtonFlags) {
+	    ImGuiButtonFlags[ImGuiButtonFlags["None"] = 0] = "None";
+	    ImGuiButtonFlags[ImGuiButtonFlags["MouseButtonLeft"] = 1] = "MouseButtonLeft";
+	    ImGuiButtonFlags[ImGuiButtonFlags["MouseButtonRight"] = 2] = "MouseButtonRight";
+	    ImGuiButtonFlags[ImGuiButtonFlags["MouseButtonMiddle"] = 4] = "MouseButtonMiddle";
+	    ImGuiButtonFlags[ImGuiButtonFlags["MouseButtonMask_"] = 7] = "MouseButtonMask_";
+	    ImGuiButtonFlags[ImGuiButtonFlags["MouseButtonDefault_"] = 1] = "MouseButtonDefault_";
+	})(ImGuiButtonFlags || (ImGuiButtonFlags = {}));
+	var ImGuiColorEditFlags;
+	(function (ImGuiColorEditFlags) {
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["None"] = 0] = "None";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoAlpha"] = 1] = "NoAlpha";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoPicker"] = 2] = "NoPicker";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoOptions"] = 4] = "NoOptions";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoSmallPreview"] = 8] = "NoSmallPreview";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoInputs"] = 16] = "NoInputs";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoTooltip"] = 32] = "NoTooltip";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoLabel"] = 64] = "NoLabel";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoSidePreview"] = 128] = "NoSidePreview";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoDragDrop"] = 256] = "NoDragDrop";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["NoBorder"] = 512] = "NoBorder";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["AlphaBar"] = 1024] = "AlphaBar";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["AlphaPreview"] = 2048] = "AlphaPreview";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["AlphaPreviewHalf"] = 4096] = "AlphaPreviewHalf";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["HDR"] = 8192] = "HDR";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["DisplayRGB"] = 16384] = "DisplayRGB";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["DisplayHSV"] = 32768] = "DisplayHSV";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["DisplayHEX"] = 65536] = "DisplayHEX";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["Uint8"] = 131072] = "Uint8";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["Float"] = 262144] = "Float";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["PickerHueBar"] = 524288] = "PickerHueBar";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["PickerHueWheel"] = 1048576] = "PickerHueWheel";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["InputRGB"] = 2097152] = "InputRGB";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["InputHSV"] = 4194304] = "InputHSV";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["DefaultOptions_"] = 1772096] = "DefaultOptions_";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["DisplayMask_"] = 114688] = "DisplayMask_";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["DataTypeMask_"] = 393216] = "DataTypeMask_";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["PickerMask_"] = 1572864] = "PickerMask_";
+	    ImGuiColorEditFlags[ImGuiColorEditFlags["InputMask_"] = 6291456] = "InputMask_";
+	})(ImGuiColorEditFlags || (ImGuiColorEditFlags = {}));
+	var ImGuiSliderFlags;
+	(function (ImGuiSliderFlags) {
+	    ImGuiSliderFlags[ImGuiSliderFlags["None"] = 0] = "None";
+	    ImGuiSliderFlags[ImGuiSliderFlags["AlwaysClamp"] = 16] = "AlwaysClamp";
+	    ImGuiSliderFlags[ImGuiSliderFlags["Logarithmic"] = 32] = "Logarithmic";
+	    ImGuiSliderFlags[ImGuiSliderFlags["NoRoundToFormat"] = 64] = "NoRoundToFormat";
+	    ImGuiSliderFlags[ImGuiSliderFlags["NoInput"] = 128] = "NoInput";
+	    ImGuiSliderFlags[ImGuiSliderFlags["InvalidMask_"] = 192] = "InvalidMask_";
+	})(ImGuiSliderFlags || (ImGuiSliderFlags = {}));
+	var ImGuiConfigFlags;
+	(function (ImGuiConfigFlags) {
+	    ImGuiConfigFlags[ImGuiConfigFlags["None"] = 0] = "None";
+	    ImGuiConfigFlags[ImGuiConfigFlags["NavEnableKeyboard"] = 1] = "NavEnableKeyboard";
+	    ImGuiConfigFlags[ImGuiConfigFlags["NavEnableGamepad"] = 2] = "NavEnableGamepad";
+	    ImGuiConfigFlags[ImGuiConfigFlags["NavEnableSetMousePos"] = 4] = "NavEnableSetMousePos";
+	    ImGuiConfigFlags[ImGuiConfigFlags["NavNoCaptureKeyboard"] = 8] = "NavNoCaptureKeyboard";
+	    ImGuiConfigFlags[ImGuiConfigFlags["NoMouse"] = 16] = "NoMouse";
+	    ImGuiConfigFlags[ImGuiConfigFlags["NoMouseCursorChange"] = 32] = "NoMouseCursorChange";
+	    ImGuiConfigFlags[ImGuiConfigFlags["DockingEnable"] = 64] = "DockingEnable";
+	    ImGuiConfigFlags[ImGuiConfigFlags["ViewportEnable"] = 128] = "ViewportEnable";
+	    ImGuiConfigFlags[ImGuiConfigFlags["IsSRGB"] = 256] = "IsSRGB";
+	    ImGuiConfigFlags[ImGuiConfigFlags["IsTouchScreen"] = 512] = "IsTouchScreen";
+	})(ImGuiConfigFlags || (ImGuiConfigFlags = {}));
+	var ImGuiBackendFlags;
+	(function (ImGuiBackendFlags) {
+	    ImGuiBackendFlags[ImGuiBackendFlags["None"] = 0] = "None";
+	    ImGuiBackendFlags[ImGuiBackendFlags["HasGamepad"] = 1] = "HasGamepad";
+	    ImGuiBackendFlags[ImGuiBackendFlags["HasMouseCursors"] = 2] = "HasMouseCursors";
+	    ImGuiBackendFlags[ImGuiBackendFlags["HasSetMousePos"] = 4] = "HasSetMousePos";
+	    ImGuiBackendFlags[ImGuiBackendFlags["RendererHasVtxOffset"] = 8] = "RendererHasVtxOffset";
+	    ImGuiBackendFlags[ImGuiBackendFlags["PlatformHasViewports"] = 1024] = "PlatformHasViewports";
+	    ImGuiBackendFlags[ImGuiBackendFlags["HasMouseHoveredViewport"] = 2048] = "HasMouseHoveredViewport";
+	    ImGuiBackendFlags[ImGuiBackendFlags["RendererHasViewports"] = 4096] = "RendererHasViewports";
+	})(ImGuiBackendFlags || (ImGuiBackendFlags = {}));
+	var ImGuiKey;
+	(function (ImGuiKey) {
+	    ImGuiKey[ImGuiKey["None"] = 0] = "None";
+	    ImGuiKey[ImGuiKey["Tab"] = 512] = "Tab";
+	    ImGuiKey[ImGuiKey["LeftArrow"] = 513] = "LeftArrow";
+	    ImGuiKey[ImGuiKey["RightArrow"] = 514] = "RightArrow";
+	    ImGuiKey[ImGuiKey["UpArrow"] = 515] = "UpArrow";
+	    ImGuiKey[ImGuiKey["DownArrow"] = 516] = "DownArrow";
+	    ImGuiKey[ImGuiKey["PageUp"] = 517] = "PageUp";
+	    ImGuiKey[ImGuiKey["PageDown"] = 518] = "PageDown";
+	    ImGuiKey[ImGuiKey["Home"] = 519] = "Home";
+	    ImGuiKey[ImGuiKey["End"] = 520] = "End";
+	    ImGuiKey[ImGuiKey["Insert"] = 521] = "Insert";
+	    ImGuiKey[ImGuiKey["Delete"] = 522] = "Delete";
+	    ImGuiKey[ImGuiKey["Backspace"] = 523] = "Backspace";
+	    ImGuiKey[ImGuiKey["Space"] = 524] = "Space";
+	    ImGuiKey[ImGuiKey["Enter"] = 525] = "Enter";
+	    ImGuiKey[ImGuiKey["Escape"] = 526] = "Escape";
+	    ImGuiKey[ImGuiKey["SemiColon"] = 527] = "SemiColon";
+	    ImGuiKey[ImGuiKey["Equal"] = 528] = "Equal";
+	    ImGuiKey[ImGuiKey["Comma"] = 529] = "Comma";
+	    ImGuiKey[ImGuiKey["Minus"] = 530] = "Minus";
+	    ImGuiKey[ImGuiKey["Period"] = 531] = "Period";
+	    ImGuiKey[ImGuiKey["Slash"] = 532] = "Slash";
+	    ImGuiKey[ImGuiKey["GraveAccent"] = 533] = "GraveAccent";
+	    ImGuiKey[ImGuiKey["LeftBracket"] = 534] = "LeftBracket";
+	    ImGuiKey[ImGuiKey["Backslash"] = 535] = "Backslash";
+	    ImGuiKey[ImGuiKey["RightBracket"] = 536] = "RightBracket";
+	    ImGuiKey[ImGuiKey["Apostrophe"] = 537] = "Apostrophe";
+	    ImGuiKey[ImGuiKey["F1"] = 538] = "F1";
+	    ImGuiKey[ImGuiKey["F2"] = 539] = "F2";
+	    ImGuiKey[ImGuiKey["F3"] = 540] = "F3";
+	    ImGuiKey[ImGuiKey["F4"] = 541] = "F4";
+	    ImGuiKey[ImGuiKey["F5"] = 542] = "F5";
+	    ImGuiKey[ImGuiKey["F6"] = 543] = "F6";
+	    ImGuiKey[ImGuiKey["F7"] = 544] = "F7";
+	    ImGuiKey[ImGuiKey["F8"] = 545] = "F8";
+	    ImGuiKey[ImGuiKey["F9"] = 546] = "F9";
+	    ImGuiKey[ImGuiKey["F10"] = 547] = "F10";
+	    ImGuiKey[ImGuiKey["F11"] = 548] = "F11";
+	    ImGuiKey[ImGuiKey["F12"] = 549] = "F12";
+	    ImGuiKey[ImGuiKey["F13"] = 550] = "F13";
+	    ImGuiKey[ImGuiKey["F14"] = 551] = "F14";
+	    ImGuiKey[ImGuiKey["F15"] = 552] = "F15";
+	    ImGuiKey[ImGuiKey["F16"] = 553] = "F16";
+	    ImGuiKey[ImGuiKey["F17"] = 554] = "F17";
+	    ImGuiKey[ImGuiKey["F18"] = 555] = "F18";
+	    ImGuiKey[ImGuiKey["F19"] = 556] = "F19";
+	    ImGuiKey[ImGuiKey["F20"] = 557] = "F20";
+	    ImGuiKey[ImGuiKey["F21"] = 558] = "F21";
+	    ImGuiKey[ImGuiKey["F22"] = 559] = "F22";
+	    ImGuiKey[ImGuiKey["F23"] = 560] = "F23";
+	    ImGuiKey[ImGuiKey["F24"] = 561] = "F24";
+	    ImGuiKey[ImGuiKey["AppMenu"] = 562] = "AppMenu";
+	    ImGuiKey[ImGuiKey["PadA"] = 563] = "PadA";
+	    ImGuiKey[ImGuiKey["PadB"] = 564] = "PadB";
+	    ImGuiKey[ImGuiKey["PadX"] = 565] = "PadX";
+	    ImGuiKey[ImGuiKey["PadY"] = 566] = "PadY";
+	    ImGuiKey[ImGuiKey["PadL1"] = 567] = "PadL1";
+	    ImGuiKey[ImGuiKey["PadR1"] = 568] = "PadR1";
+	    ImGuiKey[ImGuiKey["PadL2"] = 569] = "PadL2";
+	    ImGuiKey[ImGuiKey["PadR2"] = 570] = "PadR2";
+	    ImGuiKey[ImGuiKey["PadL3"] = 571] = "PadL3";
+	    ImGuiKey[ImGuiKey["PadR3"] = 572] = "PadR3";
+	    ImGuiKey[ImGuiKey["PadStart"] = 573] = "PadStart";
+	    ImGuiKey[ImGuiKey["PadBack"] = 574] = "PadBack";
+	    ImGuiKey[ImGuiKey["PadDPadUp"] = 575] = "PadDPadUp";
+	    ImGuiKey[ImGuiKey["PadDPadDown"] = 576] = "PadDPadDown";
+	    ImGuiKey[ImGuiKey["PadDPadLeft"] = 577] = "PadDPadLeft";
+	    ImGuiKey[ImGuiKey["PadDPadRight"] = 578] = "PadDPadRight";
+	    ImGuiKey[ImGuiKey["PadLStickX"] = 579] = "PadLStickX";
+	    ImGuiKey[ImGuiKey["PadLStickY"] = 580] = "PadLStickY";
+	    ImGuiKey[ImGuiKey["PadRStickX"] = 581] = "PadRStickX";
+	    ImGuiKey[ImGuiKey["PadRStickY"] = 582] = "PadRStickY";
+	    ImGuiKey[ImGuiKey["MouseLeft"] = 583] = "MouseLeft";
+	    ImGuiKey[ImGuiKey["MouseRight"] = 584] = "MouseRight";
+	    ImGuiKey[ImGuiKey["MouseMiddle"] = 585] = "MouseMiddle";
+	    ImGuiKey[ImGuiKey["MouseX1"] = 586] = "MouseX1";
+	    ImGuiKey[ImGuiKey["MouseX2"] = 587] = "MouseX2";
+	    ImGuiKey[ImGuiKey["MouseWheelX"] = 588] = "MouseWheelX";
+	    ImGuiKey[ImGuiKey["MouseWheelY"] = 589] = "MouseWheelY";
+	    ImGuiKey[ImGuiKey["ReservedForModAlt"] = 590] = "ReservedForModAlt";
+	    ImGuiKey[ImGuiKey["ReservedForModCtrl"] = 591] = "ReservedForModCtrl";
+	    ImGuiKey[ImGuiKey["ReservedForModShift"] = 592] = "ReservedForModShift";
+	    ImGuiKey[ImGuiKey["ReservedForModSuper"] = 593] = "ReservedForModSuper";
+	    ImGuiKey[ImGuiKey["Keyboard_BEGIN"] = 512] = "Keyboard_BEGIN";
+	    ImGuiKey[ImGuiKey["Keyboard_END"] = 593] = "Keyboard_END";
+	    ImGuiKey[ImGuiKey["ModAlt"] = 590] = "ModAlt";
+	    ImGuiKey[ImGuiKey["ModCtrl"] = 591] = "ModCtrl";
+	    ImGuiKey[ImGuiKey["ModShift"] = 592] = "ModShift";
+	    ImGuiKey[ImGuiKey["ModSuper"] = 593] = "ModSuper";
+	    ImGuiKey[ImGuiKey["COUNT"] = 594] = "COUNT";
+	    ImGuiKey[ImGuiKey["NamedKey_BEGIN"] = 512] = "NamedKey_BEGIN";
+	    ImGuiKey[ImGuiKey["NamedKey_END"] = 594] = "NamedKey_END";
+	    ImGuiKey[ImGuiKey["NamedKey_COUNT"] = 82] = "NamedKey_COUNT";
+	    ImGuiKey[ImGuiKey["KeysData_SIZE"] = 594] = "KeysData_SIZE";
+	})(ImGuiKey || (ImGuiKey = {}));
+	var ImGuiModFlags;
+	(function (ImGuiModFlags) {
+	    ImGuiModFlags[ImGuiModFlags["None"] = 0] = "None";
+	    ImGuiModFlags[ImGuiModFlags["Ctrl"] = 1] = "Ctrl";
+	    ImGuiModFlags[ImGuiModFlags["Shift"] = 2] = "Shift";
+	    ImGuiModFlags[ImGuiModFlags["Alt"] = 4] = "Alt";
+	    ImGuiModFlags[ImGuiModFlags["Super"] = 8] = "Super";
+	})(ImGuiModFlags || (ImGuiModFlags = {}));
+	var ImGuiHoverFlags = ImGuiHoveredFlags;
+	var ImGuiTableBgTarget_None = ImGuiTableBgTarget.None;
+	var ImGuiTableBgTarget_RowBg0 = ImGuiTableBgTarget.RowBg0;
+	var ImGuiTableBgTarget_RowBg1 = ImGuiTableBgTarget.RowBg1;
+	var ImGuiTableBgTarget_CellBg = ImGuiTableBgTarget.CellBg;
+	var ImDrawFlags;
+	(function (ImDrawFlags) {
+	    ImDrawFlags[ImDrawFlags["None"] = 0] = "None";
+	    ImDrawFlags[ImDrawFlags["Closed"] = 1] = "Closed";
+	    ImDrawFlags[ImDrawFlags["RoundCornersTopLeft"] = 16] = "RoundCornersTopLeft";
+	    ImDrawFlags[ImDrawFlags["RoundCornersTopRight"] = 32] = "RoundCornersTopRight";
+	    ImDrawFlags[ImDrawFlags["RoundCornersBottomLeft"] = 64] = "RoundCornersBottomLeft";
+	    ImDrawFlags[ImDrawFlags["RoundCornersBottomRight"] = 128] = "RoundCornersBottomRight";
+	    ImDrawFlags[ImDrawFlags["RoundCornersNone"] = 256] = "RoundCornersNone";
+	    ImDrawFlags[ImDrawFlags["RoundCornersTop"] = 48] = "RoundCornersTop";
+	    ImDrawFlags[ImDrawFlags["RoundCornersBottom"] = 192] = "RoundCornersBottom";
+	    ImDrawFlags[ImDrawFlags["RoundCornersLeft"] = 80] = "RoundCornersLeft";
+	    ImDrawFlags[ImDrawFlags["RoundCornersRight"] = 160] = "RoundCornersRight";
+	    ImDrawFlags[ImDrawFlags["RoundCornersAll"] = 240] = "RoundCornersAll";
+	    ImDrawFlags[ImDrawFlags["RoundCornersDefault_"] = 240] = "RoundCornersDefault_";
+	    ImDrawFlags[ImDrawFlags["NoAntiAliasedLines"] = 512] = "NoAntiAliasedLines";
+	    ImDrawFlags[ImDrawFlags["NoAntiAliasedFill"] = 1024] = "NoAntiAliasedFill";
+	    ImDrawFlags[ImDrawFlags["RecalculateClipRect"] = 2048] = "RecalculateClipRect";
+	})(ImDrawFlags || (ImDrawFlags = {}));
+	var ImDrawListFlags;
+	(function (ImDrawListFlags) {
+	    ImDrawListFlags[ImDrawListFlags["None"] = 0] = "None";
+	    ImDrawListFlags[ImDrawListFlags["AntiAliasedLines"] = 1] = "AntiAliasedLines";
+	    ImDrawListFlags[ImDrawListFlags["AntiAliasedFill"] = 2] = "AntiAliasedFill";
+	    ImDrawListFlags[ImDrawListFlags["AllowVtxOffset"] = 4] = "AllowVtxOffset";
+	})(ImDrawListFlags || (ImDrawListFlags = {}));
+	var ImFontAtlasFlags;
+	(function (ImFontAtlasFlags) {
+	    ImFontAtlasFlags[ImFontAtlasFlags["None"] = 0] = "None";
+	    ImFontAtlasFlags[ImFontAtlasFlags["NoPowerOfTwoHeight"] = 1] = "NoPowerOfTwoHeight";
+	    ImFontAtlasFlags[ImFontAtlasFlags["NoMouseCursors"] = 2] = "NoMouseCursors";
+	    ImFontAtlasFlags[ImFontAtlasFlags["NoBakedLines"] = 4] = "NoBakedLines";
+	    ImFontAtlasFlags[ImFontAtlasFlags["NoCustomRects"] = 8] = "NoCustomRects";
+	    ImFontAtlasFlags[ImFontAtlasFlags["NoMultiplyBakedTex"] = 16] = "NoMultiplyBakedTex";
+	})(ImFontAtlasFlags || (ImFontAtlasFlags = {}));
+	var ImGuiViewportFlags;
+	(function (ImGuiViewportFlags) {
+	    ImGuiViewportFlags[ImGuiViewportFlags["None"] = 0] = "None";
+	    ImGuiViewportFlags[ImGuiViewportFlags["IsPlatformWindow"] = 1] = "IsPlatformWindow";
+	    ImGuiViewportFlags[ImGuiViewportFlags["IsPlatformMonitor"] = 2] = "IsPlatformMonitor";
+	    ImGuiViewportFlags[ImGuiViewportFlags["OwnedByApp"] = 4] = "OwnedByApp";
+	    ImGuiViewportFlags[ImGuiViewportFlags["NoDecoration"] = 8] = "NoDecoration";
+	    ImGuiViewportFlags[ImGuiViewportFlags["NoTaskBarIcon"] = 16] = "NoTaskBarIcon";
+	    ImGuiViewportFlags[ImGuiViewportFlags["NoFocusOnAppearing"] = 32] = "NoFocusOnAppearing";
+	    ImGuiViewportFlags[ImGuiViewportFlags["NoThrottling"] = 64] = "NoThrottling";
+	    ImGuiViewportFlags[ImGuiViewportFlags["NoBgRenderer"] = 128] = "NoBgRenderer";
+	    ImGuiViewportFlags[ImGuiViewportFlags["TopMost"] = 256] = "TopMost";
+	    ImGuiViewportFlags[ImGuiViewportFlags["Minimized"] = 512] = "Minimized";
+	    ImGuiViewportFlags[ImGuiViewportFlags["NoAutoMerge"] = 1024] = "NoAutoMerge";
+	    ImGuiViewportFlags[ImGuiViewportFlags["CanHostOtherWindows"] = 2048] = "CanHostOtherWindows";
+	})(ImGuiViewportFlags || (ImGuiViewportFlags = {}));
+	var ImGuiBackendPlatformEvents;
+	(function (ImGuiBackendPlatformEvents) {
+	    ImGuiBackendPlatformEvents[ImGuiBackendPlatformEvents["None"] = 0] = "None";
+	    ImGuiBackendPlatformEvents[ImGuiBackendPlatformEvents["MouseHardwareWheel"] = 1] = "MouseHardwareWheel";
+	    ImGuiBackendPlatformEvents[ImGuiBackendPlatformEvents["WindowFocus"] = 2] = "WindowFocus";
+	})(ImGuiBackendPlatformEvents || (ImGuiBackendPlatformEvents = {}));
+	var ImGuiMouseSource;
+	(function (ImGuiMouseSource) {
+	    ImGuiMouseSource[ImGuiMouseSource["None"] = 0] = "None";
+	    ImGuiMouseSource[ImGuiMouseSource["Mouse"] = 1] = "Mouse";
+	    ImGuiMouseSource[ImGuiMouseSource["TouchScreen"] = 2] = "TouchScreen";
+	    ImGuiMouseSource[ImGuiMouseSource["Pen"] = 3] = "Pen";
+	})(ImGuiMouseSource || (ImGuiMouseSource = {}));
+	var ImGuiInputEventType;
+	(function (ImGuiInputEventType) {
+	    ImGuiInputEventType[ImGuiInputEventType["None"] = 0] = "None";
+	    ImGuiInputEventType[ImGuiInputEventType["MousePos"] = 1] = "MousePos";
+	    ImGuiInputEventType[ImGuiInputEventType["MouseWheel"] = 2] = "MouseWheel";
+	    ImGuiInputEventType[ImGuiInputEventType["MouseButton"] = 3] = "MouseButton";
+	    ImGuiInputEventType[ImGuiInputEventType["Key"] = 4] = "Key";
+	    ImGuiInputEventType[ImGuiInputEventType["Text"] = 5] = "Text";
+	    ImGuiInputEventType[ImGuiInputEventType["Focus"] = 6] = "Focus";
+	    ImGuiInputEventType[ImGuiInputEventType["COUNT"] = 7] = "COUNT";
+	})(ImGuiInputEventType || (ImGuiInputEventType = {}));
+	var ImGuiInputSource;
+	(function (ImGuiInputSource) {
+	    ImGuiInputSource[ImGuiInputSource["None"] = 0] = "None";
+	    ImGuiInputSource[ImGuiInputSource["Mouse"] = 1] = "Mouse";
+	    ImGuiInputSource[ImGuiInputSource["Keyboard"] = 2] = "Keyboard";
+	    ImGuiInputSource[ImGuiInputSource["Gamepad"] = 3] = "Gamepad";
+	    ImGuiInputSource[ImGuiInputSource["Clipboard"] = 4] = "Clipboard";
+	    ImGuiInputSource[ImGuiInputSource["Nav"] = 5] = "Nav";
+	    ImGuiInputSource[ImGuiInputSource["COUNT"] = 6] = "COUNT";
+	})(ImGuiInputSource || (ImGuiInputSource = {}));
+	var ImGuiInputTextMultilineData = /** @class */ (function () {
+	    function ImGuiInputTextMultilineData() {
+	        this.Buf = null;
+	        this.BufLen = 0;
+	        this.BufSize = 0;
+	        this.Flags = 0;
+	        this.CursorPos = 0;
+	        this.SelectionStart = 0;
+	        this.SelectionEnd = 0;
+	        this.ScrollX = 0;
+	        this.ScrollY = 0;
+	        this.ClearActive = false;
+	        this.StbUndoState = null;
+	        this.StbUndoBuffer = null;
+	    }
+	    return ImGuiInputTextMultilineData;
+	}());
+	function ImHashDecoratedID(str_id, str_id_end, str_id_begin) {
+	    return ImHashStr(str_id, str_id_end, ImHashStr(str_id_begin, str_id_begin + 2 /* IM_OFFSETOF(ImGuiInputTextState, ID) */));
+	}
+	var ImVec2 = /** @class */ (function () {
+	    function ImVec2(x, y) {
+	        if (x === void 0) { x = 0.0; }
+	        if (y === void 0) { y = 0.0; }
+	        this.x = x;
+	        this.y = y;
+	    }
+	    Object.defineProperty(ImVec2.prototype, "length", {
+	        get: function () { return Math.sqrt(this.x * this.x + this.y * this.y); },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImVec2.prototype, "lengthSqr", {
+	        get: function () { return this.x * this.x + this.y * this.y; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    ImVec2.prototype.isZero = function () { return this.x === 0.0 && this.y === 0.0; };
+	    ImVec2.prototype.add = function (rhs) { return new ImVec2(this.x + rhs.x, this.y + rhs.y); };
+	    ImVec2.prototype.sub = function (rhs) { return new ImVec2(this.x - rhs.x, this.y - rhs.y); };
+	    ImVec2.prototype.mul = function (rhs) {
+	        if (typeof rhs === "number") {
+	            return new ImVec2(this.x * rhs, this.y * rhs);
+	        }
+	        return new ImVec2(this.x * rhs.x, this.y * rhs.y);
+	    };
+	    ImVec2.prototype.div = function (rhs) {
+	        if (typeof rhs === "number") {
+	            return new ImVec2(this.x / rhs, this.y / rhs);
+	        }
+	        return new ImVec2(this.x / rhs.x, this.y / rhs.y);
+	    };
+	    ImVec2.prototype.isEqual = function (rhs) { return this.x === rhs.x && this.y === rhs.y; };
+	    ImVec2.prototype.isNotEqual = function (rhs) { return this.x !== rhs.x || this.y !== rhs.y; };
+	    ImVec2.prototype.dot = function (rhs) { return this.x * rhs.x + this.y * rhs.y; };
+	    ImVec2.prototype.distance = function (rhs) { return this.sub(rhs).length; };
+	    ImVec2.prototype.distanceSqr = function (rhs) { return this.sub(rhs).lengthSqr; };
+	    ImVec2.prototype.normalize = function () {
+	        var len = this.length;
+	        if (len > 0) {
+	            this.x /= len;
+	            this.y /= len;
+	        }
+	        return this;
+	    };
+	    ImVec2.prototype.floor = function () { return new ImVec2(Math.floor(this.x), Math.floor(this.y)); };
+	    ImVec2.prototype.ceil = function () { return new ImVec2(Math.ceil(this.x), Math.ceil(this.y)); };
+	    ImVec2.prototype.min = function (rhs) { return new ImVec2(Math.min(this.x, rhs.x), Math.min(this.y, rhs.y)); };
+	    ImVec2.prototype.max = function (rhs) { return new ImVec2(Math.max(this.x, rhs.x), Math.max(this.y, rhs.y)); };
+	    ImVec2.prototype.clamp = function (min, max) { return new ImVec2(IM_CLAMP(this.x, min.x, max.x), IM_CLAMP(this.y, min.y, max.y)); };
+	    ImVec2.prototype.saturate = function () { return new ImVec2(IM_SATURATE(this.x), IM_SATURATE(this.y)); };
+	    ImVec2.prototype.scale = function (f) { return new ImVec2(this.x * f, this.y * f); };
+	    ImVec2.prototype.toArray = function () { return [this.x, this.y]; };
+	    ImVec2.prototype.set = function (x, y) {
+	        this.x = x;
+	        this.y = y;
+	    };
+	    ImVec2.prototype.clone = function () { return new ImVec2(this.x, this.y); };
+	    return ImVec2;
+	}());
+	var ImVec4 = /** @class */ (function () {
+	    function ImVec4(x, y, z, w) {
+	        if (x === void 0) { x = 0.0; }
+	        if (y === void 0) { y = 0.0; }
+	        if (z === void 0) { z = 0.0; }
+	        if (w === void 0) { w = 0.0; }
+	        this.x = x;
+	        this.y = y;
+	        this.z = z;
+	        this.w = w;
+	    }
+	    ImVec4.prototype.isEqual = function (rhs) { return this.x === rhs.x && this.y === rhs.y && this.z === rhs.z && this.w === rhs.w; };
+	    ImVec4.prototype.isNotEqual = function (rhs) { return this.x !== rhs.x || this.y !== rhs.y || this.z !== rhs.z || this.w !== rhs.w; };
+	    ImVec4.prototype.mul = function (s) { return new ImVec4(this.x * s, this.y * s, this.z * s, this.w * s); };
+	    ImVec4.prototype.add = function (rhs) { return new ImVec4(this.x + rhs.x, this.y + rhs.y, this.z + rhs.z, this.w + rhs.w); };
+	    ImVec4.prototype.set = function (x, y, z, w) {
+	        this.x = x;
+	        this.y = y;
+	        this.z = z;
+	        this.w = w;
+	    };
+	    ImVec4.prototype.clone = function () { return new ImVec4(this.x, this.y, this.z, this.w); };
+	    return ImVec4;
+	}());
+	var ImRect = /** @class */ (function () {
+	    function ImRect(x, y, x2, y2) {
+	        if (x === void 0) { x = 0.0; }
+	        if (y === void 0) { y = 0.0; }
+	        if (x2 === void 0) { x2 = 0.0; }
+	        if (y2 === void 0) { y2 = 0.0; }
+	        if (x instanceof ImVec2) {
+	            var a = x;
+	            var b = y;
+	            this.Min = a.clone();
+	            this.Max = b.clone();
+	        }
+	        else {
+	            this.Min = new ImVec2(x, y);
+	            this.Max = new ImVec2(x2, y2);
+	        }
+	    }
+	    ImRect.prototype.isEqual = function (rhs) { return this.Min.isEqual(rhs.Min) && this.Max.isEqual(rhs.Max); };
+	    ImRect.prototype.isNotEqual = function (rhs) { return this.Min.isNotEqual(rhs.Min) || this.Max.isNotEqual(rhs.Max); };
+	    Object.defineProperty(ImRect.prototype, "MinX", {
+	        get: function () { return this.Min.x; },
+	        set: function (value) { this.Min.x = value; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "MinY", {
+	        get: function () { return this.Min.y; },
+	        set: function (value) { this.Min.y = value; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "MaxX", {
+	        get: function () { return this.Max.x; },
+	        set: function (value) { this.Max.x = value; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "MaxY", {
+	        get: function () { return this.Max.y; },
+	        set: function (value) { this.Max.y = value; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "Width", {
+	        get: function () { return this.Max.x - this.Min.x; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "Height", {
+	        get: function () { return this.Max.y - this.Min.y; },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "Size", {
+	        get: function () { return new ImVec2(this.Max.x - this.Min.x, this.Max.y - this.Min.y); },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    Object.defineProperty(ImRect.prototype, "Center", {
+	        get: function () { return new ImVec2((this.Min.x + this.Max.x) * 0.5, (this.Min.y + this.Max.y) * 0.5); },
+	        enumerable: false,
+	        configurable: true
+	    });
+	    ImRect.prototype.GetTL = function () { return this.Min; };
+	    ImRect.prototype.GetTR = function () { return new ImVec2(this.Max.x, this.Min.y); };
+	    ImRect.prototype.GetBL = function () { return new ImVec2(this.Min.x, this.Max.y); };
+	    ImRect.prototype.GetBR = function () { return this.Max; };
+	    ImRect.prototype.Contains = function (p) {
+	        if (p instanceof ImVec2) {
+	            return p.x >= this.Min.x && p.y >= this.Min.y && p.x < this.Max.x && p.y < this.Max.y;
+	        }
+	        if (p instanceof ImRect) {
+	            return p.Min.x >= this.Min.x && p.Min.y >= this.Min.y && p.Max.x <= this.Max.x && p.Max.y <= this.Max.y;
+	        }
+	        return false;
+	    };
+	    ImRect.prototype.Overlaps = function (rhs) {
+	        return rhs.Min.y < this.Max.y && rhs.Max.y > this.Min.y && rhs.Min.x < this.Max.x && rhs.Max.x > this.Min.x;
+	    };
+	    ImRect.prototype.Add = function (p) {
+	        if (p instanceof ImVec2) {
+	            this.Min.x = Math.min(this.Min.x, p.x);
+	            this.Min.y = Math.min(this.Min.y, p.y);
+	            this.Max.x = Math.max(this.Max.x, p.x);
+	            this.Max.y = Math.max(this.Max.y, p.y);
+	        }
+	        else if (p instanceof ImRect) {
+	            this.Min.x = Math.min(this.Min.x, p.Min.x);
+	            this.Min.y = Math.min(this.Min.y, p.Min.y);
+	            this.Max.x = Math.max(this.Max.x, p.Max.x);
+	            this.Max.y = Math.max(this.Max.y, p.Max.y);
+	        }
+	    };
+	    ImRect.prototype.Expand = function (amount) {
+	        if (typeof amount === "number") {
+	            this.Min.x -= amount;
+	            this.Min.y -= amount;
+	            this.Max.x += amount;
+	            this.Max.y += amount;
+	        }
+	        else {
+	            this.Min.x -= amount.x;
+	            this.Min.y -= amount.y;
+	            this.Max.x += amount.x;
+	            this.Max.y += amount.y;
+	        }
+	    };
+	    ImRect.prototype.Translate = function (v) {
+	        this.Min.x += v.x;
+	        this.Min.y += v.y;
+	        this.Max.x += v.x;
+	        this.Max.y += v.y;
+	    };
+	    ImRect.prototype.TranslateX = function (dx) {
+	        this.Min.x += dx;
+	        this.Max.x += dx;
+	    };
+	    ImRect.prototype.TranslateY = function (dy) {
+	        this.Min.y += dy;
+	        this.Max.y += dy;
+	    };
+	    ImRect.prototype.ClipWith = function (r) {
+	        this.Min.x = Math.max(this.Min.x, r.Min.x);
+	        this.Min.y = Math.max(this.Min.y, r.Min.y);
+	        this.Max.x = Math.min(this.Max.x, r.Max.x);
+	        this.Max.y = Math.min(this.Max.y, r.Max.y);
+	    };
+	    ImRect.prototype.Floor = function () {
+	        this.Min.x = Math.floor(this.Min.x);
+	        this.Min.y = Math.floor(this.Min.y);
+	        this.Max.x = Math.floor(this.Max.x);
+	        this.Max.y = Math.floor(this.Max.y);
+	    };
+	    ImRect.prototype.IsInverted = function () {
+	        return this.Min.x > this.Max.x || this.Min.y > this.Max.y;
+	    };
+	    ImRect.prototype.To );
+	var ImGuiIO = /** @class */ (function () {
+	    function ImGuiIO() {
+	        this.ConfigFlags = ImGuiConfigFlags.None;
+	        this.BackendFlags = ImGuiBackendFlags.None;
+	        this.DisplaySize = new ImVec2(0.0, 0.0);
+	        this.DeltaTime = 1.0 / 60.0;
+	        this.IniSavingRate = 5.0;
+	        this.IniFilename = "imgui.ini";
+	        this.LogFilename = "imgui_log.txt";
+	        this.MouseDoubleClickTime = 0.30;
+	        this.MouseDoubleClickMaxDist = 6.0;
+	        this.MouseDragThreshold = 6.0;
+	        this.KeyRepeatDelay = 0.275;
+	        this.KeyRepeatRate = 0.005;
+	        this.UserData = null;
+	        this.Fonts = null;
+	        this.FontGlobalScale = 1.0;
+	        this.FontAllowUserScaling = false;
+	        this.FontDefault = null;
+	        this.DisplayFramebufferScale = new ImVec2(1.0, 1.0);
+	        this.MouseDrawCursor = false;
+	        this.ConfigMacOSXBehaviors = false;
+	        this.ConfigInputTextCursorBlink = true;
+	        this.ConfigWindowsForDC = false;
+	        this.ConfigWindowsResizeFromEdges = true;
+	        this.ConfigWindowsMoveFromTitleBarOnly = false;
+	        this.ConfigMemoryCompactTimer = 60.0;
+	        this.BackendPlatformName = null;
+	        this.BackendRendererName = null;
+	        this.BackendPlatformUserData = null;
+	        this.BackendRendererUserData = null;
+	        this.BackendLanguageUserData = null;
+	        this.GetClipboardTextFn = null;
+	        this.SetClipboardTextFn = null;
+	        this.ClipboardUserData = null;
+	        this.SetPlatformImeDataFn = null;
+	        this.PlatformLocaleDecimalPoint = '.';
+	        this.WantCaptureMouse = false;
+	        this.WantCaptureKeyboard = false;
+	        this.WantTextInput = false;
+	        this.WantSetMousePos = false;
+	        this.WantSaveIniSettings = false;
+	        this.NavActive = false;
+	        this.NavVisible = false;
+	        this.Framerate = 0.0;
+	        this.MetricsRenderVertices = 0;
+	        this.MetricsRenderIndices = 0;
+	        this.MetricsRenderWindows = 0;
+	        this.MetricsActiveAllocations = 0;
+	        this.MouseDelta = new ImVec2(0.0, 0.0);
+	        this.MockCaptureKeyboard = false;
+	        this.MockCaptureMouse = false;
+	        this.MouseDown = [false, false, false, false, false];
+	        this.MouseWheel = 0.0;
+	        this.MouseWheelH = 0.0;
+	        this.MousePos = new ImVec2(-FLT_MAX, -FLT_MAX);
+	        this.MousePosPrev = new ImVec2(-FLT_MAX, -FLT_MAX);
+	        this.MouseClickedTime = [0.0, 0.0, 0.0, 0.0, 0.0];
+	        this.MouseClickedPos = [new ImVec2(), new ImVec2(), new ImVec2(), new ImVec2(), new ImVec2()];
+	        this.MouseReleased = [false, false, false, false, false];
+	        this.MouseDownOwned = [false, false, false, false, false];
+	        this.MouseDownDuration = [-1.0, -1.0, -1.0, -1.0, -1.0];
+	        this.MouseDownDurationPrev = [-1.0, -1.0, -1.0, -1.0, -1.0];
+	        this.MouseDragMaxDistanceSqr = [0.0, 0.0, 0.0, 0.0, 0.0];
+	        this.KeysData = new Array(ImGuiKey.KeysData_SIZE).fill(null).map(function () { return new ImGuiKeyData(); });
+	        this.KeyCtrl = false;
+	        this.KeyShift = false;
+	        this.KeyAlt = false;
+	        this.KeySuper = false;
+	        this.KeyMods = ImGuiModFlags.None;
+	        this.WantCaptureMouseUnlessPopupClose = false;
+	        this.NavInputs = new Array(ImGuiNavInput.COUNT).fill(0.0);
+	        this.DebugDrawWithImGui = false;
+	        this.InputQueueSurrogate = [];
+	        this.InputQueue = [];
+	        this.MouseSource = ImGuiMouseSource.Mouse;
+	        this.Framenumber = -1;
+	        this.OldKeyMods = ImGuiModFlags.None;
+	    }
+	    ImGuiIO.prototype.ClearInputMouse = function () {
+	        this.MousePos = new ImVec2(-FLT_MAX, -FLT_MAX);
+	        this.MouseDown[0] = false;
+	        this.MouseDown[1] = false;
+	        this.MouseDown[2] = false;
+	        this.MouseDown[3] = false;
+	        this.MouseDown[4] = false;
+	        this.MouseWheel = 0.0;
+	        this.MouseWheelH = 0.0;
+	    };
+	    ImGuiIO.prototype.ClearInputKeyboard = function () {
+	        for (var i = 0; i < this.KeysData.length; i++) {
+	            this.KeysData[i].Down = false;
+	            this.KeysData[i].AnalogValue = 0.0;
+	        }
+	        this.KeyCtrl = false;
+	        this.KeyShift = false;
+	        this.KeyAlt = false;
+	        this.KeySuper = false;
+	        this.KeyMods = ImGuiModFlags.None;
+	    };
+	    ImGuiIO.prototype.AddKeyEvent = function (key, down, native_keycode) {
+	        if (key === ImGuiKey.None)
+	            return;
+	        var key_data = this.KeysData[key];
+	        key_data.Down = down;
+	        key_data.NativeKeyCode = native_keycode;
+	        this.UpdateKeyMods();
+	    };
+	    ImGuiIO.prototype.AddKeyChordEvent = function (key_chord, down) {
+	        if (key_chord & ImGuiModFlags.Ctrl)
+	            this.AddKeyEvent(ImGuiKey.ModCtrl, down);
+	        if (key_chord & ImGuiModFlags.Shift)
+	            this.AddKeyEvent(ImGuiKey.ModShift, down);
+	        if (key_chord & ImGuiModFlags.Alt)
+	            this.AddKeyEvent(ImGuiKey.ModAlt, down);
+	        if (key_chord & ImGuiModFlags.Super)
+	            this.AddKeyEvent(ImGuiKey.ModSuper, down);
+	        this.AddKeyEvent(key_chord & ImGuiKey.NamedKey_BEGIN, down);
+	    };
+	    ImGuiIO.prototype.AddInputCharacter = function (c) {
+	        var event = new ImGuiInputEventText();
+	        event.Type = ImGuiInputEventType.Text;
+	        event.Char = c;
+	        this.InputQueue.push(event);
+	    };
+	    ImGuiIO.prototype.AddFocusEvent = function (focused) {
+	        var event = new ImGuiInputEventFocus();
+	        event.Type = ImGuiInputEventType.Focus;
+	        event.Focused = focused;
+	        this.InputQueue.push(event);
+	    };
+	    ImGuiIO.prototype.UpdateKeyMods = function () {
+	        this.KeyCtrl = this.KeysData[ImGuiKey.ModCtrl].Down;
+	        this.KeyShift = this.KeysData[ImGuiKey.ModShift].Down;
+	        this.KeyAlt = this.KeysData[ImGuiKey.ModAlt].Down;
+	        this.KeySuper = this.KeysData[ImGuiKey.ModSuper].Down;
+	        this.KeyMods = ImGuiModFlags.None;
+	        if (this.KeyCtrl)
+	            this.KeyMods |= ImGuiModFlags.Ctrl;
+	        if (this.KeyShift)
+	            this.KeyMods |= ImGuiModFlags.Shift;
+	        if (this.KeyAlt)
+	            this.KeyMods |= ImGuiModFlags.Alt;
+	        if (this.KeySuper)
+	            this.KeyMods |= ImGuiModFlags.Super;
+	    };
+	    return ImGuiIO;
+	}());
+	var ImGuiStyle = /** @class */ (function () {
+	    function ImGuiStyle() {
+	        this.Alpha = 1.0;
+	        this.DisabledAlpha = 0.6;
+	        this.WindowPadding = new ImVec2(8, 8);
+	        this.WindowRounding = 0.0;
+	        this.WindowBorderSize = 1.0;
+	        this.WindowMinSize = new ImVec2(32, 32);
+	        this.WindowTitleAlign = new ImVec2(0.0, 0.5);
+	        this.ChildRounding = 0.0;
+	        this.ChildBorderSize = 1.0;
+	        this.PopupRounding = 0.0;
+	        this.PopupBorderSize = 1.0;
+	        this.FramePadding = new ImVec2(4, 3);
+	        this.FrameRounding = 0.0;
+	        this.FrameBorderSize = 0.0;
+	        this.ItemSpacing = new ImVec2(8, 4);
+	        this.ItemInnerSpacing = new ImVec2(4, 4);
+	        this.IndentSpacing = 21.0;
+	        this.ScrollbarSize = 14.0;
+	        this.ScrollbarRounding = 9.0;
+	        this.GrabMinSize = 7.0;
+	        this.GrabRounding = 0.0;
+	        this.LogSliderDeadzone = 4.0;
+	        this.TabRounding = 4.0;
+	        this.TabBorderSize = 0.0;
+	        this.TabBarBorderSize = 1.0;
+	        this.ColorButtonPosition = ImGuiDir.Right;
+	        this.ButtonTextAlign = new ImVec2(0.5, 0.5);
+	        this.SelectableTextAlign = new ImVec2(0.0, 0.0);
+	        this.SeparatorTextBorderSize = 3.0;
+	        this.SeparatorTextAlign = new ImVec2(0.5, 0.5);
+	        this.SeparatorTextPadding = new ImVec2(20, 3);
+	        this.DisplayWindowPadding = new ImVec2(19, 19);
+	        this.DisplayFramebufferScale = new ImVec2(1, 1);
+	        this.MouseCursorScale = 1.0;
+	        this.AntiAliasedLines = true;
+	        this.AntiAliasedLinesUseTex = true;
+	        this.AntiAliasedFill = true;
+	        this.CurveTessellationTol = 1.25;
+	        this.CircleTessellationMaxError = 0.30;
+	        this.HoverStationaryDelay = 0.5;
+	        this.HoverDelayShort = 0.15;
+	        this.HoverDelayNormal = 0.40;
+	        this.HoverFlagsForTooltipMouse = ImGuiHoveredFlags.Stationary | ImGuiHoveredFlags.DelayShort;
+	        this.HoverFlagsForTooltipNav = ImGuiHoveredFlags.NoSharedDelay | ImGuiHoveredFlags.DelayNormal;
+	        this.Colors = new Array(ImGuiCol.COUNT).fill(null).map(function () { return new ImVec4(); });
+	        this.SetStyle();
+	    }
+	    ImGuiStyle.prototype.SetStyle = function () {
+	        this.Colors[ImGuiCol.Text] = new ImVec4(1.00, 1.00, 1.00, 1.00);
+	        this.Colors[ImGuiCol.TextDisabled] = new ImVec4(0.50, 0.50, 0.50, 1.00);
+	        this.Colors[ImGuiCol.WindowBg] = new ImVec4(0.06, 0.06, 0.06, 0.94);
+	        this.Colors[ImGuiCol.ChildBg] = new ImVec4(0.00, 0.00, 0.00, 0.00);
+	        this.Colors[ImGuiCol.PopupBg] = new ImVec4(0.08, 0.08, 0.08, 0.94);
+	        this.Colors[ImGuiCol.Border] = new ImVec4(0.43, 0.43, 0.50, 0.50);
+	        this.Colors[ImGuiCol.BorderShadow] = new ImVec4(0.00, 0.00, 0.00, 0.00);
+	        this.Colors[ImGuiCol.FrameBg] = new ImVec4(0.16, 0.16, 0.16, 0.54);
+	        this.Colors[ImGuiCol.FrameBgHovered] = new ImVec4(0.20, 0.20, 0.20, 0.78);
+	        this.Colors[ImGuiCol.FrameBgActive] = new ImVec4(0.24, 0.24, 0.24, 1.00);
+	        this.Colors[ImGuiCol.TitleBg] = new ImVec4(0.04, 0.04, 0.04, 1.00);
+	        this.Colors[ImGuiCol.TitleBgActive] = new ImVec4(0.29, 0.29, 0.29, 1.00);
+	        this.Colors[ImGuiCol.TitleBgCollapsed] = new ImVec4(0.00, 0.00, 0.00, 0.51);
+	        this.Colors[ImGuiCol.MenuBarBg] = new ImVec4(0.14, 0.14, 0.14, 1.00);
+	        this.Colors[ImGuiCol.ScrollbarBg] = new ImVec4(0.02, 0.02, 0.02, 0.53);
+	        this.Colors[ImGuiCol.ScrollbarGrab] = new ImVec4(0.31, 0.31, 0.31, 1.00);
+	        this.Colors[ImGuiCol.ScrollbarGrabHovered] = new ImVec4(0.41, 0.41, 0.41, 1.00);
+	        this.Colors[ImGuiCol.ScrollbarGrabActive] = new ImVec4(0.51, 0.51, 0.51, 1.00);
+	        this.Colors[ImGuiCol.CheckMark] = new ImVec4(0.26, 0.59, 0.98, 1.00);
+	        this.Colors[ImGuiCol.SliderGrab] = new ImVec4(0.24, 0.52, 0.88, 1.00);
+	        this.Colors[ImGuiCol.SliderGrabActive] = new ImVec4(0.26, 0.59, 0.98, 1.00);
+	        this.Colors[ImGuiCol.Button] = new ImVec4(0.26, 0.59, 0.98, 0.40);
+	        this.Colors[ImGuiCol.ButtonHovered] = new ImVec4(0.26, 0.59, 0.98, 1.00);
+	        this.Colors[ImGuiCol.ButtonActive] = new ImVec4(0.06, 0.53, 0.98, 1.00);
+	        this.Colors[ImGuiCol.Header] = new ImVec4(0.26, 0.59, 0.98, 0.31);
+	        this.Colors[ImGuiCol.HeaderHovered] = new ImVec4(0.26, 0.59, 0.98, 0.80);
+	        this.Colors[ImGuiCol.HeaderActive] = new ImVec4(0.26, 0.59, 0.98, 1.00);
+	        this.Colors[ImGuiCol.Separator] = this.Colors[ImGuiCol.Border].clone();
+	        this.Colors[ImGuiCol.SeparatorHovered] = new ImVec4(0.10, 0.40, 0.75, 0.78);
+	        this.Colors[ImGuiCol.SeparatorActive] = new ImVec4(0.10, 0.40, 0.75, 1.00);
+	        this.Colors[ImGuiCol.ResizeGrip] = new ImVec4(0.26, 0.59, 0.98, 0.25);
+	        this.Colors[ImGuiCol.ResizeGripHovered] = new ImVec4(0.26, 0.59, 0.98, 0.67);
+	        this.Colors[ImGuiCol.ResizeGripActive] = new ImVec4(0.26, 0.59, 0.98, 0.95);
+	        this.Colors[ImGuiCol.Tab] = new ImVec4(0.18, 0.35, 0.58, 0.86);
+	        this.Colors[ImGuiCol.TabHovered] = new ImVec4(0.26, 0.59, 0.98, 0.80);
+	        this.Colors[ImGuiCol.TabActive] = new ImVec4(0.20, 0.41, 0.68, 1.00);
+	        this.Colors[ImGuiCol.TabUnfocused] = new ImVec4(0.07, 0.10, 0.15, 0.97);
+	        this.Colors[ImGuiCol.TabUnfocusedActive] = new ImVec4(0.14, 0.26, 0.42, 1.00);
+	        this.Colors[ImGuiCol.DockingPreview] = new ImVec4(0.26, 0.59, 0.98, 0.70);
+	        this.Colors[ImGuiCol.DockingEmptyBg] = new ImVec4(0.20, 0.20, 0.20, 1.00);
+	        this.Colors[ImGuiCol.PlotLines] = new ImVec4(0.61, 0.61, 0.61, 1.00);
+	        this.Colors[ImGuiCol.PlotLinesHovered] = new ImVec4(1.00, 1.00, 1.00, 1.00);
+	        this.Colors[ImGuiCol.PlotHistogram] = new ImVec4(0.90, 0.70, 0.00, 1.00);
+	        this.Colors[ImGuiCol.PlotHistogramHovered] = new ImVec4(1.00, 0.60, 0.00, 1.00);
+	        this.Colors[ImGuiCol.TableHeaderBg] = new ImVec4(0.19, 0.19, 0.20, 1.00);
+	        this.Colors[ImGuiCol.TableBorderStrong] = new ImVec4(0.31, 0.31, 0.35, 1.00);
+	        this.Colors[ImGuiCol.TableBorderLight] = new ImVec4(0.23, 0.23, 0.25, 1.00);
+	        this.Colors[ImGuiCol.TableRowBg] = new ImVec4(0.00, 0.00, 0.00, 0.00);
+	        this.Colors[ImGuiCol.TableRowBgAlt] = new ImVec4(1.00, 1.00, 1.00, 0.06);
+	        this.Colors[ImGuiCol.TextSelectedBg] = new ImVec4(0.26, 0.59, 0.98, 0.35);
+	        this.Colors[ImGuiCol.DragDropTarget] = new ImVec4(1.00, 1.00, 0.00, 0.90);
+	        this.Colors[ImGuiCol.NavHighlight] = new ImVec4(0.26, 0.59, 0.98, 1.00);
+	        this.Colors[ImGuiCol.NavWindowingHighlight] = new ImVec4(1.00, 1.00, 1.00, 0.70);
+	        this.Colors[ImGuiCol.NavWindowingDimBg] = new ImVec4(0.80, 0.80, 0.80, 0.20);
+	        this.Colors[ImGuiCol.ModalWindowDimBg] = new ImVec4(0.80, 0.80, 0.80, 0.35);
+	    };
+	    ImGuiStyle.prototype.ScaleAllSizes = function (scale_factor) {
+	        function scale(v) {
+	            if (v instanceof ImVec2) {
+	                v.x *= scale_factor;
+	                v.y *= scale_factor;
+	            }
+	            else {
+	                v *= scale_factor;
+	            }
+	        }
+	        this.WindowPadding.mul(scale_factor);
+	        this.WindowRounding = Math.floor(this.WindowRounding * scale_factor);
+	        this.WindowMinSize.mul(scale_factor);
+	        this.ChildRounding = Math.floor(this.ChildRounding * scale_factor);
+	        this.PopupRounding = Math.floor(this.PopupRounding * scale_factor);
+	        this.FramePadding.mul(scale_factor);
+	        this.FrameRounding = Math.floor(this.FrameRounding * scale_factor);
+	        this.ItemSpacing.mul(scale_factor);
+	        this.ItemInnerSpacing.mul(scale_factor);
+	        this.IndentSpacing = Math.floor(this.IndentSpacing * scale_factor);
+	        this.ScrollbarSize = Math.floor(this.ScrollbarSize * scale_factor);
+	        this.ScrollbarRounding = Math.floor(this.ScrollbarRounding * scale_factor);
+	        this.GrabMinSize = Math.floor(this.GrabMinSize * scale_factor);
+	        this.GrabRounding = Math.floor(this.GrabRounding * scale_factor);
+	        this.TabRounding = Math.floor(this.TabRounding * scale_factor);
+	        this.DisplayWindowPadding.mul(scale_factor);
+	        this.DisplayFramebufferScale.mul(scale_factor);
+	    };
+	    return ImGuiStyle;
+	}());
+	var ImGuiStorage = /** @class */ (function () {
+	    function ImGuiStorage() {
+	        this.Data = {};
+	    }
+	    ImGuiStorage.prototype.Clear = function () { this.Data = {}; };
+	    ImGuiStorage.prototype.GetInt = function (key, default_val) {
+	        if (default_val === void 0) { default_val = 0; }
+	        return this.Data[key] || default_val;
+	    };
+	    ImGuiStorage.prototype.SetInt = function (key, val) { this.Data[key] = val; };
+	    ImGuiStorage.prototype.GetBool = function (key, default_val) {
+	        if (default_val === void 0) { default_val = false; }
+	        return this.Data[key] || default_val;
+	    };
+	    ImGuiStorage.prototype.SetBool = function (key, val) { this.Data[key] = val; };
+	    ImGuiStorage.prototype.GetFloat = function (key, default_val) {
+	        if (default_val === void 0) { default_val = 0.0; }
+	        return this.Data[key] || default_val;
+	    };
+	    ImGuiStorage.prototype.SetFloat = function (key, val) { this.Data[key] = val; };
+	    ImGuiStorage.prototype.GetVec2 = function (key, default_val) {
+	        if (default_val === void 0) { default_val = new ImVec2(); }
+	        return this.Data[key] || default_val;
+	    };
+	    ImGuiStorage.prototype.SetVec2 = function (key, val) { this.Data[key] = val; };
+	    return ImGuiStorage;
+	}());
+	var ImDrawCmd = /** @class */ (function () {
+	    function ImDrawCmd() {
+	        this.ElemCount = 0;
+	        this.ClipRect = new ImVec4();
+	        this.TextureId = null;
+	        this.VtxOffset = 0;
+	        this.IdxOffset = 0;
+	        this.UserCallback = null;
+	        this.UserCallbackData = null;
+	    }
+	    return ImDrawCmd;
+	}());
+	var ImDrawList = /** @class */ (function () {
+	    function ImDrawList(shared_data) {
+	        this.CmdBuffer = [];
+	        this.IdxBuffer = [];
+	        this.VtxBuffer = [];
+	        this.Flags = ImDrawListFlags.AntiAliasedLines | ImDrawListFlags.AntiAliasedFill;
+	        this._VtxCurrentIdx = 0;
+	        this._VtxWritePtr = [];
+	        this._IdxWritePtr = [];
+	        this._FringeScale = 1.0;
+	        this._OwnerName = null;
+	        this._ClipRectStack = [];
+	        this._TextureIdStack = [];
+	        this._Path = [];
+	        this._CmdHeader = new ImDrawCmdHeader();
+	        this._TempBuffer = [];
+	        this._Splitter = new ImDrawListSplitter();
+	        this.Ctx = null;
+	        this.CmdBuffer.push(new ImDrawCmd());
+	        this.Ctx = shared_data;
+	        this._OwnerName = "";
+	    }
+	    ImDrawList.prototype.Clear = function () {
+	        this.CmdBuffer.length = 0;
+	        this.IdxBuffer.length = 0;
+	        this.VtxBuffer.length = 0;
+	        this._VtxCurrentIdx = 0;
+	        this._VtxWritePtr = [];
+	        this._IdxWritePtr = [];
+	        this._ClipRectStack.length = 0;
+	        this._TextureIdStack.length = 0;
+	        this._Path.length = 0;
+	        this.CmdBuffer.push(new ImDrawCmd());
+	    };
+	    ImDrawList.prototype.ClearFreeMemory = function () {
+	        this.CmdBuffer.length = 0;
+	        this.IdxBuffer.length = 0;
+	        this.VtxBuffer.length = 0;
+	        this._VtxCurrentIdx = 0;
+	        this._VtxWritePtr = [];
+	        this._IdxWritePtr = [];
+	        this._ClipRectStack.length = 0;
+	        this._TextureIdStack.length = 0;
+	        this._Path.length = 0;
+	        this.CmdBuffer.push(new ImDrawCmd());
+	    };
+	    ImDrawList.prototype.clone = function () {
+	        var draw_list = new ImDrawList(this.Ctx);
+	        draw_list.CmdBuffer = this.CmdBuffer.map(function (cmd) { return cmd; });
+	        draw_list.IdxBuffer = this.IdxBuffer.map(function (idx) { return idx; });
+	        draw_list.VtxBuffer = this.VtxBuffer.map(function (vtx) { return vtx; });
+	        draw_list.Flags = this.Flags;
+	        draw_list._VtxCurrentIdx = this._VtxCurrentIdx;
+	        draw_list._VtxWritePtr = this._VtxWritePtr.map(function (v) { return v; });
+	        draw_list._IdxWritePtr = this._IdxWritePtr.map(function (v) { return v; });
+	        draw_list._FringeScale = this._FringeScale;
+	        draw_list._OwnerName = this._OwnerName;
+	        draw_list._ClipRectStack = this._ClipRectStack.map(function (v) { return v; });
+	        draw_list._TextureIdStack = this._TextureIdStack.map(function (v) { return v; });
+	        draw_list._Path = this._Path.map(function (v) { return v; });
+	        draw_list._CmdHeader = this._CmdHeader;
+	        draw_list._TempBuffer = this._TempBuffer.map(function (v) { return v; });
+	        draw_list._Splitter = this._Splitter;
+	        draw_list.Ctx = this.Ctx;
+	        return draw_list;
+	    };
+	    ImDrawList.prototype._ResetForNewFrame = function () {
+	        this.CmdBuffer.length = 0;
+	        this.IdxBuffer.length = 0;
+	        this.VtxBuffer.length = 0;
+	        this._VtxCurrentIdx = 0;
+	        this._VtxWritePtr = [];
+	        this._IdxWritePtr = [];
+	        this._ClipRectStack.length = 0;
+	        this._TextureIdStack.length = 0;
+	        this._Path.length = 0;
+	        this.CmdBuffer.push(new ImDrawCmd());
+	        this._CmdHeader = new ImDrawCmdHeader();
+	        this.Flags = this.Ctx.IO.BackendFlags & ImGuiBackendFlags.RendererHasVtxOffset ? ImDrawListFlags.AllowVtxOffset : 0;
+	        if (this.Ctx.Style.AntiAliasedLines) {
+	            this.Flags |= ImDrawListFlags.AntiAliasedLines;
+	        }
+	        if (this.Ctx.Style.AntiAliasedFill) {
+	            this.Flags |= ImDrawListFlags.AntiAliasedFill;
+	        }
+	        this._FringeScale = (this.Flags & ImDrawListFlags.AntiAliasedLines) ? 1.0 : 0.0;
+	    };
+	    ImDrawList.prototype._On </script>
+    <script type="text/javascript">
+/*
+	imgui_impl.js - v0.1.0
+	Open-source under the MIT license
+*/
+var ImGui_Impl = {};
+(function (global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('./imgui')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'imgui'], factory) :
+	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ImGui_Impl = {}, global.ImGui));
+})(this, (function (exports, ImGui) { 'use strict';
+	function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+	var ImGui__default = /*#__PURE__*/_interopDefaultLegacy(ImGui);
+	var ImGui_Impl_ = {
+	    _ImGui_Impl_WebGPU_Device: null,
+	    _ImGui_Impl_WebGPU_Queue: null,
+	    _ImGui_Impl_WebGPU_Format: null,
+	    _ImGui_Impl_WebGPU_Pipeline: null,
+	    _ImGui_Impl_WebGPU_BindGroup: null,
+	    _ImGui_Impl_WebGPU_UniformBuffer: null,
+	    _ImGui_Impl_WebGPU_VertexBuffer: null,
+	    _ImGui_Impl_WebGPU_IndexBuffer: null,
+	    _ImGui_Impl_WebGPU_UniformBufferSize: 0,
+	    _ImGui_Impl_WebGPU_VertexBufferSize: 0,
+	    _ImGui_Impl_WebGPU_IndexBufferSize: 0,
+	    _ImGui_Impl_WebGPU_Texture: null,
+	    _ImGui_Impl_WebGPU_Sampler: null,
+	    _ImGui_Impl_WebGPU_LastFrame: 0,
+	    _ImGui_Impl_WebGPU_Invalidated: true,
+	    Init: function (canvas, device, context, format) {
+	        ImGui__default["default"].CHECKVERSION();
+	        var io = ImGui__default["default"].GetIO();
+	        io.BackendFlags |= ImGui__default["default"].BackendFlags.RendererHasVtxOffset;
+	        io.BackendRendererName = "imgui_impl_webgpu";
+	        io.BackendPlatformName = "imgui_impl_web";
+	        this._ImGui_Impl_WebGPU_Device = device;
+	        this._ImGui_Impl_WebGPU_Queue = device.queue;
+	        this._ImGui_Impl_WebGPU_Format = format;
+	        var vertexShaderCode = "struct VertexInput {\n            @location(0) position: vec2f,\n            @location(1) uv: vec2f,\n            @location(2) color: vec4f,\n        };\n\n        struct VertexOutput {\n            @builtin(position) position: vec4f,\n            @location(0) uv: vec2f,\n            @location(1) color: vec4f,\n        };\n\n        @vertex\n        fn vs_main(input: VertexInput) -> VertexOutput {\n            var output: VertexOutput;\n            output.position = vec4f(input.position.x, input.position.y, 0.0, 1.0);\n            output.uv = input.uv;\n            output.color = input.color;\n            return output;\n        }\n        ";
+	        var fragmentShaderCode = "struct VertexOutput {\n            @builtin(position) position: vec4f,\n            @location(0) uv: vec2f,\n            @location(1) color: vec4f,\n        };\n\n        @group(0) @binding(0) var u_sampler: sampler;\n        @group(0) @binding(1) var u_texture: texture_2d<f32>;\n\n        @fragment\n        fn fs_main(input: VertexOutput) -> @location(0) vec4f {\n            let sampledColor = textureSample(u_texture, u_sampler, input.uv);\n            return input.color * sampledColor;\n        }\n        ";
+	        this._ImGui_Impl_WebGPU_Pipeline = device.createRenderPipeline({
+	            layout: "auto",
+	            vertex: {
+	                module: device.createShaderModule({ code: vertexShaderCode }),
+	                entryPoint: "vs_main",
+	                buffers: [
+	                    {
+	                        arrayStride: ImGui__default["default"].DrawVertSize,
+	                        attributes: [
+	                            { shaderLocation: 0, offset: ImGui__default["default"].DrawVertPosOffset, format: "float32x2" },
+	                            { shaderLocation: 1, offset: ImGui__default["default"].DrawVertUvOffset, format: "float32x2" },
+	                            { shaderLocation: 2, offset: ImGui__default["default"].DrawVertColOffset, format: "unorm8x4" },
+	                        ],
+	                    },
+	                ],
+	            },
+	            fragment: {
+	                module: device.createShaderModule({ code: fragmentShaderCode }),
+	                entryPoint: "fs_main",
+	                targets: [{ format: format, blend: {
+	                            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+	                            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+	                        } }],
+	            },
+	            primitive: {
+	                topology: "triangle-list",
+	                cullMode: "none",
+	            },
+	        });
+	        this._ImGui_Impl_WebGPU_Sampler = device.createSampler({
+	            minFilter: "linear",
+	            magFilter: "linear",
+	        });
+	        this._ImGui_Impl_WebGPU_UniformBufferSize = 256;
+	        this._ImGui_Impl_WebGPU_UniformBuffer = device.createBuffer({
+	            size: this._ImGui_Impl_WebGPU_UniformBufferSize,
+	            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	        });
+	        this._ImGui_Impl_WebGPU_VertexBufferSize = 10000 * ImGui__default["default"].DrawVertSize;
+	        this._ImGui_Impl_WebGPU_VertexBuffer = device.createBuffer({
+	            size: this._ImGui_Impl_WebGPU_VertexBufferSize,
+	            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+	        });
+	        this._ImGui_Impl_WebGPU_IndexBufferSize = 10000 * ImGui__default["default"].DrawIdxSize;
+	        this._ImGui_Impl_WebGPU_IndexBuffer = device.createBuffer({
+	            size: this._ImGui_Impl_WebGPU_IndexBufferSize,
+	            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+	        });
+	        this._ImGui_Impl_WebGPU_Invalidated = true;
+	        this.Set_Platform_Dependencies(canvas);
+	        this.CreateDeviceObjects();
+	        return true;
+	    },
+	    CreateDeviceObjects: function () {
+	        var io = ImGui__default["default"].GetIO();
+	        var device = this._ImGui_Impl_WebGPU_Device;
+	        // Build texture atlas
+	        // const ImFontAtlas* atlas = io.Fonts;
+	        // unsigned char* pixels;
+	        // int width, height;
+	        // atlas->GetTexDataAsRGBA32(&pixels, &width, &height);
+	        // Upload texture to GPU
+	        var fontAtlas = io.Fonts.Get};
+	/*
+	    Web platform bindings for imgui-js
+*/
+var ImGui_Impl = (function (exports, ImGui) {
+    'use strict';
+
+    function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+    var ImGui__default = /*#__PURE__*/_interopDefaultLegacy(ImGui);
+
+    var ImGui_Impl_ = {
+        _ImGui_Impl_WebGPU_Device: null,
+        _ImGui_Impl_WebGPU_Queue: null,
+        _ImGui_Impl_WebGPU_Format: null,
+        _ImGui_Impl_WebGPU_Pipeline: null,
+        _ImGui_Impl_WebGPU_BindGroup: null,
+        _ImGui_Impl_WebGPU_UniformBuffer: null,
+        _ImGui_Impl_WebGPU_VertexBuffer: null,
+        _ImGui_Impl_WebGPU_IndexBuffer: null,
+        _ImGui_Impl_WebGPU_UniformBufferSize: 0,
+        _ImGui_Impl_WebGPU_VertexBufferSize: 0,
+        _ImGui_Impl_WebGPU_IndexBufferSize: 0,
+        _ImGui_Impl_WebGPU_Texture: null,
+        _ImGui_Impl_WebGPU_Sampler: null,
+        _ImGui_Impl_WebGPU_LastFrame: 0,
+        _ImGui_Impl_WebGPU_Invalidated: true,
+
+        Init: function (canvas, device, context, format) {
+            ImGui__default["default"].CHECKVERSION();
+            var io = ImGui__default["default"].GetIO();
+            io.BackendFlags |= ImGui__default["default"].BackendFlags.RendererHasVtxOffset;
+            io.BackendRendererName = "imgui_impl_webgpu";
+            io.BackendPlatformName = "imgui_impl_web";
+
+            this._ImGui_Impl_WebGPU_Device = device;
+            this._ImGui_Impl_WebGPU_Queue = device.queue;
+            this._ImGui_Impl_WebGPU_Format = format;
+
+            var vertexShaderCode = "struct VertexInput {\n            @location(0) position: vec2f,\n            @location(1) uv: vec2f,\n            @location(2) color: vec4f,\n        };\n\n        struct VertexOutput {\n            @builtin(position) position: vec4f,\n            @location(0) uv: vec2f,\n            @location(1) color: vec4f,\n        };\n\n        @vertex\n        fn vs_main(input: VertexInput) -> VertexOutput {\n            var output: VertexOutput;\n            output.position = vec4f(input.position.x, input.position.y, 0.0, 1.0);\n            output.uv = input.uv;\n            output.color = input.color;\n            return output;\n        }\n        ";
+            var fragmentShaderCode = "struct VertexOutput {\n            @builtin(position) position: vec4f,\n            @location(0) uv: vec2f,\n            @location(1) color: vec4f,\n        };\n\n        @group(0) @binding(0) var u_sampler: sampler;\n        @group(0) @binding(1) var u_texture: texture_2d<f32>;\n\n        @fragment\n        fn fs_main(input: VertexOutput) -> @location(0) vec4f {\n            let sampledColor = textureSample(u_texture, u_sampler, input.uv);\n            return input.color * sampledColor;\n        }\n        ";
+
+            this._ImGui_Impl_WebGPU_Pipeline = device.createRenderPipeline({
+                layout: "auto",
+                vertex: {
+                    module: device.createShaderModule({ code: vertexShaderCode }),
+                    entryPoint: "vs_main",
+                    buffers: [
+                        {
+                            arrayStride: ImGui__default["default"].DrawVertSize,
+                            attributes: [
+                                { shaderLocation: 0, offset: ImGui__default["default"].DrawVertPosOffset, format: "float32x2" },
+                                { shaderLocation: 1, offset: ImGui__default["default"].DrawVertUvOffset, format: "float32x2" },
+                                { shaderLocation: 2, offset: ImGui__default["default"].DrawVertColOffset, format: "unorm8x4" },
+                            ],
+                        },
+                    ],
+                },
+                fragment: {
+                    module: device.createShaderModule({ code: fragmentShaderCode }),
+                    entryPoint: "fs_main",
+                    targets: [{ format: format, blend: {
+                                color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+                                alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+                            } }],
+                },
+                primitive: {
+                    topology: "triangle-list",
+                    cullMode: "none",
+                },
+            });
+
+            this._ImGui_Impl_WebGPU_Sampler = device.createSampler({
+                minFilter: "linear",
+                magFilter: "linear",
+            });
+
+            this._ImGui_Impl_WebGPU_UniformBufferSize = 256;
+            this._ImGui_Impl_WebGPU_UniformBuffer = device.createBuffer({
+                size: this._ImGui_Impl_WebGPU_UniformBufferSize,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            this._ImGui_Impl_WebGPU_VertexBufferSize = 10000 * ImGui__default["default"].DrawVertSize;
+            this._ImGui_Impl_WebGPU_VertexBuffer = device.createBuffer({
+                size: this._ImGui_Impl_WebGPU_VertexBufferSize,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            });
+
+            this._ImGui_Impl_WebGPU_IndexBufferSize = 10000 * ImGui__default["default"].DrawIdxSize;
+            this._ImGui_Impl_WebGPU_IndexBuffer = device.createBuffer({
+                size: this._ImGui_Impl_WebGPU_IndexBufferSize,
+                usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+            });
+
+            this._ImGui_Impl_WebGPU_Invalidated = true;
+
+            this.Set_Platform_Dependencies(canvas);
+            this.CreateDeviceObjects();
+
+            return true;
+        },
+
+        Shutdown: function () {
+            this.InvalidateDeviceObjects();
+            ImGui__default["default"].DestroyContext();
+        },
+
+        NewFrame: function (time) {
+            var io = ImGui__default["default"].GetIO();
+
+            io.DisplaySize.x = this._ImGui_Impl_WebGPU_Canvas.width;
+            io.DisplaySize.y = this._ImGui_Impl_WebGPU_Canvas.height;
+
+            var current_time = time;
+            io.DeltaTime = this._ImGui_Impl_WebGPU_LastFrame > 0.0 ? (current_time - this._ImGui_Impl_WebGPU_LastFrame) : (1.0 / 60.0);
+            this._ImGui_Impl_WebGPU_LastFrame = current_time;
+
+            this.UpdateMousePosAndButtons();
+            this.UpdateMouseCursor();
+
+            if (this._ImGui_Impl_WebGPU_Invalidated) {
+                this.CreateDeviceObjects();
+                this._ImGui_Impl_WebGPU_Invalidated = false;
+            }
+
+            ImGui__default["default"].NewFrame();
+        },
+
+        Render: function (passEncoder) {
+            ImGui__default["default"].Render();
+            var draw_data = ImGui__default["default"].GetDrawData();
+
+            var io = ImGui__default["default"].GetIO();
+            var fb_width = io.DisplaySize.x * io.DisplayFramebufferScale.x;
+            var fb_height = io.DisplaySize.y * io.DisplayFramebufferScale.y;
+
+            if (fb_width <= 0 || fb_height <= 0)
+                return;
+
+            draw_data.ScaleClipRects(io.DisplayFramebufferScale);
+
+            var projection_matrix = new Float32Array([
+                2.0 / fb_width, 0.0, 0.0, 0.0,
+                0.0, -2.0 / fb_height, 0.0, 0.0,
+                0.0, 0.0, 0.5, 0.0,
+                -1.0, 1.0, 0.5, 1.0,
+            ]);
+
+            this._ImGui_Impl_WebGPU_Queue.writeBuffer(this._ImGui_Impl_WebGPU_UniformBuffer, 0, projection_matrix);
+
+            if (this._ImGui_Impl_WebGPU_VertexBufferSize < draw_data.TotalVtxCount * ImGui__default["default"].DrawVertSize) {
+                this._ImGui_Impl_WebGPU_VertexBufferSize = draw_data.TotalVtxCount * ImGui__default["default"].DrawVertSize + 5000 * ImGui__default["default"].DrawVertSize;
+                this._ImGui_Impl_WebGPU_VertexBuffer.destroy();
+                this._ImGui_Impl_WebGPU_VertexBuffer = this._ImGui_Impl_WebGPU_Device.createBuffer({
+                    size: this._ImGui_Impl_WebGPU_VertexBufferSize,
+                    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+                });
+            }
+            if (this._ImGui_Impl_WebGPU_IndexBufferSize < draw_data.TotalIdxCount * ImGui__default["default"].DrawIdxSize) {
+                this._ImGui_Impl_WebGPU_IndexBufferSize = draw_data.TotalIdxCount * ImGui__default["default"].DrawIdxSize + 10000 * ImGui__default["default"].DrawIdxSize;
+                this._ImGui_Impl_WebGPU_IndexBuffer.destroy();
+                this._ImGui_Impl_WebGPU_IndexBuffer = this._ImGui_Impl_WebGPU_Device.createBuffer({
+                    size: this._ImGui_Impl_WebGPU_IndexBufferSize,
+                    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+                });
+            }
+
+            var vertex_offset = 0;
+            var index_offset = 0;
+            for (var n = 0; n < draw_data.CmdLists.length; n++) {
+                var cmd_list = draw_data.CmdLists[n];
+                this._ImGui_Impl_WebGPU_Queue.writeBuffer(this._ImGui_Impl_WebGPU_VertexBuffer, vertex_offset, cmd_list.VtxBuffer.buffer);
+                this._ImGui_Impl_WebGPU_Queue.writeBuffer(this._ImGui_Impl_WebGPU_IndexBuffer, index_offset, cmd_list.IdxBuffer.buffer);
+                vertex_offset += cmd_list.VtxBuffer.byteLength;
+                index_offset += cmd_list.IdxBuffer.byteLength;
+            }
+
+            passEncoder.setPipeline(this._ImGui_Impl_WebGPU_Pipeline);
+            passEncoder.setVertexBuffer(0, this._ImGui_Impl_WebGPU_VertexBuffer);
+            passEncoder.setIndexBuffer(this._ImGui_Impl_WebGPU_IndexBuffer, ImGui__default["default"].DrawIdxSize === 2 ? "uint16" : "uint32");
+
+            var global_vtx_offset = 0;
+            var global_idx_offset = 0;
+
+            for (var n = 0; n < draw_data.CmdLists.length; n++) {
+                var cmd_list = draw_data.CmdLists[n];
+                for (var cmd_i = 0; cmd_i < cmd_list.CmdBuffer.length; cmd_i++) {
+                    var pcmd = cmd_list.CmdBuffer[cmd_i];
+                    if (pcmd.UserCallback) {
+                        pcmd.UserCallback(cmd_list, pcmd);
+                    } else {
+                        var clip_rect = new ImGui__default["default"].ImVec4(pcmd.ClipRect.x - io.DisplayPos.x, pcmd.ClipRect.y - io.DisplayPos.y, pcmd.ClipRect.z - io.DisplayPos.x, pcmd.ClipRect.w - io.DisplayPos.y);
+
+                        if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0 && clip_rect.w >= 0.0) {
+                            passEncoder.setScissorRect(
+                                Math.max(0, Math.floor(clip_rect.x)),
+                                Math.max(0, Math.floor(clip_rect.y)),
+                                Math.floor(clip_rect.z - clip_rect.x),
+                                Math.floor(clip_rect.w - clip_rect.y)
+                            );
+
+                            this._ImGui_Impl_WebGPU_BindGroup = this._ImGui_Impl_WebGPU_Device.createBindGroup({
+                                layout: this._ImGui_Impl_WebGPU_Pipeline.getBindGroupLayout(0),
+                                entries: [
+                                    {
+                                        binding: 0,
+                                        resource: this._ImGui_Impl_WebGPU_Sampler,
+                                    },
+                                    {
+                                        binding: 1,
+                                        resource: this._ImGui_Impl_WebGPU_Texture.createView(),
+                                    },
+                                ],
+                            });
+                            passEncoder.setBindGroup(0, this._ImGui_Impl_WebGPU_BindGroup);
+                            passEncoder.drawIndexed(pcmd.ElemCount, 1, pcmd.IdxOffset + global_idx_offset, pcmd.VtxOffset + global_vtx_offset, 0);
+                        }
+                    }
+                }
+                global_idx_offset += cmd_list.IdxBuffer.length;
+                global_vtx_offset += cmd_list.VtxBuffer.length;
+            }
+        },
+
+        CreateDeviceObjects: function () {
+            var io = ImGui__default["default"].GetIO();
+            var device = this._ImGui_Impl_WebGPU_Device;
+
+            // Build texture atlas
+            // const ImFontAtlas* atlas = io.Fonts;
+            // unsigned char* pixels;
+            // int width, height;
+            // atlas->GetTexDataAsRGBA32(&pixels, &width, &height);
+            // Upload texture to GPU
+
+            var fontAtlas = io.Fonts.GetTexDataAsRGBA32(); // Assuming this returns { pixels, width, height }
+
+            this._ImGui_Impl_WebGPU_Texture = device.createTexture({
+                size: [fontAtlas.width, fontAtlas.height],
+                format: "rgba8unorm",
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+            });
+
+            this._ImGui_Impl_WebGPU_Queue.writeTexture(
+                { texture: this._ImGui_Impl_WebGPU_Texture },
+                fontAtlas.pixels,
+                { bytesPerRow: fontAtlas.width * 4, rowsPerImage: fontAtlas.height },
+                [fontAtlas.width, fontAtlas.height]
+            );
+
+            io.Fonts.TexID = this._ImGui_Impl_WebGPU_Texture;
+            return true;
+        },
+
+        InvalidateDeviceObjects: function () {
+            if (this._ImGui_Impl_WebGPU_Texture) {
+                this._ImGui_Impl_WebGPU_Texture.destroy();
+                this._ImGui_Impl_WebGPU_Texture = null;
+            }
+            if (this._ImGui_Impl_WebGPU_UniformBuffer) {
+                this._ImGui_Impl_WebGPU_UniformBuffer.destroy();
+                this._ImGui_Impl_WebGPU_UniformBuffer = null;
+            }
+            if (this._ImGui_Impl_WebGPU_VertexBuffer) {
+                this._ImGui_Impl_WebGPU_VertexBuffer.destroy();
+                this._ImGui_Impl_WebGPU_VertexBuffer = null;
+            }
+            if (this._ImGui_Impl_WebGPU_IndexBuffer) {
+                this._ImGui_Impl_WebGPU_IndexBuffer.destroy();
+                this._ImGui_Impl_WebGPU_IndexBuffer = null;
+            }
+            this._ImGui_Impl_WebGPU_Invalidated = true;
+        },
+
+        Set_Platform_Dependencies: function(canvas) {
+            this._ImGui_Impl_WebGPU_Canvas = canvas;
+            var io = ImGui__default["default"].GetIO();
+            io.MousePos = new ImGui__default["default"].ImVec2(-1, -1);
+
+            var eventToImGuiKey = {
+                "Tab": ImGui__default["default"].ImGuiKey.Tab,
+                "ArrowLeft": ImGui__default["default"].ImGuiKey.LeftArrow,
+                "ArrowRight": ImGui__default["default"].ImGuiKey.RightArrow,
+                "ArrowUp": ImGui__default["default"].ImGuiKey.UpArrow,
+                "ArrowDown": ImGui__default["default"].ImGuiKey.DownArrow,
+                "PageUp": ImGui__default["default"].ImGuiKey.PageUp,
+                "PageDown": ImGui__default["default"].ImGuiKey.PageDown,
+                "Home": ImGui__default["default"].ImGuiKey.Home,
+                "End": ImGui__default["default"].ImGuiKey.End,
+                "Insert": ImGui__default["default"].ImGuiKey.Insert,
+                "Delete": ImGui__default["default"].ImGuiKey.Delete,
+                "Backspace": ImGui__default["default"].ImGuiKey.Backspace,
+                "Space": ImGui__default["default"].ImGuiKey.Space,
+                "Enter": ImGui__default["default"].ImGuiKey.Enter,
+                "Escape": ImGui__default["default"].ImGuiKey.Escape,
+                "Control": ImGui__default["default"].ImGuiKey.ModCtrl,
+                "Shift": ImGui__default["default"].ImGuiKey.ModShift,
+                "Alt": ImGui__default["default"].ImGuiKey.ModAlt,
+                "Meta": ImGui__default["default"].ImGuiKey.ModSuper, // Windows key / Command key
+            };
+
+            var handleKeyEvent = (event) => {
+                var key = eventToImGuiKey[event.key];
+                if (key !== undefined) {
+                    io.AddKeyEvent(key, event.type === "keydown");
+                } else if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
+                    io.AddInputCharacter(event.key.charCodeAt(0));
+                }
+                io.KeyCtrl = event.ctrlKey;
+                io.KeyShift = event.shiftKey;
+                io.KeyAlt = event.altKey;
+                io.KeySuper = event.metaKey;
+            };
+
+            canvas.addEventListener("keydown", handleKeyEvent);
+            canvas.addEventListener("keyup", handleKeyEvent);
+
+            canvas.addEventListener("mousedown", (event) => {
+                io.MouseDown[event.button] = true;
+                this.UpdateMousePosAndButtons(event);
+            });
+            canvas.addEventListener("mouseup", (event) => {
+                io.MouseDown[event.button] = false;
+                this.UpdateMousePosAndButtons(event);
+            });
+            canvas.addEventListener("mousemove", (event) => {
+                this.UpdateMousePosAndButtons(event);
+            });
+            canvas.addEventListener("wheel", (event) => {
+                io.MouseWheel += -event.deltaY / 100; // Invert deltaY for typical scrolling
+                io.MouseWheelH += -event.deltaX / 100;
+                event.preventDefault(); // Prevent page scrolling
+            });
+
+            canvas.addEventListener("contextmenu", (event) => {
+                event.preventDefault(); // Prevent context menu
+            });
+
+            // Prevent canvas from stealing focus on click
+            canvas.setAttribute("tabindex", "-1");
+        },
+
+        UpdateMousePosAndButtons: function (event = null) {
+            var io = ImGui__default["default"].GetIO();
+            if (event) {
+                var rect = this._ImGui_Impl_WebGPU_Canvas.getBoundingClientRect();
+                io.MousePos.x = event.clientX - rect.left;
+                io.MousePos.y = event.clientY - rect.top;
+            }
+            else {
+                // If no event, just update button states from existing flags (if any)
+                // This is less common, but ensures io.MousePos is updated with latest client coords if available.
+                // In practice, mousemove events will constantly update io.MousePos.
+            }
+        },
+
+        UpdateMouseCursor: function () {
+            var io = ImGui__default["default"].GetIO();
+            if (io.ConfigFlags & ImGui__default["default"].ImGuiConfigFlags.NoMouseCursorChange)
+                return;
+
+            var cursor = ImGui__default["default"].GetMouseCursor();
+            if (cursor === ImGui__default["default"].ImGuiMouseCursor.None || io.MouseDrawCursor) {
+                this._ImGui_Impl_WebGPU_Canvas.style.cursor = "none";
+            } else {
+                var cursor_type = "default";
+                switch (cursor) {
+                    case ImGui__default["default"].ImGuiMouseCursor.Arrow: cursor_type = "default"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.TextInput: cursor_type = "text"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.ResizeAll: cursor_type = "move"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.ResizeNS: cursor_type = "ns-resize"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.ResizeEW: cursor_type = "ew-resize"; break;
+                    case ImGui__default["default"].ImGuiImGuiMouseCursor.ResizeNESW: cursor_type = "nesw-resize"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.ResizeNWSE: cursor_type = "nwse-resize"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.Hand: cursor_type = "grab"; break;
+                    case ImGui__default["default"].ImGuiMouseCursor.NotAllowed: cursor_type = "not-allowed"; break;
+                }
+                this._ImGui_Impl_WebGPU_Canvas.style.cursor = cursor_type;
+            }
+        },
+
+    };
+
+    exports.ImGui_Impl = ImGui_Impl_;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
+
+    return exports;
+
+})(this.ImGui_Impl = this.ImGui_Impl || {}, ImGui);
+    </script>
+
+    <script>
+    async function initializeWebGPU() {
+        const unsupportedDiv = document.getElementById('unsupported');
+        const canvas = document.getElementById('webgpu-canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        if (!navigator.gpu) {
+            unsupportedDiv.style.display = 'block';
+            canvas.style.display = 'none';
+            return;
+        }
+
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+            unsupportedDiv.style.display = 'block';
+            canvas.style.display = 'none';
+            return;
+        }
+
+        const device = await adapter.requestDevice();
+        const context = canvas.getContext('webgpu');
+        const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+        context.configure({
+            device,
+            format: presentationFormat,
+            alphaMode: 'premultiplied',
+        });
+
+        // ImGui state
+        const backgroundColor = new Float32Array([0.8, 0.8, 0.8, 1.0]); // R, G, B, A (alpha is 1.0 by default)
+        let renderScheduled = false;
+
+        // UI init
+        ImGui.CreateContext();
+        ImGui_Impl.Init(canvas, device, context, presentationFormat);
+        ImGui.StyleColorsDark(); // Dark theme
+
+        // 1. Uniform Buffer Creation
+        // Stores background color
+        const uniformBufferSize = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 floats for RGBA
+        const uniformBuffer = device.createBuffer({
+            size: uniformBufferSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
+        // 2. Storage Texture Creation (output for compute, input for render)
+        let canvasTexture = createComputeOutputTexture(device, canvas.width, canvas.height);
+
+        function createComputeOutputTexture(device, width, height) {
+             return device.createTexture({
+                size: [width, height],
+                format: 'rgba8unorm', // Specific format for storage texture
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+            });
+        }
+
+        // 3. Compute Pipeline + Compute Pass
+        const computeShaderWGSL = `
+            struct Params {
+                backgroundColor: vec4f,
+            };
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) global_id: vec3u) {
+                let x = global_id.x;
+                let y = global_id.y;
+
+                if (x >= textureDimensions(outputTexture).x || y >= textureDimensions(outputTexture).y) {
+                    return;
+                }
+
+                textureStore(outputTexture, vec2u(x, y), params.backgroundColor);
+            }
+        `;
+
+        const computePipeline = device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module: device.createShaderModule({ code: computeShaderWGSL }),
+                entryPoint: 'main',
+            },
+        });
+
+        // 4. Render Pipeline + Render Pass (to display the storage texture)
+        const renderShaderWGSL = `
+            struct VertexOutput {
+                @builtin(position) clip_position: vec4f,
+                @location(0) uv: vec2f,
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> VertexOutput {
+                let pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0),
+                    vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0)
+                );
+                let uv_coords = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0),
+                    vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(0.0, 0.0)
+                );
+
+                var output: VertexOutput;
+                output.clip_position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                output.uv = uv_coords[vertexIndex];
+                return output;
+            }
+
+            @group(0) @binding(0) var mySampler: sampler;
+            @group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+            @fragment
+            fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(myTexture, mySampler, uv);
+            }
+        `;
+
+        const renderPipeline = device.createRenderPipeline({
+            layout: 'auto',
+            vertex: {
+                module: device.createShaderModule({ code: renderShaderWGSL }),
+                entryPoint: 'vs_main',
+            },
+            fragment: {
+                module: device.createShaderModule({ code: renderShaderWGSL }),
+                entryPoint: 'fs_main',
+                targets: [{ format: presentationFormat }],
+            },
+            primitive: {
+                topology: 'triangle-list',
+            },
+        });
+
+        const sampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
+        });
+
+        // Bind Groups (will be updated on canvas resize)
+        let computeBindGroup;
+        let renderBindGroup;
+
+        function updateBindGroups() {
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: canvasTexture.createView() },
+                ],
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: sampler },
+                    { binding: 1, resource: canvasTexture.createView() },
+                ],
+            });
+        }
+        updateBindGroups(); // Initial setup
+
+        let lastBackgroundColor = new Float32Array(backgroundColor); // To detect changes
+
+        function frame(time) {
+            if (!renderScheduled) {
+                return;
+            }
+            renderScheduled = false; // Reset flag
+
+            // ImGui frame logic
+            ImGui_Impl.NewFrame(time / 1000); // Pass current time in seconds
+            ImGui.NewFrame();
+
+            ImGui.Begin("배경색");
+            const changed = ImGui.SliderFloat3("RGB (0.0->1.0)", backgroundColor, 0.0, 1.0);
+            ImGui.End();
+
+            // 5. Slider change -> device.queue.writeBuffer -> scheduleRender()
+            // Check if backgroundColor changed
+            let colorChanged = false;
+            for (let i = 0; i < 3; ++i) { // Only compare RGB values modified by SliderFloat3
+                if (backgroundColor[i] !== lastBackgroundColor[i]) {
+                    colorChanged = true;
+                    break;
+                }
+            }
+
+            if (changed || colorChanged) {
+                device.queue.writeBuffer(uniformBuffer, 0, backgroundColor); // Write the entire RGBA
+                lastBackgroundColor.set(backgroundColor); // Update last known value
+                scheduleRender(); // Re-schedule render if value changes
+            }
+
+            ImGui.Render();
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // Compute Pass
+            const computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setPipeline(computePipeline);
+            computePassEncoder.setBindGroup(0, computeBindGroup);
+            const workgroupX = Math.ceil(canvas.width / 8);
+            const workgroupY = Math.ceil(canvas.height / 8);
+            computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY);
+            computePassEncoder.end();
+
+            // Render Pass
+            const renderPassEncoder = commandEncoder.beginRenderPass({
+                colorAttachments: [
+                    {
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: { r: 26/255, g: 26/255, b: 46/255, a: 1.0 }, // Background color matching body
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            });
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroup);
+            renderPassEncoder.draw(6); // Render fullscreen quad
+            ImGui_Impl.Render(renderPassEncoder); // Render ImGui on top
+            renderPassEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            // Request next frame only if necessary
+            if (renderScheduled) {
+                 requestAnimationFrame(frame);
+            }
+        }
+
+        function scheduleRender() {
+            if (!renderScheduled) {
+                renderScheduled = true;
+                requestAnimationFrame(frame);
+            }
+        }
+
+        // Initial uniform buffer data and render schedule
+        device.queue.writeBuffer(uniformBuffer, 0, backgroundColor);
+        scheduleRender();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Recreate canvasTexture and update bind groups on resize
+            canvasTexture = createComputeOutputTexture(device, canvas.width, canvas.height);
+            updateBindGroups();
+            scheduleRender(); // Request a new render to apply changes
+        });
+    }
+
+    // Call the initialization function
+    initializeWebGPU();
+    </script>
+</body>
+</html>

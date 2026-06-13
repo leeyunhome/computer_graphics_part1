@@ -35,6 +35,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [ImGui를 활용한 캔버스 배경색 제어 구현](imgui를-활용한-캔버스-배경색-제어-구현.md)
+
+
+[→ 데모 열기](imgui를-활용한-캔버스-배경색-제어-구현.md){.md-button}
+
+
+---
+
+
 ## [픽셀 버퍼 애니메이션](pixel-animation.md)
 
 

@@ -53,6 +53,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>ImGui를 활용한 캔버스 배경색 제어 구현</strong><br><br>
+<a href="demos/imgui를-활용한-캔버스-배경색-제어-구현/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>픽셀 버퍼 애니메이션</strong><br><br>
 <a href="demos/pixel-animation/">데모 보기 →</a>
 </div>
