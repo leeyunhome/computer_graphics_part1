@@ -387,7 +387,7 @@ def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo
         demo_html_path = os.path.join(demo_dir, "demo.html")
         with open(demo_html_path, "w", encoding="utf-8") as f:
             f.write(js_demo_html)
-        demo_rel_path = f"../demos/{demo_topic_slug}/demo.html"
+        demo_rel_path = f"../../demos/{demo_topic_slug}/demo.html"
         print(f"  WebGPU 데모 저장: {demo_html_path}")
 
         # 데모 독립 페이지 생성 + 인덱스/nav 갱신

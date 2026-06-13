@@ -4,9 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **portfolio automation system** for computer graphics study. It watches a private study repository, and when new commits are detected, uses AI (Gemini API) to generate Korean-language blog posts documenting the learned concepts — then deploys them to GitHub Pages via MkDocs.
+A **portfolio automation system** for computer graphics study. It watches a private DX11/C++ lecture repo, and when new commits are detected, uses Gemini AI to generate two artifacts per commit:
+1. A Korean-language blog post (`docs/posts/YYYY-MM-DD-slug.md`)
+2. A WebGPU interactive demo (`docs/demos/<slug>/demo.html`) that recreates the DX11 concept in the browser
 
-**Critical constraint:** The study repository (`C:\coding\my-github-repository\HonglabComputerGraphics_part1`) is a lecture repository and must NOT be published directly. Portfolio content must describe the student's own understanding and implementation, not reproduce lecture code verbatim.
+Both are deployed to GitHub Pages via MkDocs. The homepage and navigation are automatically rebuilt whenever new content is generated.
+
+**Critical constraint:** The study repository is a lecture repository and must NOT be published directly. Portfolio content must describe the student's own understanding and implementation — never reproduce lecture code verbatim.
 
 ## Repository Relationships
 
@@ -20,40 +24,57 @@ The study repo implements computer graphics progressively:
 - **Language:** C++ with DirectX 11 (D3D11) and HLSL shaders
 - **Math:** GLM library
 - **UI:** Dear ImGui for real-time parameter control
-- **Pattern:** CPU raytracing → GPU texture upload → full-screen quad render
-- **Topics:** DX11 init, Bloom, and 14-step raytracing progression (spheres → Phong → perspective → shadows → textures → reflection → refraction → environment maps)
+- **Pattern:** CPU pixel loop → GPU texture upload → full-screen quad render
+- **Topics:** DX11 init, pixel buffer animation, image brightness, box blur, Bloom, and 14-step raytracing progression (spheres → Phong → perspective → shadows → textures → reflection → refraction → environment maps)
 
-## Portfolio Automation
+## Portfolio Automation Scripts
 
-### Running the watcher (watches study repo for new commits)
+### Watcher (auto-runs on every new study repo commit)
 ```
 start_watcher.bat
 # or directly:
 venv\Scripts\python.exe scripts\watcher.py
 ```
+On startup, the watcher checks if the current HEAD commit is already processed — if not, it processes it immediately (catches commits made while the watcher was offline). Then polls every 2 seconds.
 
-### Manually generating a portfolio post from the latest commit
+### Manual generation (latest commit)
 ```
 run_generator.bat
 # or directly:
 venv\Scripts\python.exe scripts\portfolio_generator.py
 ```
 
-### Building and previewing the site locally
+### Retroactive processing (process all missed commits)
+```
+run_sync.bat               # process all unprocessed commits
+run_sync.bat --dry-run     # list without generating
+run_sync.bat --force       # reprocess already-processed commits
+# or directly:
+venv\Scripts\python.exe scripts\sync_commits.py
+```
+
+### Build and preview locally
 ```
 venv\Scripts\mkdocs serve
 ```
 
-### Deploying to GitHub Pages
+### Deploy to GitHub Pages
 ```
 venv\Scripts\mkdocs gh-deploy --force
 ```
-Deployment also runs automatically via `.github/workflows/deploy.yml` on every push to `main`.
+Also runs automatically via `.github/workflows/deploy.yml` on every push to `main`.
+
+## Commit Tracking
+
+Processed study repo commit SHAs are stored in `data/processed_commits.txt` (one SHA per line). This file is tracked in git so processed state is shared across machines. The `data/` directory is kept in git via `data/.gitkeep`.
+
+- `load_processed_commits()` — returns a set of already-processed SHAs
+- `mark_commit_processed(sha)` — appends SHA to the file
+- By default, `process_commit()` skips already-processed commits
 
 ## Python Environment
 
 ```
-venv\Scripts\pip install -r requirements.txt   # if requirements.txt exists
 venv\Scripts\pip install mkdocs-material gitpython google-genai python-dotenv
 ```
 
@@ -62,22 +83,60 @@ Copy `.env copy.example` to `.env` and fill in the Gemini API key:
 GEMINI_API_KEY=your_key_here
 ```
 
+**Gemini model:** `gemini-2.5-flash` (do NOT use `gemini-2.0-flash` — deprecated June 2026)
+
 ## Content Generation Rules
 
-When generating portfolio posts, the AI prompt must:
+### Blog post
 1. Focus on **what the student implemented and understood**, not the lecture structure
-2. Explain the graphics concepts mathematically (LaTeX supported via pymdownx.math)
+2. Explain graphics concepts mathematically (LaTeX via `pymdownx.arithmatex`)
 3. Write in **Korean**
-4. Never reproduce lecture code blocks verbatim — paraphrase or rewrite to show understanding
-5. Post filenames follow the pattern: `docs/YYYY-MM-DD-topic-name.md`
+4. Never reproduce lecture code verbatim — paraphrase or rewrite to show understanding
+5. Include a link to the interactive demo: `[데모 보기](../demos/<slug>/demo.html)`
+
+### WebGPU demo (`docs/demos/<slug>/demo.html`)
+Generated by Gemini with the following rules:
+- Use **`device.queue.writeTexture()`** to upload pixel data — NOT `copyExternalImageToTexture()` (it requires `RENDER_ATTACHMENT` usage and fails silently)
+- Use **Canvas2D** to create the procedural source image, then `getImageData()` to pass to `writeTexture()`
+- Pipeline: Uniform Buffer → Storage Texture → Compute Pass → Render Pass (fullscreen quad, 6 verts) → swapchain
+- DX11→WebGPU mapping:
+  - `RWTexture2D<float4>` → `texture_storage_2d<rgba8unorm, write>`
+  - `[numthreads(8,8,1)]` → `@workgroup_size(8,8)`
+  - `SV_DispatchThreadID` → `@builtin(global_invocation_id)`
+  - `cbuffer` → `var<uniform>`
+  - `Dispatch(W/8,H/8,1)` → `dispatchWorkgroups(ceil(W/8), ceil(H/8))`
+- The demo file MUST be named `demo.html` (NOT `index.html`) — MkDocs renders `slug.md` → `slug/index.html`, so `index.html` in the demo folder would conflict
+- Demo folder: `docs/demos/<slug>/demo.html`
+
+## File Naming and Path Conventions
+
+| Artifact | Path |
+|---|---|
+| Blog post | `docs/posts/YYYY-MM-DD-<slug>.md` |
+| Demo HTML | `docs/demos/<slug>/demo.html` |
+| Demo wrapper page | `docs/demos/<slug>.md` |
+| Posts index | `docs/posts/index.md` |
+| Demos index | `docs/demos/index.md` |
+| Homepage | `docs/index.md` |
+
+**Important:** Links in raw HTML inside MkDocs pages must use rendered URLs (`href="demos/slug/"` not `href="demos/slug.md"`). Markdown links (`[text](slug.md)`) ARE converted by MkDocs; raw HTML `href` attributes are NOT.
+
+## Site Auto-Rebuild
+
+After each new post+demo is generated, `save_and_commit()` automatically calls:
+- `rebuild_posts_index()` — scans `docs/posts/*.md`, builds listing newest-first
+- `rebuild_demos_index()` — scans `docs/demos/*.md` (excluding index.md)
+- `rebuild_homepage()` — updates homepage with all demo cards + 5 recent posts
+- `create_demo_page(title, slug)` — creates `docs/demos/<slug>.md` wrapper with iframe pointing to `src="demo.html"`
+- `update_mkdocs_nav(title, slug)` — inserts entry into `mkdocs.yml` nav
 
 ## MkDocs Configuration
 
-Site config is in `mkdocs.yml`. Posts go in `docs/`. The Material theme supports:
+Site config is in `mkdocs.yml`. The Material theme supports:
 - Math rendering (`pymdownx.arithmatex` with MathJax)
 - Code syntax highlighting
 - Navigation tabs and dark mode
 
 ## GitHub Actions
 
-`.github/workflows/deploy.yml` triggers on push to `main` and runs `mkdocs gh-deploy --force`. No secrets needed beyond the default `GITHUB_TOKEN` (GitHub Pages deploy uses it automatically).
+`.github/workflows/deploy.yml` triggers on push to `main` and runs `mkdocs gh-deploy --force`. No secrets needed beyond the default `GITHUB_TOKEN`.
