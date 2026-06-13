@@ -267,7 +267,7 @@
       const paramsBufferSize = 16; // 16-byte alignment
       const paramsBuffer = device.createBuffer({
         size: paramsBufferSize,
-        usage: GPUTextureUsage.UNIFORM | GPUTextureUsage.COPY_DST,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
 
       // 4. Compute Pipeline 세팅 (밝기 로직 실행)
