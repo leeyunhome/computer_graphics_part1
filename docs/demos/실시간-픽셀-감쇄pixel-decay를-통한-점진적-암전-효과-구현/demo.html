@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Move brightness adjustment to Update loop</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #16213e;
+            --panel-border: #0f3460;
+            --accent-color: #e94560;
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --input-bg: #1a1a2e;
+            --btn-bg: #0f3460;
+            --btn-hover: #1f4068;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Title Bar resembling DX11 classic app window */
+        .window-titlebar {
+            background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--panel-border);
+            user-select: none;
+        }
+
+        .titlebar-text {
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .titlebar-text::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .win-btn {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+        .win-close { background-color: #ef4444; }
+        .win-min { background-color: #eab308; }
+        .win-max { background-color: #22c55e; }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 42px);
+            overflow: hidden;
+        }
+
+        /* Sidebar Control Panel */
+        .control-panel {
+            width: 320px;
+            background-color: var(--panel-bg);
+            border-right: 2px solid var(--panel-border);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+        }
+
+        .panel-section {
+            background-color: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(233, 69, 96, 0.2);
+            padding-bottom: 6px;
+        }
+
+        /* Canvas Wrapper */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #0b0c10;
+            position: relative;
+            padding: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background-color: #000;
+        }
+
+        /* ImGui Styled Input Components */
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-color);
+            background-color: var(--input-bg);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .value-display {
+            font-family: monospace;
+            background-color: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            min-width: 45px;
+            text-align: right;
+            font-size: 12px;
+            border: 1px solid var(--panel-border);
+        }
+
+        /* Buttons Styling */
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: var(--btn-bg);
+            color: var(--text-color);
+            border: 1px solid var(--panel-border);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-color);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #ff5e7e;
+        }
+
+        .btn-full {
+            grid-column: span 2;
+        }
+
+        /* Status items */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .status-row span:first-child {
+            color: var(--text-muted);
+        }
+
+        .status-row span:last-child {
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* Compatibility Warning Overlay */
+        #fallback-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #7f1d1d;
+            border: 2px solid #ef4444;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 400px;
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Title Bar -->
+    <div class="window-titlebar">
+        <div class="titlebar-text">DirectX 11 — Move brightness adjustment to Update loop with factor 0.99</div>
+        <div class="window-controls">
+            <button class="win-btn win-min"></button>
+            <button class="win-btn win-max"></button>
+            <button class="win-btn win-close"></button>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        
+        <!-- Sidebar Controls (DirectX 11 / ImGui inspired layout) -->
+        <div class="control-panel">
+            
+            <div class="panel-section">
+                <div class="panel-title">Decay Simulation</div>
+                
+                <div class="control-group">
+                    <label for="decay-slider">Gradual Darkening Factor (Per Frame)</label>
+                    <div class="slider-row">
+                        <input type="range" id="decay-slider" min="0.900" max="1.000" step="0.001" value="0.990">
+                        <span class="value-display" id="decay-val">0.990</span>
+                    </div>
+                </div>
+
+                <div class="control-group" style="margin-top: 15px;">
+                    <div class="btn-grid">
+                        <button id="btn-toggle" class="btn btn-primary btn-full">Pause Simulation</button>
+                        <button id="btn-step" class="btn">Step Frame</button>
+                        <button id="btn-reset" class="btn">Reset (Reload)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">DirectX 11 Pipeline Match</div>
+                <div class="status-row">
+                    <span>Target Factor:</span>
+                    <span style="color: #22c55e;">0.99f (Per-Pixel)</span>
+                </div>
+                <div class="status-row">
+                    <span>Clamp Limit:</span>
+                    <span>std::clamp(0.0, 1.0)</span>
+                </div>
+                <div class="status-row">
+                    <span>Workgroup Size:</span>
+                    <span>[numthreads(8,8,1)]</span>
+                </div>
+                <div class="status-row">
+                    <span>UAV Destination:</span>
+                    <span>RWTexture2D</span>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">Performance Monitor</div>
+                <div class="status-row">
+                    <span>Engine State:</span>
+                    <span id="status-engine" style="color: #22c55e;">RUNNING</span>
+                </div>
+                <div class="status-row">
+                    <span>Frame Count:</span>
+                    <span id="frame-counter">0</span>
+                </div>
+                <div class="status-row">
+                    <span>Resolution:</span>
+                    <span>800 x 600 px</span>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Render Window -->
+        <div class="canvas-container">
+            <canvas id="webgpu-canvas"></canvas>
+            <div id="fallback-msg">
+                <h3>WebGPU Not Supported</h3>
+                <p>Please use a modern browser (Chrome 113+, Edge 113+, Safari 18+) with WebGPU support enabled.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // Helper function to load image exactly as specified in instructions
+        async function loadImage(url, w, h) {
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.src = url;
+            });
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            return c;
+        }
+
+        // WebGPU Pipeline State and Resources
+        let device, context;
+        let baseTexture, stateTexA, stateTexB;
+        let computePipeline, renderPipeline;
+        let computeBindGroup, renderBindGroup, sampler;
+        let paramsBuffer;
+        
+        // App settings matching DX11 specification
+        const W = 800;
+        const H = 600;
+        let decayFactor = 0.990;
+        let isPlaying = true;
+        let frameCount = 0;
+        let scheduleRequest = null;
+
+        const decaySlider = document.getElementById('decay-slider');
+        const decayVal = document.getElementById('decay-val');
+        const btnToggle = document.getElementById('btn-toggle');
+        const btnStep = document.getElementById('btn-step');
+        const btnReset = document.getElementById('btn-reset');
+        const frameCounter = document.getElementById('frame-counter');
+        const statusEngine = document.getElementById('status-engine');
+        const fallbackMsg = document.getElementById('fallback-msg');
+
+        // Update UI states
+        decaySlider.addEventListener('input', (e) => {
+            decayFactor = parseFloat(e.target.value);
+            decayVal.textContent = decayFactor.toFixed(3);
+        });
+
+        btnToggle.addEventListener('click', () => {
+            if (isPlaying) {
+                isPlaying = false;
+                btnToggle.textContent = "Resume Simulation";
+                btnToggle.classList.remove('btn-primary');
+                statusEngine.textContent = "PAUSED";
+                statusEngine.style.color = "#eab308";
+            } else {
+                isPlaying = true;
+                btnToggle.textContent = "Pause Simulation";
+                btnToggle.classList.add('btn-primary');
+                statusEngine.textContent = "RUNNING";
+                statusEngine.style.color = "#22c55e";
+                scheduleRender();
+            }
+        });
+
+        btnStep.addEventListener('click', () => {
+            if (!isPlaying) {
+                stepSimulation();
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            resetToOriginal();
+        });
+
+        async function init() {
+            if (!navigator.gpu) {
+                fallbackMsg.style.display = 'block';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                fallbackMsg.style.display = 'block';
+                return;
+            }
+
+            device = await adapter.requestDevice();
+            if (!device) {
+                fallbackMsg.style.display = 'block';
+                return;
+            }
+
+            const canvas = document.getElementById('webgpu-canvas');
+            context = canvas.getContext('webgpu');
+            const format = navigator.gpu.getPreferredCanvasFormat();
+            
+            canvas.width = W;
+            canvas.height = H;
+
+            context.configure({
+                device,
+                format,
+                alphaMode: 'opaque'
+            });
+
+            // Load Colosseum image (required path)
+            let srcCanvas;
+            try {
+                srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+            } catch (err) {
+                console.error(err);
+                fallbackMsg.innerHTML = `<h3>Resource Error</h3><p>Could not load standard input image <i>colosseum.jpg</i>. Ensure it resides in the expected location.</p>`;
+                fallbackMsg.style.display = 'block';
+                return;
+            }
+            const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
+
+            // Create original reference texture
+            baseTexture = device.createTexture({
+                size: [W, H],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+            });
+
+            device.queue.writeTexture(
+                { texture: baseTexture },
+                imgData.data,
+                { bytesPerRow: W * 4 },
+                { width: W, height: H }
+            );
+
+            // Ping-pong simulation state textures (State A -> State B)
+            stateTexA = device.createTexture({
+                size: [W, H],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
+            });
+
+            stateTexB = device.createTexture({
+                size: [W, H],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            // Load initial image into State A & B
+            resetToOriginal();
+
+            // Compute Uniform Buffer: factor 0.99f
+            paramsBuffer = device.createBuffer({
+                size: 16, // aligned
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // Compute Shader: Replicates Per-Pixel RGB decay and std::clamp in HLSL
+            const computeShaderModule = device.createShaderModule({
+                label: 'Decay Shader Module',
+                code: `
+                    struct Params {
+                        decay: f32,
+                        pad1: f32,
+                        pad2: f32,
+                        pad3: f32,
+                    }
+
+                    @group(0) @binding(0) var srcTex: texture_2d<f32>;
+                    @group(0) @binding(1) var dstTex: texture_storage_2d<rgba8unorm, write>;
+                    @group(0) @binding(2) var<uniform> params: Params;
+
+                    @compute @workgroup_size(8, 8)
+                    fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+                        let size = textureDimensions(dstTex);
+                        if (id.x >= size.x || id.y >= size.y) {
+                            return;
+                        }
+                        let coords = vec2i(id.xy);
+                        
+                        // Read current frame pixel
+                        let color = textureLoad(srcTex, coords, 0);
+
+                        // Multiply RGB by factor and clamp to [0.0, 1.0] (matching std::clamp)
+                        let decayed = clamp(color.rgb * params.decay, vec3f(0.0), vec3f(1.0));
+
+                        // Store output (RWTexture2D simulation)
+                        textureStore(dstTex, coords, vec4f(decayed, color.a));
+                    }
+                `
+            });
+
+            computePipeline = device.createComputePipeline({
+                label: 'Decay Compute Pipeline',
+                layout: 'auto',
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'cs_main'
+                }
+            });
+
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: stateTexA.createView() },
+                    { binding: 1, resource: stateTexB.createView() },
+                    { binding: 2, resource: { buffer: paramsBuffer } }
+                ]
+            });
+
+            // Render pipeline to draw State B texture to Screen
+            const renderShaderModule = device.createShaderModule({
+                label: 'Fullscreen Quad Renderer',
+                code: `
+                    struct VertexOutput {
+                        @builtin(position) position: vec4f,
+                        @location(0) uv: vec2f,
+                    }
+
+                    @vertex
+                    fn vs_main(@builtin(vertex_index) idx: u32) -> VertexOutput {
+                        var pos = array<vec2f, 6>(
+                            vec2f(-1.0, -1.0), vec2f( 1.0, -1.0), vec2f(-1.0,  1.0),
+                            vec2f(-1.0,  1.0), vec2f( 1.0, -1.0), vec2f( 1.0,  1.0)
+                        );
+                        var uv = array<vec2f, 6>(
+                            vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                            vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                        );
+                        var out: VertexOutput;
+                        out.position = vec4f(pos[idx], 0.0, 1.0);
+                        out.uv = uv[idx];
+                        return out;
+                    }
+
+                    @group(0) @binding(0) var myTexture: texture_2d<f32>;
+                    @group(0) @binding(1) var mySampler: sampler;
+
+                    @fragment
+                    fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+                        return textureSample(myTexture, mySampler, in.uv);
+                    }
+                `
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                label: 'Blit Render Pipeline',
+                layout: 'auto',
+                vertex: {
+                    module: renderShaderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: renderShaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format }]
+                }
+            });
+
+            sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: stateTexB.createView() },
+                    { binding: 1, resource: sampler }
+                ]
+            });
+
+            scheduleRender();
+        }
+
+        function resetToOriginal() {
+            const encoder = device.createCommandEncoder();
+            encoder.copyTextureToTexture(
+                { texture: baseTexture },
+                { texture: stateTexA },
+                [W, H, 1]
+            );
+            encoder.copyTextureToTexture(
+                { texture: baseTexture },
+                { texture: stateTexB },
+                [W, H, 1]
+            );
+            device.queue.submit([encoder.finish()]);
+            frameCount = 0;
+            frameCounter.textContent = frameCount;
+
+            // Immediately show the reset state if paused
+            if (!isPlaying) {
+                renderOnly();
+            }
+        }
+
+        // Standard render update simulating the DX11 tick
+        function stepSimulation() {
+            // Write decay factor to GPU uniform buffer
+            const paramsData = new Float32Array([decayFactor, 0.0, 0.0, 0.0]);
+            device.queue.writeBuffer(paramsBuffer, 0, paramsData);
+
+            const encoder = device.createCommandEncoder();
+
+            // 1. Dispatch Decay compute kernel
+            const computePass = encoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            // Dispatch with 8x8 thread workgroup sizes
+            computePass.dispatchWorkgroups(Math.ceil(W / 8), Math.ceil(H / 8));
+            computePass.end();
+
+            // 2. Feed-back computed output texture back to input for next frame
+            encoder.copyTextureToTexture(
+                { texture: stateTexB },
+                { texture: stateTexA },
+                [W, H, 1]
+            );
+
+            // 3. Render state B to viewport canvas
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.end();
+
+            device.queue.submit([encoder.finish()]);
+
+            frameCount++;
+            frameCounter.textContent = frameCount;
+        }
+
+        // Display current texture when paused without advancing decay
+        function renderOnly() {
+            const encoder = device.createCommandEncoder();
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.end();
+            device.queue.submit([encoder.finish()]);
+        }
+
+        function scheduleRender() {
+            if (scheduleRequest) return;
+            scheduleRequest = requestAnimationFrame(renderLoop);
+        }
+
+        function renderLoop() {
+            scheduleRequest = null;
+            if (isPlaying) {
+                stepSimulation();
+                scheduleRender();
+            }
+        }
+
+        // Boot system
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
