@@ -79,3 +79,4 @@ nav:
     - "[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현": demos/코드-리뷰-separable-convolution을-활용한-box-blu.md
     - "[코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리": demos/코드-리뷰-separable-5-tap-box-blur-가로-패스-구현-.md
     - 선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping): demos/선형-톤-매핑과-오버플로우-방지를-위한-픽셀-클램핑clamping.md
+    - 선형 톤 매핑과 클램핑을 통한 이미지 밝기 조절 및 오버플로우 방지: demos/선형-톤-매핑과-클램핑을-통한-이미지-밝기-조절-및-오버플로우-방지.md

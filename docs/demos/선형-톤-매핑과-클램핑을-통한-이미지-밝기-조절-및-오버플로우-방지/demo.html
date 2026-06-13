@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Linear Tone Mapping & Brightness</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      color: #e0e0e0;
+      user-select: none;
+    }
+
+    #app-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      border: 1px solid #4f4f5f;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      background-color: #000;
+    }
+
+    /* ImGui-style Retro Dark Windows */
+    .imgui-window {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      background-color: rgba(28, 28, 38, 0.95);
+      border: 1px solid #4a4a5a;
+      border-radius: 4px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      font-size: 13px;
+    }
+
+    .imgui-header {
+      background: linear-gradient(90deg, #3a3a50, #252535);
+      padding: 6px 10px;
+      font-weight: bold;
+      border-bottom: 1px solid #4a4a5a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      cursor: move;
+    }
+
+    .imgui-content {
+      padding: 12px;
+    }
+
+    .imgui-section {
+      margin-bottom: 12px;
+      border-bottom: 1px solid #2d2d3d;
+      padding-bottom: 10px;
+    }
+
+    .imgui-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .imgui-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .imgui-label {
+      color: #b0b0cf;
+    }
+
+    .imgui-value {
+      color: #00ffcc;
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    /* Controls styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: #2d2d3d;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+      margin: 6px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #5c5cff;
+      cursor: pointer;
+      border: 1px solid #8f8fff;
+      transition: background 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #8f8fff;
+    }
+
+    /* Custom Checkbox */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .checkbox-container input {
+      display: none;
+    }
+
+    .checkbox-custom {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #4a4a5a;
+      background: #2d2d3d;
+      margin-right: 8px;
+      display: inline-block;
+      position: relative;
+      border-radius: 2px;
+    }
+
+    .checkbox-container input:checked + .checkbox-custom::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid #00ffcc;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    /* System Status Overlay */
+    #status-msg {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(20, 20, 20, 0.85);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      border: 1px solid #333;
+      display: none;
+    }
+
+    #error-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ff5555;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #error-container h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <canvas id="gpu-canvas" width="800" height="600"></canvas>
+
+    <!-- Retro DX11 style ImGui Window -->
+    <div class="imgui-window" id="imgui-win">
+      <div class="imgui-header">
+        <span>DirectX 11 — Linear Tone Mapping</span>
+        <span style="font-size:10px; color:#888;">v1.5</span>
+      </div>
+      <div class="imgui-content">
+        <div class="imgui-section">
+          <div class="imgui-row">
+            <span class="imgui-label">주제:</span>
+            <span style="color:#fff; font-weight:bold;">밝기 인자 조절 (std::clamp)</span>
+          </div>
+          <div class="imgui-row">
+            <span class="imgui-label">소스 이미지:</span>
+            <span style="color: #ffff88;">colosseum.jpg</span>
+          </div>
+        </div>
+
+        <div class="imgui-section">
+          <div class="imgui-row">
+            <span class="imgui-label">밝기 계수 (Brightness):</span>
+            <span class="imgui-value" id="val-brightness">1.50</span>
+          </div>
+          <input type="range" id="slider-brightness" min="0.0" max="3.0" step="0.05" value="1.50">
+        </div>
+
+        <div class="imgui-section">
+          <label class="checkbox-container">
+            <input type="checkbox" id="chk-clamp" checked>
+            <span class="checkbox-custom"></span>
+            <span class="imgui-label">std::clamp 활성화 (0.0 - 1.0)</span>
+          </label>
+          <p style="margin: 6px 0 0 0; font-size: 11px; color:#888; line-height: 1.4;">
+            활성화 시 HDR 오버플로우 방지 및 안전한 LDR 톤 매핑을 보장합니다.
+          </p>
+        </div>
+
+        <div class="imgui-section" style="font-family:monospace; font-size:11px; color:#888;">
+          <div style="color: #4fbf4f;">// Compute Shader Core Pipeline</div>
+          <div>var rgb = raw.rgb * params.brightness;</div>
+          <div>if (clamp_enabled) {</div>
+          <div style="padding-left:12px;">rgb = clamp(rgb, 0.0, 1.0);</div>
+          <div>}</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status-msg"></div>
+  </div>
+
+  <div id="error-container">
+    <h1>WebGPU Error</h1>
+    <p id="error-text">이 브라우저는 WebGPU를 지원하지 않거나 비활성화 상태입니다.</p>
+  </div>
+
+  <script>
+    // ImGui Window drag logic
+    const win = document.getElementById('imgui-win');
+    const header = win.querySelector('.imgui-header');
+    let isDragging = false, startX, startY, startLeft, startTop;
+
+    header.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = win.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      win.style.left = `${startLeft + dx}px`;
+      win.style.top = `${startTop + dy}px`;
+    });
+
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    // UI elements
+    const sliderBrightness = document.getElementById('slider-brightness');
+    const valBrightness = document.getElementById('val-brightness');
+    const chkClamp = document.getElementById('chk-clamp');
+    const statusMsg = document.getElementById('status-msg');
+
+    function showStatus(text) {
+      statusMsg.innerText = text;
+      statusMsg.style.display = 'block';
+      setTimeout(() => { statusMsg.style.display = 'none'; }, 2000);
+    }
+
+    // Load Image via standard pattern (Required)
+    async function loadImage(url, w, h) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.src = url;
+      });
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c;
+    }
+
+    // Main WebGPU logic
+    async function main() {
+      if (!navigator.gpu) {
+        document.getElementById('error-container').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'none';
+        return;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      const device = await adapter.requestDevice();
+
+      const canvas = document.getElementById('gpu-canvas');
+      const context = canvas.getContext('webgpu');
+      const format = navigator.gpu.getPreferredCanvasFormat();
+
+      context.configure({
+        device: device,
+        format: format,
+        alphaMode: 'opaque'
+      });
+
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // 1. Source Image loading
+      let srcCanvas;
+      try {
+        srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+      } catch (e) {
+        console.error(e);
+        // Fallback procedural visual in case the image cannot be found
+        srcCanvas = document.createElement('canvas');
+        srcCanvas.width = W; srcCanvas.height = H;
+        const ctx = srcCanvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, W, H);
+        grad.addColorStop(0, '#502010');
+        grad.addColorStop(0.5, '#f0d0a0');
+        grad.addColorStop(1, '#103050');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 32px sans-serif';
+        ctx.fillText('colosseum.jpg (로딩 대체 패턴)', 100, H/2);
+      }
+      
+      const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
+
+      // Create WebGPU Input Texture
+      const inputTexture = device.createTexture({
+        size: [W, H, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+
+      device.queue.writeTexture(
+        { texture: inputTexture },
+        imgData.data,
+        { bytesPerRow: W * 4 },
+        [W, H, 1]
+      );
+
+      // Create Output Storage Texture
+      const outputTexture = device.createTexture({
+        size: [W, H, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+
+      // Uniform Buffer (alignment: 16 bytes)
+      const uniformBuffer = device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // 2. Compute Shader (Linear Tone Mapping + std::clamp)
+      const computeModule = device.createShaderModule({
+        label: 'Compute Tone Map Module',
+        code: `
+          struct Params {
+            brightness: f32,
+            clamp_enabled: u32,
+            pad0: f32,
+            pad1: f32,
+          }
+
+          @group(0) @binding(0) var input_tex: texture_2d<f32>;
+          @group(0) @binding(1) var output_tex: texture_storage_2d<rgba8unorm, write>;
+          @group(0) @binding(2) var<uniform> params: Params;
+
+          @compute @workgroup_size(8, 8)
+          fn main(@builtin(global_invocation_id) id: vec3u) {
+            let size = textureDimensions(input_tex);
+            if (id.x >= size.x || id.y >= size.y) {
+              return;
+            }
+            let coord = vec2i(id.xy);
+            let raw_color = textureLoad(input_tex, coord, 0);
+
+            // Per-pixel Multiply by scalar brightness
+            var rgb = raw_color.rgb * params.brightness;
+
+            // clamp to [0.0, 1.0] to avoid HDR overflow/exposure issues
+            if (params.clamp_enabled == 1u) {
+              rgb = clamp(rgb, vec3f(0.0), vec3f(1.0));
+            }
+
+            textureStore(output_tex, coord, vec4f(rgb, raw_color.a));
+          }
+        `
+      });
+
+      // Compute Bind Group Layout
+      const computeBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+          { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm' } },
+          { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } }
+        ]
+      });
+
+      const computePipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [computeBindGroupLayout] }),
+        compute: { module: computeModule, entryPoint: 'main' }
+      });
+
+      const computeBindGroup = device.createBindGroup({
+        layout: computeBindGroupLayout,
+        entries: [
+          { binding: 0, resource: inputTexture.createView() },
+          { binding: 1, resource: outputTexture.createView() },
+          { binding: 2, resource: { buffer: uniformBuffer } }
+        ]
+      });
+
+      // 3. Render Shader (Fullscreen Quad)
+      const renderModule = device.createShaderModule({
+        label: 'Render Quad Module',
+        code: `
+          struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) uv: vec2f,
+          }
+
+          @vertex
+          fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+            var pos = array<vec2f, 6>(
+              vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+              vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+            );
+            var uv = array<vec2f, 6>(
+              vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+              vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+            );
+            var out: VertexOutput;
+            out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+            out.uv = uv[vertexIndex];
+            return out;
+          }
+
+          @group(0) @binding(0) var t_diffuse: texture_2d<f32>;
+          @group(0) @binding(1) var s_diffuse: sampler;
+
+          @fragment
+          fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+            return textureSample(t_diffuse, s_diffuse, uv);
+          }
+        `
+      });
+
+      const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+
+      const renderBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+          { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} }
+        ]
+      });
+
+      const renderPipeline = device.createRenderPipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [renderBindGroupLayout] }),
+        vertex: { module: renderModule, entryPoint: 'vs_main' },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: format }]
+        }
+      });
+
+      const renderBindGroup = device.createBindGroup({
+        layout: renderBindGroupLayout,
+        entries: [
+          { binding: 0, resource: outputTexture.createView() },
+          { binding: 1, resource: sampler }
+        ]
+      });
+
+      // Render Schedule optimization (prevents redundant frames)
+      let renderPending = false;
+
+      function render() {
+        renderPending = false;
+
+        // Command Encoder
+        const commandEncoder = device.createCommandEncoder();
+
+        // Pass 1: Compute Pass
+        const computePass = commandEncoder.beginComputePass();
+        computePass.setPipeline(computePipeline);
+        computePass.setBindGroup(0, computeBindGroup);
+        // Dispatch blocks
+        const workgroupCountX = Math.ceil(W / 8);
+        const workgroupCountY = Math.ceil(H / 8);
+        computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+        computePass.end();
+
+        // Pass 2: Render Pass (Drawing to screen canvas)
+        const renderPass = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+            loadOp: 'clear',
+            storeOp: 'store'
+          }]
+        });
+        renderPass.setPipeline(renderPipeline);
+        renderPass.setBindGroup(0, renderBindGroup);
+        renderPass.draw(6); // Fullscreen Quad (6 indices)
+        renderPass.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+      }
+
+      function scheduleRender() {
+        if (!renderPending) {
+          renderPending = true;
+          requestAnimationFrame(render);
+        }
+      }
+
+      // Update parameters to GPU Buffer
+      const uniformData = new ArrayBuffer(16);
+      const floatView = new Float32Array(uniformData);
+      const uintView = new Uint32Array(uniformData);
+
+      function updateGPUParams() {
+        const brightness = parseFloat(sliderBrightness.value);
+        const isClampEnabled = chkClamp.checked;
+
+        floatView[0] = brightness;
+        uintView[1] = isClampEnabled ? 1 : 0;
+
+        device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+        scheduleRender();
+      }
+
+      // Event Listeners for ImGui controls
+      sliderBrightness.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value).toFixed(2);
+        valBrightness.innerText = val;
+        updateGPUParams();
+      });
+
+      chkClamp.addEventListener('change', () => {
+        updateGPUParams();
+        showStatus(chkClamp.checked ? "std::clamp 활성화됨" : "std::clamp 비활성화됨");
+      });
+
+      // Initial Update and rendering
+      updateGPUParams();
+    }
+
+    // Launch App
+    main().catch(err => {
+      console.error(err);
+      document.getElementById('error-container').style.display = 'flex';
+      document.getElementById('error-text').innerText = err.message || err;
+      document.getElementById('app-container').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
