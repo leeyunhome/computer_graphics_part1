@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DirectX 11 — Add color animation with RGB cycling and 300ms delay</title>
+<style>
+body { margin: 0; overflow: hidden; background-color: #1a1a2e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+canvas { display: block; }
+#imgui-window {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(30, 30, 47, 0.9);
+    border: 1px solid #333;
+    padding: 15px;
+    color: #eee;
+    font-size: 14px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    min-width: 280px;
+    backdrop-filter: blur(5px);
+}
+#imgui-window h3 {
+    color: #9ee;
+    margin-top: 0;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #444;
+    font-size: 18px;
+    font-weight: 600;
+}
+#imgui-window div {
+    margin-bottom: 10px;
+}
+#imgui-window label {
+    display: block;
+    margin-bottom: 5px;
+    color: #bbb;
+    font-weight: 500;
+}
+#imgui-window input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 8px;
+    background: linear-gradient(to right, #007bff, #00c6ff);
+    border-radius: 4px;
+    outline: none;
+    margin-top: 5px;
+    transition: background 0.3s ease;
+}
+#imgui-window input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: 2px solid #007bff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+#imgui-window input[type="range"]::-webkit-slider-thumb:hover {
+    background: #e0e0e0;
+    border-color: #0056b3;
+}
+#imgui-window input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: 2px solid #007bff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+#imgui-window input[type="range"]::-moz-range-thumb:hover {
+    background: #e0e0e0;
+    border-color: #0056b3;
+}
+#imgui-window .value-display {
+    float: right;
+    font-weight: bold;
+    color: #fff;
+    font-family: 'Consolas', monospace;
+}
+</style>
+</head>
+<body>
+<canvas id="webgpu-canvas"></canvas>
+<div id="imgui-window">
+    <h3>WebGPU 애니메이션 파라미터</h3>
+    <div>
+        <label for="animationSpeed">애니메이션 딜레이 (ms): <span id="animationSpeedValue" class="value-display">300</span></label>
+        <input type="range" id="animationSpeed" min="50" max="1000" value="300" step="10">
+    </div>
+    <div>
+        <label>현재 애니메이션 인덱스: <span id="currentIndexValue" class="value-display">0</span></label>
+    </div>
+    <div>
+        <label>캔버스 크기: <span id="canvasSizeValue" class="value-display">0x0</span></label>
+    </div>
+</div>
+
+<script type="text/wgsl" id="computeShader">
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+
+struct Params {
+    current_pixel_idx: u32,
+    canvas_width: u32,
+    canvas_height: u32,
+    _padding: u32, // For alignment
+};
+
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) global_id: vec3u) {
+    let x = global_id.x;
+    let y = global_id.y;
+
+    if (x >= params.canvas_width || y >= params.canvas_height) {
+        return;
+    }
+
+    let pixel_index = x + y * params.canvas_width;
+
+    var color = vec4f(0.8, 0.8, 0.8, 1.0); // Default to light gray
+
+    if (pixel_index == params.current_pixel_idx) {
+        if (pixel_index % 3u == 0u) {
+            color = vec4f(1.0, 0.0, 0.0, 1.0); // Red
+        } else if (pixel_index % 3u == 1u) {
+            color = vec4f(0.0, 1.0, 0.0, 1.0); // Green
+        } else {
+            color = vec4f(0.0, 0.0, 1.0, 1.0); // Blue
+        }
+    }
+
+    textureStore(outputTexture, vec2u(x, y), color);
+}
+</script>
+
+<script type="text/wgsl" id="renderShader">
+struct VertexOutput {
+    @builtin(position) position: vec4f,
+    @location(0) uv: vec2f,
+};
+
+@vertex
+fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> VertexOutput {
+    var pos = array<vec2f, 6>(
+        vec2f(-1.0, -1.0), // bottom-left
+        vec2f( 1.0, -1.0), // bottom-right
+        vec2f(-1.0,  1.0), // top-left
+        vec2f(-1.0,  1.0), // top-left
+        vec2f( 1.0, -1.0), // bottom-right
+        vec2f( 1.0,  1.0)  // top-right
+    );
+
+    var uv = array<vec2f, 6>(
+        vec2f(0.0, 1.0), // bottom-left
+        vec2f(1.0, 1.0), // bottom-right
+        vec2f(0.0, 0.0), // top-left
+        vec2f(0.0, 0.0), // top-left
+        vec2f(1.0, 1.0), // bottom-right
+        vec2f(1.0, 0.0)  // top-right
+    );
+
+    var output: VertexOutput;
+    output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+    output.uv = uv[vertexIndex];
+    return output;
+}
+
+@group(0) @binding(0) var mySampler: sampler;
+@group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4f {
+    return textureSample(myTexture, mySampler, input.uv);
+}
+</script>
+
+<script>
+async function initWebGPU() {
+    if (!navigator.gpu) {
+        alert("WebGPU를 지원하지 않는 브라우저입니다. Chrome Canary, Edge Canary 또는 최신 Chrome/Edge 브라우저를 사용해 보세요.");
+        return;
+    }
+
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+        alert("WebGPU 어댑터를 찾을 수 없습니다.");
+        return;
+    }
+
+    const device = await adapter.requestDevice();
+
+    const canvas = document.getElementById('webgpu-canvas');
+    const context = canvas.getContext('webgpu');
+
+    let canvasWidth = window.innerWidth;
+    let canvasHeight = window.innerHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: 'opaque',
+    });
+
+    // --- Resources Setup ---
+
+    // 1. Uniform Buffer for Compute Shader Parameters
+    // current_pixel_idx: u32, canvas_width: u32, canvas_height: u32, _padding: u32
+    const uniformBufferSize = 4 * Uint32Array.BYTES_PER_ELEMENT; 
+    const uniformBuffer = device.createBuffer({
+        size: uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    // 2. Storage Texture for Compute Shader Output
+    let computeOutputTexture;
+    function createComputeOutputTexture() {
+        if (computeOutputTexture) {
+            computeOutputTexture.destroy();
+        }
+        computeOutputTexture = device.createTexture({
+            size: [canvasWidth, canvasHeight, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        });
+    }
+    createComputeOutputTexture();
+
+    // --- Compute Pipeline Setup ---
+
+    const computeShaderModule = device.createShaderModule({
+        code: document.getElementById('computeShader').textContent,
+    });
+
+    const computeBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0, // Params Uniform Buffer
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: 'uniform' },
+            },
+            {
+                binding: 1, // Output Storage Texture
+                visibility: GPUShaderStage.COMPUTE,
+                storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' },
+            },
+        ],
+    });
+
+    const computePipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [computeBindGroupLayout],
+    });
+
+    const computePipeline = await device.createComputePipelineAsync({
+        layout: computePipelineLayout,
+        compute: {
+            module: computeShaderModule,
+            entryPoint: 'main',
+        },
+    });
+
+    // Compute Bind Group
+    let computeBindGroup;
+    function createComputeBindGroup() {
+        // Compute bind group needs to be recreated if the texture changes (e.g., on resize)
+        computeBindGroup = device.createBindGroup({
+            layout: computeBindGroupLayout,
+            entries: [
+                { binding: 0, resource: { buffer: uniformBuffer } },
+                { binding: 1, resource: computeOutputTexture.createView() },
+            ],
+        });
+    }
+    createComputeBindGroup();
+
+
+    // --- Render Pipeline Setup ---
+
+    const renderShaderModule = device.createShaderModule({
+        code: document.getElementById('renderShader').textContent,
+    });
+
+    const renderBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0, // Sampler
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: { type: 'filtering' },
+            },
+            {
+                binding: 1, // Texture
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: { sampleType: 'float' },
+            },
+        ],
+    });
+
+    const renderPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [renderBindGroupLayout],
+    });
+
+    const renderPipeline = await device.createRenderPipelineAsync({
+        layout: renderPipelineLayout,
+        vertex: {
+            module: renderShaderModule,
+            entryPoint: 'vs_main',
+        },
+        fragment: {
+            module: renderShaderModule,
+            entryPoint: 'fs_main',
+            targets: [{ format: presentationFormat }],
+        },
+        primitive: {
+            topology: 'triangle-list',
+        },
+    });
+
+    // Sampler and Render Bind Group
+    const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear',
+    });
+
+    let renderBindGroup;
+    function createRenderBindGroup() {
+        // Render bind group needs to be recreated if the texture changes (e.g., on resize)
+        renderBindGroup = device.createBindGroup({
+            layout: renderBindGroupLayout,
+            entries: [
+                { binding: 0, resource: sampler },
+                { binding: 1, resource: computeOutputTexture.createView() },
+            ],
+        });
+    }
+    createRenderBindGroup();
+
+    // --- Animation State ---
+    let current_pixel_idx = 0;
+    let animationDelayMs = 300; // Default from DX11
+    let lastUpdateTime = performance.now();
+    let scheduledAnimationFrame = null; // To prevent duplicate RAF calls
+
+    // --- UI Update Function ---
+    function updateImGui() {
+        document.getElementById('animationSpeedValue').textContent = animationDelayMs;
+        document.getElementById('currentIndexValue').textContent = current_pixel_idx;
+        document.getElementById('canvasSizeValue').textContent = `${canvasWidth}x${canvasHeight}`;
+    }
+
+    // --- Render Function ---
+    function scheduleRender() {
+        if (!scheduledAnimationFrame) {
+            scheduledAnimationFrame = requestAnimationFrame(doRender);
+        }
+    }
+
+    function doRender() {
+        scheduledAnimationFrame = null; // Reset for the next frame
+
+        const commandEncoder = device.createCommandEncoder();
+
+        // Compute Pass
+        const computePassEncoder = commandEncoder.beginComputePass();
+        computePassEncoder.setPipeline(computePipeline);
+        computePassEncoder.setBindGroup(0, computeBindGroup);
+        const workgroupX = Math.ceil(canvasWidth / 8);
+        const workgroupY = Math.ceil(canvasHeight / 8);
+        if (workgroupX > 0 && workgroupY > 0) { // Only dispatch if there's actual work
+            computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY);
+        }
+        computePassEncoder.end();
+
+        // Render Pass
+        const textureView = context.getCurrentTexture().createView();
+        const renderPassEncoder = commandEncoder.beginRenderPass({
+            colorAttachments: [
+                {
+                    view: textureView,
+                    loadOp: 'clear',
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }, // Clear background before drawing
+                    storeOp: 'store',
+                },
+            ],
+        });
+        renderPassEncoder.setPipeline(renderPipeline);
+        renderPassEncoder.setBindGroup(0, renderBindGroup);
+        renderPassEncoder.draw(6); // Draw fullscreen quad
+        renderPassEncoder.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+    // --- Animation Loop ---
+    const uniformBufferData = new Uint32Array(4); // For current_pixel_idx, canvas_width, canvas_height, padding
+
+    function animate(currentTime) {
+        const deltaTime = currentTime - lastUpdateTime;
+
+        if (deltaTime >= animationDelayMs) {
+            const totalPixels = canvasWidth * canvasHeight;
+            if (totalPixels > 0) { // Ensure there are pixels to animate
+                current_pixel_idx = (current_pixel_idx + 1) % totalPixels;
+            } else {
+                current_pixel_idx = 0; // Reset if canvas is 0 size
+            }
+
+            // Update uniform buffer with new index and dimensions
+            uniformBufferData[0] = current_pixel_idx;
+            uniformBufferData[1] = canvasWidth;
+            uniformBufferData[2] = canvasHeight;
+            device.queue.writeBuffer(uniformBuffer, 0, uniformBufferData);
+
+            scheduleRender(); // Request a redraw with the new state
+            updateImGui(); // Update UI display
+
+            lastUpdateTime = currentTime - (deltaTime % animationDelayMs); // Correct for accumulated error
+        }
+        requestAnimationFrame(animate);
+    }
+
+    // Initial setup and start
+    const totalPixels = canvasWidth * canvasHeight;
+    uniformBufferData[0] = current_pixel_idx;
+    uniformBufferData[1] = canvasWidth;
+    uniformBufferData[2] = canvasHeight;
+    device.queue.writeBuffer(uniformBuffer, 0, uniformBufferData);
+    updateImGui();
+    scheduleRender(); // Initial render
+    requestAnimationFrame(animate); // Start animation loop
+
+    // --- Resize Handling ---
+    new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const newWidth = Math.max(1, Math.floor(entry.contentBoxSize[0].inlineSize));
+            const newHeight = Math.max(1, Math.floor(entry.contentBoxSize[0].blockSize));
+
+            if (canvasWidth !== newWidth || canvasHeight !== newHeight) {
+                canvasWidth = newWidth;
+                canvasHeight = newHeight;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+
+                // Recreate storage texture and bind groups
+                createComputeOutputTexture();
+                createComputeBindGroup();
+                createRenderBindGroup();
+
+                // Update uniform buffer with new dimensions
+                uniformBufferData[0] = current_pixel_idx; // Keep current index
+                uniformBufferData[1] = canvasWidth;
+                uniformBufferData[2] = canvasHeight;
+                device.queue.writeBuffer(uniformBuffer, 0, uniformBufferData);
+
+                updateImGui();
+                scheduleRender();
+            }
+        }
+    }).observe(canvas);
+
+    // --- UI Event Listeners ---
+    document.getElementById('animationSpeed').addEventListener('input', (event) => {
+        animationDelayMs = parseInt(event.target.value);
+        updateImGui();
+    });
+}
+
+// Start everything
+initWebGPU();
+</script>
+</body>
+</html>
