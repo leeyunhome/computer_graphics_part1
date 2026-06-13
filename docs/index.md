@@ -48,6 +48,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[DirectX 11] 3D 공간 변환과 렌더링 파이프라인의 핵심 구현</strong><br><br>
+<a href="demos/directx-11-3d-공간-변환과-렌더링-파이프라인의-핵심-구현/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>DirectX 11 / C++ 그래픽스 스터디: 이미지 교체 및 렌더 타겟 초기화 커밋 분석</strong><br><br>
 <a href="demos/directx-11-c-그래픽스-스터디-이미지-교체-및-렌더-타겟-초기화/">데모 보기 →</a>
 </div>
