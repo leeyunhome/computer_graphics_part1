@@ -88,6 +88,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>ImGui와 DirectX 11을 이용한 실시간 캔버스 컬러 동적 제어</strong><br><br>
+<a href="demos/imgui와-directx-11을-이용한-실시간-캔버스-컬러-동적-제어/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>픽셀 버퍼 애니메이션</strong><br><br>
 <a href="demos/pixel-animation/">데모 보기 →</a>
 </div>

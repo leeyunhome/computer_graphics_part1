@@ -98,6 +98,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [ImGui와 DirectX 11을 이용한 실시간 캔버스 컬러 동적 제어](imgui와-directx-11을-이용한-실시간-캔버스-컬러-동적-제어.md)
+
+
+[→ 데모 열기](imgui와-directx-11을-이용한-실시간-캔버스-컬러-동적-제어.md){.md-button}
+
+
+---
+
+
 ## [픽셀 버퍼 애니메이션](pixel-animation.md)
 
 
