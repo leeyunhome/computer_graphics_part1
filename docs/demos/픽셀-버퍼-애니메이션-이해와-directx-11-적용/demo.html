@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Animate red pixel moving across canvas frame by frame</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e; /* Dark background */
+            color: #e0e0e0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background-color: #2b2b3b; /* Darker container background */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #e0e0e0;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        canvas {
+            border: 1px solid #4a4a5a;
+            background-color: #1a1a2e;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            min-width: 100px;
+            color: #c0c0c0;
+            font-size: 0.9em;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4a4a5a;
+            outline: none;
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #5e84af; /* Slightly blue accent */
+            cursor: pointer;
+            border: 2px solid #3c546e;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #5e84af;
+            cursor: pointer;
+            border: 2px solid #3c546e;
+        }
+
+        button {
+            background-color: #5e84af;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #4a709a;
+        }
+
+        #error-message {
+            color: #ff6b6b;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .value-display {
+            min-width: 50px;
+            text-align: right;
+            color: #e0e0e0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div id="error-message" style="display: none;">
+        WebGPU를 지원하지 않는 브라우저입니다. Chrome 또는 Edge 최신 버전을 사용해주세요.
+    </div>
+    <div class="container">
+        <h1>Animate red pixel moving across canvas frame by frame</h1>
+        <canvas id="gpu-canvas" width="512" height="512"></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="animationSpeedSlider">애니메이션 속도:</label>
+                <input type="range" id="animationSpeedSlider" min="1" max="60" value="10">
+                <span class="value-display" id="animationSpeedValue">10</span>
+            </div>
+            <div class="control-group">
+                <label>현재 픽셀 인덱스:</label>
+                <span class="value-display" id="currentPixelIndexValue">0</span>
+            </div>
+            <button id="resetButton">초기화</button>
+        </div>
+    </div>
+
+    <script type="module">
+        let adapter, device, context, presentationFormat;
+        let canvasWidth = 512;
+        let canvasHeight = 512;
+
+        let computePipeline;
+        let computeBindGroup;
+        let renderPipeline;
+        let renderBindGroup;
+
+        let uniformBuffer;
+        let storageTexture;
+        let storageTextureView;
+        let sampler;
+
+        let currentPixelIndex = 0;
+        let animationSpeed = 10; // Pixels per second
+        let lastFrameTime = performance.now();
+        let animationInterval = 1000 / animationSpeed; // Milliseconds per pixel update
+
+        let isRenderingScheduled = false;
+        let rafId = null;
+
+        // --- WGSL Shaders ---
+
+        // Compute Shader: Clears texture to gray, then sets one pixel to red
+        const computeWGSL = /* wgsl */`
+            struct Params {
+                pixelIndex: u32,
+                canvasWidth: u32,
+                canvasHeight: u32,
+                _padding: u32, // For 16-byte alignment
+            };
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) global_id: vec3u) {
+                let coord = global_id.xy;
+                if (coord.x >= params.canvasWidth || coord.y >= params.canvasHeight) {
+                    return;
+                }
+
+                let pixel_idx = coord.x + coord.y * params.canvasWidth;
+
+                if (pixel_idx == params.pixelIndex) {
+                    textureStore(outputTexture, coord, vec4f(1.0, 0.0, 0.0, 1.0)); // Red pixel
+                } else {
+                    textureStore(outputTexture, coord, vec4f(0.8, 0.8, 0.8, 1.0)); // Gray background
+                }
+            }
+        `;
+
+        // Vertex Shader for fullscreen quad
+        const vertexWGSL = /* wgsl */`
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            };
+
+            @vertex
+            fn main(@builtin(vertex_index) vertIndex: u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), // Triangle 1
+                    vec2f( 1.0, -1.0),
+                    vec2f(-1.0,  1.0),
+
+                    vec2f(-1.0,  1.0), // Triangle 2
+                    vec2f( 1.0, -1.0),
+                    vec2f( 1.0,  1.0),
+                );
+
+                var uvs = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), // Corresponds to (-1, -1) in clip space
+                    vec2f(1.0, 1.0), // Corresponds to ( 1, -1)
+                    vec2f(0.0, 0.0), // Corresponds to (-1,  1)
+
+                    vec2f(0.0, 0.0), // Corresponds to (-1,  1)
+                    vec2f(1.0, 1.0), // Corresponds to ( 1, -1)
+                    vec2f(1.0, 0.0), // Corresponds to ( 1,  1)
+                );
+
+                var output: VertexOutput;
+                output.position = vec4f(pos[vertIndex], 0.0, 1.0);
+                output.uv = uvs[vertIndex];
+                return output;
+            }
+        `;
+
+        // Fragment Shader for sampling the compute result texture
+        const fragmentWGSL = /* wgsl */`
+            @group(0) @binding(0) var myTexture: texture_2d<f32>;
+            @group(0) @binding(1) var mySampler: sampler;
+
+            @fragment
+            fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(myTexture, mySampler, uv);
+            }
+        `;
+
+        // --- WebGPU Initialization and Setup ---
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                document.getElementById('error-message').style.display = 'block';
+                return;
+            }
+
+            const canvas = document.getElementById('gpu-canvas');
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+
+            adapter = await navigator.gpu.requestAdapter();
+            device = await adapter.requestDevice();
+
+            context = canvas.getContext('webgpu');
+            presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            context.configure({
+                device,
+                format: presentationFormat,
+                alphaMode: 'opaque',
+            });
+
+            setupUniformBuffer();
+            setupStorageTexture();
+            setupComputePipeline();
+            setupRenderPipeline();
+            setupUI();
+
+            // Initial uniform buffer update
+            updateUniformBuffer(currentPixelIndex);
+
+            // Start animation loop
+            requestAnimationFrame(animationLoop);
+        }
+
+        function setupUniformBuffer() {
+            // Buffer to hold pixelIndex, canvasWidth, canvasHeight
+            // Using 16-byte alignment (4 * 4 bytes for u32)
+            uniformBuffer = device.createBuffer({
+                size: 4 * 4, // 4 u32s (pixelIndex, canvasWidth, canvasHeight, padding)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+        }
+
+        function updateUniformBuffer(pixelIndex) {
+            const uniformData = new Uint32Array([
+                pixelIndex,
+                canvasWidth,
+                canvasHeight,
+                0 // padding
+            ]);
+            device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+            document.getElementById('currentPixelIndexValue').textContent = pixelIndex;
+        }
+
+        function setupStorageTexture() {
+            storageTexture = device.createTexture({
+                size: [canvasWidth, canvasHeight, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            });
+            storageTextureView = storageTexture.createView();
+
+            sampler = device.createSampler({
+                magFilter: 'nearest',
+                minFilter: 'nearest',
+            });
+        }
+
+        function setupComputePipeline() {
+            const computeShaderModule = device.createShaderModule({ code: computeWGSL });
+
+            // Bind group layout for compute: Uniforms and Storage Texture
+            const computeBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0, // Params uniform buffer
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'uniform' },
+                    },
+                    {
+                        binding: 1, // Output Storage Texture
+                        visibility: GPUShaderStage.COMPUTE,
+                        storageTexture: { format: 'rgba8unorm', access: 'write-only', viewDimension: '2d' },
+                    },
+                ],
+            });
+
+            const pipelineLayout = device.createPipelineLayout({
+                bindGroupLayouts: [computeBindGroupLayout],
+            });
+
+            computePipeline = device.createComputePipeline({
+                layout: pipelineLayout,
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            // Create compute bind group
+            computeBindGroup = device.createBindGroup({
+                layout: computeBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: uniformBuffer },
+                    },
+                    {
+                        binding: 1,
+                        resource: storageTextureView,
+                    },
+                ],
+            });
+        }
+
+        function setupRenderPipeline() {
+            const vertexShaderModule = device.createShaderModule({ code: vertexWGSL });
+            const fragmentShaderModule = device.createShaderModule({ code: fragmentWGSL });
+
+            // Bind group layout for render: Sampled Texture and Sampler
+            const renderBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0, // Input Texture
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: { sampleType: 'float' },
+                    },
+                    {
+                        binding: 1, // Sampler
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: { type: 'filtering' },
+                    },
+                ],
+            });
+
+            const pipelineLayout = device.createPipelineLayout({
+                bindGroupLayouts: [renderBindGroupLayout],
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                layout: pipelineLayout,
+                vertex: {
+                    module: vertexShaderModule,
+                    entryPoint: 'main',
+                },
+                fragment: {
+                    module: fragmentShaderModule,
+                    entryPoint: 'main',
+                    targets: [{ format: presentationFormat }],
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                },
+            });
+
+            // Create render bind group
+            renderBindGroup = device.createBindGroup({
+                layout: renderBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: storageTextureView,
+                    },
+                    {
+                        binding: 1,
+                        resource: sampler,
+                    },
+                ],
+            });
+        }
+
+        // --- Animation Loop and Rendering ---
+
+        function animationLoop(currentTime) {
+            const deltaTime = currentTime - lastFrameTime;
+
+            if (deltaTime >= animationInterval) {
+                // Update pixel index for animation
+                currentPixelIndex = (currentPixelIndex + 1) % (canvasWidth * canvasHeight);
+                updateUniformBuffer(currentPixelIndex);
+                lastFrameTime = currentTime - (deltaTime % animationInterval); // Adjust lastFrameTime to prevent drift
+                scheduleRender();
+            }
+
+            rafId = requestAnimationFrame(animationLoop);
+        }
+
+        function scheduleRender() {
+            if (!isRenderingScheduled) {
+                isRenderingScheduled = true;
+                requestAnimationFrame(render);
+            }
+        }
+
+        function render() {
+            if (!isRenderingScheduled) return;
+            isRenderingScheduled = false;
+
+            if (!device) return; // Ensure device is initialized
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // --- Compute Pass ---
+            const computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setPipeline(computePipeline);
+            computePassEncoder.setBindGroup(0, computeBindGroup);
+            // Dispatch one workgroup for each 8x8 block of pixels
+            const workgroupX = Math.ceil(canvasWidth / 8);
+            const workgroupY = Math.ceil(canvasHeight / 8);
+            computePassEncoder.dispatchWorkgroups(workgroupX, workgroupY, 1);
+            computePassEncoder.end();
+
+            // --- Render Pass ---
+            const renderPassEncoder = commandEncoder.beginRenderPass({
+                colorAttachments: [
+                    {
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            });
+            renderPassEncoder.setPipeline(renderPipeline);
+            renderPassEncoder.setBindGroup(0, renderBindGroup);
+            renderPassEncoder.draw(6); // Draw the fullscreen quad
+            renderPassEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+
+        // --- UI Setup ---
+
+        function setupUI() {
+            const animationSpeedSlider = document.getElementById('animationSpeedSlider');
+            const animationSpeedValue = document.getElementById('animationSpeedValue');
+            const resetButton = document.getElementById('resetButton');
+
+            animationSpeedSlider.value = animationSpeed;
+            animationSpeedValue.textContent = animationSpeed;
+
+            animationSpeedSlider.oninput = (event) => {
+                animationSpeed = parseInt(event.target.value, 10);
+                animationSpeedValue.textContent = animationSpeed;
+                animationInterval = 1000 / animationSpeed;
+                // No need to call scheduleRender here, animationLoop will handle it
+            };
+
+            resetButton.onclick = () => {
+                currentPixelIndex = 0;
+                updateUniformBuffer(currentPixelIndex);
+                lastFrameTime = performance.now(); // Reset animation timer
+                scheduleRender(); // Force a render with the reset index
+            };
+        }
+
+        // --- Start ---
+        window.addEventListener('load', initWebGPU);
+    </script>
+</body>
+</html>
