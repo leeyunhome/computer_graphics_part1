@@ -475,7 +475,7 @@
             stateTexB = device.createTexture({
                 size: [W, H],
                 format: 'rgba8unorm',
-                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
             });
 
             // Load initial image into State A & B
@@ -668,6 +668,11 @@
 
             frameCount++;
             frameCounter.textContent = frameCount;
+
+            // 완전 감쇠 후 자동 리셋 (decay 0.99 → 약 500프레임이면 ~0.006 수준)
+            if (frameCount >= 600) {
+                resetToOriginal();
+            }
         }
 
         // Display current texture when paused without advancing decay
