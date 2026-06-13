@@ -78,6 +78,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>DirectX 11 포스트 프로세싱: 블룸(Bloom) 필터 구현과 렌더 타겟 초기화 분석</strong><br><br>
+<a href="demos/directx-11-포스트-프로세싱-블룸bloom-필터-구현과-렌더-타겟/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>DirectX 11/C++ 그래픽스 스터디: 첫 커밋 분석</strong><br><br>
 <a href="demos/directx-11c-그래픽스-스터디-첫-커밋-분석/">데모 보기 →</a>
 </div>
