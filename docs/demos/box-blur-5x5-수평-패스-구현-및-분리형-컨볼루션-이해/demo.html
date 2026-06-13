@@ -178,7 +178,7 @@
         let animationFrameId = 0;
         let needsRender = false;
 
-        const IMAGE_URL = 'colosseum.jpg'; // Using the specified image from DX11 example
+        const IMAGE_URL = '../../images/colosseum.jpg';
 
         // WGSL Shaders
         const imageProcessingWGSL = `
@@ -371,15 +371,22 @@
                 canvas.height = imageHeight;
             }
 
+            // Canvas2D로 픽셀 추출 후 writeTexture() 사용 (copyExternalImageToTexture는 RENDER_ATTACHMENT 필요)
+            const offscreen = document.createElement('canvas');
+            offscreen.width = imageWidth; offscreen.height = imageHeight;
+            offscreen.getContext('2d').drawImage(img, 0, 0);
+            const imgData = offscreen.getContext('2d').getImageData(0, 0, imageWidth, imageHeight);
+
             originalImageTexture = device.createTexture({
                 size: [imageWidth, imageHeight],
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
             });
 
-            device.queue.copyExternalImageToTexture(
-                { source: img },
+            device.queue.writeTexture(
                 { texture: originalImageTexture },
+                imgData.data,
+                { bytesPerRow: imageWidth * 4, rowsPerImage: imageHeight },
                 [imageWidth, imageHeight]
             );
 

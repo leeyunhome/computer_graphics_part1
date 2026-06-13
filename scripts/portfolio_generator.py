@@ -150,7 +150,9 @@ def generate_webgpu_demo(commit_msg, diff_text, topic_hint):
 
 ## 소스 이미지 (2D 이미지 처리 주제인 경우):
 - 밝기 조절, 블러, 색상 변환, 픽셀 조작 등의 주제에는 절차적 그라디언트/패턴 대신 반드시 실제 이미지를 사용하세요.
-- `../../images/colosseum.jpg` 를 아래 패턴으로 로드하세요:
+- 이미지 URL은 반드시 `../../images/colosseum.jpg` 입니다 (`colosseum.jpg`만 쓰면 경로가 틀립니다).
+- `copyExternalImageToTexture()` 사용 금지 — `RENDER_ATTACHMENT` 플래그가 없으면 검은 화면이 됩니다.
+- 반드시 아래 패턴으로 로드하세요:
 ```javascript
 async function loadImage(url, w, h) {{
   const img = new Image();
