@@ -103,20 +103,18 @@ let device, computePipeline, uniformBuf, inputTex, outputTex, bindGroup;
 let renderPipeline, renderBG, renderCtx;
 let offset = 0.3;
 
-// Generate rainbow grid (32x20) via Canvas2D
-function makeGridImageData() {
-  const offscreen = document.createElement('canvas');
-  offscreen.width = GW; offscreen.height = GH;
-  const ctx = offscreen.getContext('2d');
-  for (let y = 0; y < GH; y++) {
-    for (let x = 0; x < GW; x++) {
-      const h = (x / GW) * 360;
-      const l = 40 + (y / GH) * 30;
-      ctx.fillStyle = `hsl(${h},70%,${l}%)`;
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
-  return ctx.getImageData(0, 0, GW, GH);
+// Load colosseum image sampled down to grid size (32x20)
+async function loadGridImageData(url) {
+  const img = new Image();
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+    img.src = url;
+  });
+  const c = document.createElement('canvas');
+  c.width = GW; c.height = GH;
+  c.getContext('2d').drawImage(img, 0, 0, GW, GH);
+  return c.getContext('2d').getImageData(0, 0, GW, GH);
 }
 
 const COMPUTE_WGSL = `
@@ -163,7 +161,7 @@ async function init() {
   if (!adapter) { showError('WebGPU 어댑터를 찾을 수 없습니다.'); return; }
   device = await adapter.requestDevice();
 
-  const gridData = makeGridImageData();
+  const gridData = await loadGridImageData('../../images/colosseum.jpg');
 
   inputTex = device.createTexture({
     size: [GW, GH], format: 'rgba8unorm',

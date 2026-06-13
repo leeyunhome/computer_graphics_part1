@@ -148,6 +148,26 @@ def generate_webgpu_demo(commit_msg, diff_text, topic_hint):
 - 창 제목표시줄: `DirectX 11 — [주제명]` 스타일
 - 배경: `#1a1a2e`
 
+## 소스 이미지 (2D 이미지 처리 주제인 경우):
+- 밝기 조절, 블러, 색상 변환, 픽셀 조작 등의 주제에는 절차적 그라디언트/패턴 대신 반드시 실제 이미지를 사용하세요.
+- `../../images/colosseum.jpg` 를 아래 패턴으로 로드하세요:
+```javascript
+async function loadImage(url, w, h) {{
+  const img = new Image();
+  await new Promise((resolve, reject) => {{
+    img.onload = resolve;
+    img.onerror = () => reject(new Error(`이미지 로드 실패: ${{url}}`));
+    img.src = url;
+  }});
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return c;
+}}
+// 사용: const srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+// 이후: srcCanvas.getContext('2d').getImageData(0, 0, W, H) → writeTexture()
+```
+
 ## 기술 요구사항:
 - 단일 HTML 파일 (외부 라이브러리 금지 — WebGPU는 브라우저 내장)
 - `<!DOCTYPE html>` 로 시작

@@ -91,36 +91,17 @@ function bind(id, vid, key) {
 bind('sR','vR','r');
 bind('sP','vP','p');
 
-// ── Procedural sample image ──────────────────────────────────────────────────
-function makeSourceCanvas() {
+// ── Load source image ────────────────────────────────────────────────────────
+async function loadSourceCanvas(url) {
+  const img = new Image();
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+    img.src = url;
+  });
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
-  const g = c.getContext('2d');
-  // gradient background
-  const grad = g.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0,   '#e63946');
-  grad.addColorStop(0.33,'#f4a261');
-  grad.addColorStop(0.66,'#2a9d8f');
-  grad.addColorStop(1,   '#457b9d');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, W, H);
-  // sharp-edged circles (shows blur clearly)
-  const circles = [
-    [80,  60,  30, '#fff'],
-    [220, 140, 25, '#ffe66d'],
-    [150, 100, 20, '#06d6a0'],
-    [40,  150, 18, '#118ab2'],
-    [260, 50,  22, '#ef476f'],
-  ];
-  for (const [x, y, r, col] of circles) {
-    g.fillStyle = col;
-    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-  }
-  // vertical stripes (shows horizontal blur clearly)
-  for (let x = 0; x < W; x += 20) {
-    g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(x, 0, 2, H);
-  }
+  c.getContext('2d').drawImage(img, 0, 0, W, H);
   return c;
 }
 
@@ -132,7 +113,7 @@ async function main() {
   const device = await adapter.requestDevice();
 
   // ── Preview canvases ──────────────────────────────────────────────────────
-  const srcCanvas = makeSourceCanvas();
+  const srcCanvas = await loadSourceCanvas('../../images/colosseum.jpg');
   // Draw original to left preview
   const previewIn = document.getElementById('cIn');
   previewIn.getContext('2d').drawImage(srcCanvas, 0, 0);
