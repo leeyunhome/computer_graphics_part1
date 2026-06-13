@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Linear Tone Mapping & Brightness</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #161622f0;
+            --panel-border: #44445a;
+            --text-color: #e0e0e0;
+            --accent-color: #4a90e2;
+            --accent-active: #357abd;
+            --accent-hover: #5da2f5;
+            --imgui-title: #22223b;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            background-color: #000;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* ImGui Style UI Window */
+        .imgui-window {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.4);
+            z-index: 10;
+            user-select: none;
+            backdrop-filter: blur(5px);
+        }
+
+        .imgui-titlebar {
+            background-color: var(--imgui-title);
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 1px solid var(--panel-border);
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .imgui-content {
+            padding: 12px;
+            font-size: 12px;
+        }
+
+        .imgui-section {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333344;
+            padding-bottom: 10px;
+        }
+
+        .imgui-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .imgui-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .imgui-label {
+            color: #aaa;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .imgui-value {
+            font-family: monospace;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Custom Slider Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #2d2d3f;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            margin-top: 5px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Custom Button */
+        .imgui-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 3px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.1s;
+        }
+
+        .imgui-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .imgui-btn:active {
+            background-color: var(--accent-active);
+        }
+
+        /* Status & Error display */
+        #error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(20, 20, 30, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #ff4a4a;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            display: none;
+        }
+
+        #error-overlay h2 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-overlay">
+        <h2>WebGPU Error</h2>
+        <p id="error-message"></p>
+    </div>
+
+    <!-- ImGui Style Control Panel -->
+    <div class="imgui-window" id="controlPanel">
+        <div class="imgui-titlebar">
+            <span>DirectX 11 — Linear Tone Mapping</span>
+            <span style="font-size: 10px; opacity: 0.6;">v1.5</span>
+        </div>
+        <div class="imgui-content">
+            <div class="imgui-section">
+                <div class="imgui-row">
+                    <span class="imgui-label">주제</span>
+                    <span style="color: #fff;">RGB Brightness Clamp</span>
+                </div>
+                <div class="imgui-row">
+                    <span class="imgui-label">입력 이미지</span>
+                    <span style="color: #fff; font-family: monospace;">colosseum.jpg</span>
+                </div>
+            </div>
+
+            <div class="imgui-section">
+                <div class="imgui-row">
+                    <span class="imgui-label">밝기 배율 (Brightness)</span>
+                    <span class="imgui-value" id="brightnessVal">1.50</span>
+                </div>
+                <input type="range" id="brightnessSlider" min="0.0" max="3.0" step="0.05" value="1.5">
+            </div>
+
+            <div class="imgui-section">
+                <div class="imgui-row">
+                    <span class="imgui-label">Clamp 최소값</span>
+                    <span class="imgui-value">0.0</span>
+                </div>
+                <div class="imgui-row">
+                    <span class="imgui-label">Clamp 최대값</span>
+                    <span class="imgui-value">1.0</span>
+                </div>
+                <p style="font-size: 10px; color: #888; margin: 5px 0 0 0; line-height: 1.4;">
+                    * 1.0을 초과하는 색상 오버플로우(HDR Overflow)를 방지하기 위해 계산 후 std::clamp 연산이 강제 적용됩니다.
+                </p>
+            </div>
+
+            <button class="imgui-btn" id="resetBtn">기본값으로 초기화 (1.5)</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="webgpu-canvas"></canvas>
+    </div>
+
+    <script type="module">
+        // --- WebGPU / WGSL Shaders ---
+        
+        const computeShaderCode = `
+            struct Params {
+                brightness: f32,
+                padding0: f32,
+                padding1: f32,
+                padding2: f32,
+            }
+
+            @group(0) @binding(0) var inputTex: texture_2d<f32>;
+            @group(0) @binding(1) var outputTex: texture_storage_2d<rgba8unorm, write>;
+            @group(0) @binding(2) var<uniform> params: Params;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) id: vec3u) {
+                let size = textureDimensions(inputTex);
+                if (id.x >= size.x || id.y >= size.y) {
+                    return;
+                }
+                let coords = vec2i(id.xy);
+                let color = textureLoad(inputTex, coords, 0);
+                
+                // DirectX 11 std::clamp(val * brightness, 0.0f, 1.0f) 로직 재현
+                let adjustedRGB = clamp(color.rgb * params.brightness, vec3f(0.0), vec3f(1.0));
+                
+                textureStore(outputTex, coords, vec4f(adjustedRGB, color.a));
+            }
+        `;
+
+        const renderShaderCode = `
+            struct VertexOutput {
+                @builtin(position) pos: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+                var out: VertexOutput;
+                out.pos = vec4f(pos[vertexIndex], 0.0, 1.0);
+                out.uv = uv[vertexIndex];
+                return out;
+            }
+
+            @group(0) @binding(0) var outTex: texture_2d<f32>;
+            @group(0) @binding(1) var outSampler: sampler;
+
+            @fragment
+            fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(outTex, outSampler, uv);
+            }
+        `;
+
+        // --- Application State ---
+        const IMG_WIDTH = 512;
+        const IMG_HEIGHT = 512;
+        let device, context, queue;
+        let computePipeline, renderPipeline;
+        let srcTexture, outputTexture;
+        let paramsBuffer;
+        let computeBindGroup, renderBindGroup;
+        let sampler;
+
+        let brightnessFactor = 1.5;
+        let renderRequested = false;
+
+        function showError(msg) {
+            const overlay = document.getElementById('error-overlay');
+            const content = document.getElementById('error-message');
+            content.innerText = msg;
+            overlay.style.display = 'flex';
+        }
+
+        // --- DX11 Image Loading Helper Pattern ---
+        async function loadImage(url, w, h) {
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.src = url;
+            });
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            return c;
+        }
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                throw new Error("브라우저가 WebGPU를 지원하지 않습니다. 최신 크롬 또는 엣지를 사용하세요.");
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                throw new Error("WebGPU 어댑터를 가져올 수 없습니다.");
+            }
+
+            device = await adapter.requestDevice();
+            queue = device.queue;
+
+            const canvas = document.getElementById('webgpu-canvas');
+            canvas.width = IMG_WIDTH;
+            canvas.height = IMG_HEIGHT;
+            context = canvas.getContext('webgpu');
+
+            const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: canvasFormat,
+                alphaMode: 'opaque'
+            });
+
+            // 1. Uniform Buffer 생성 (Params)
+            // WGSL struct Params requires 16-byte alignment (float + 3 padding floats)
+            paramsBuffer = device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // 2. Storage & Source Textures 생성
+            srcTexture = device.createTexture({
+                size: [IMG_WIDTH, IMG_HEIGHT, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+            });
+
+            outputTexture = device.createTexture({
+                size: [IMG_WIDTH, IMG_HEIGHT, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            // 3. Shaders & Pipelines 생성
+            const computeModule = device.createShaderModule({ code: computeShaderCode });
+            const renderModule = device.createShaderModule({ code: renderShaderCode });
+
+            // Compute Pipeline
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeModule,
+                    entryPoint: 'main'
+                }
+            });
+
+            // Render Pipeline (Fullscreen Quad Output)
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: canvasFormat }]
+                },
+                primitive: {
+                    topology: 'triangle-list'
+                }
+            });
+
+            // Bind Groups 생성
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: srcTexture.createView() },
+                    { binding: 1, resource: outputTexture.createView() },
+                    { binding: 2, resource: { buffer: paramsBuffer } }
+                ]
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: outputTexture.createView() },
+                    { binding: 1, resource: sampler }
+                ]
+            });
+
+            // Image load
+            try {
+                const srcCanvas = await loadImage('../../images/colosseum.jpg', IMG_WIDTH, IMG_HEIGHT);
+                const ctx = srcCanvas.getContext('2d');
+                const imgData = ctx.getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                
+                queue.writeTexture(
+                    { texture: srcTexture },
+                    imgData.data,
+                    { bytesPerRow: IMG_WIDTH * 4 },
+                    { width: IMG_WIDTH, height: IMG_HEIGHT }
+                );
+            } catch (err) {
+                console.warn("로컬 이미지 로드 실패, 절차적 그라데이션으로 대체합니다: ", err);
+                // Fallback: Create procedural gradient to simulate Colosseum
+                const fallbackCanvas = document.createElement('canvas');
+                fallbackCanvas.width = IMG_WIDTH;
+                fallbackCanvas.height = IMG_HEIGHT;
+                const ctx = fallbackCanvas.getContext('2d');
+                const grad = ctx.createLinearGradient(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                grad.addColorStop(0, '#f0a500');
+                grad.addColorStop(0.5, '#cf7500');
+                grad.addColorStop(1, '#1a1c20');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                
+                const imgData = ctx.getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                queue.writeTexture(
+                    { texture: srcTexture },
+                    imgData.data,
+                    { bytesPerRow: IMG_WIDTH * 4 },
+                    { width: IMG_WIDTH, height: IMG_HEIGHT }
+                );
+            }
+        }
+
+        function draw() {
+            renderRequested = false;
+
+            // 1. Params Buffer Update
+            const paramsData = new Float32Array([brightnessFactor, 0.0, 0.0, 0.0]);
+            queue.writeBuffer(paramsBuffer, 0, paramsData);
+
+            // 2. Command Encoder
+            const commandEncoder = device.createCommandEncoder();
+
+            // Compute Pass (Linear Tone Mapping & Brightness)
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            const workgroupSizeX = Math.ceil(IMG_WIDTH / 8);
+            const workgroupSizeY = Math.ceil(IMG_HEIGHT / 8);
+            computePass.dispatchWorkgroups(workgroupSizeX, workgroupSizeY);
+            computePass.end();
+
+            // Render Pass (Render storage texture to screen)
+            const renderPass = commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6); // Fullscreen Quad
+            renderPass.end();
+
+            queue.submit([commandEncoder.finish()]);
+        }
+
+        function scheduleRender() {
+            if (renderRequested) return;
+            renderRequested = true;
+            requestAnimationFrame(draw);
+        }
+
+        // --- UI Events Setup ---
+        function setupUI() {
+            const bSlider = document.getElementById('brightnessSlider');
+            const bVal = document.getElementById('brightnessVal');
+            const resetBtn = document.getElementById('resetBtn');
+
+            bSlider.addEventListener('input', (e) => {
+                brightnessFactor = parseFloat(e.target.value);
+                bVal.innerText = brightnessFactor.toFixed(2);
+                scheduleRender();
+            });
+
+            resetBtn.addEventListener('click', () => {
+                brightnessFactor = 1.5;
+                bSlider.value = 1.5;
+                bVal.innerText = "1.50";
+                scheduleRender();
+            });
+
+            // Make ImGui Window Dragable
+            const win = document.getElementById('controlPanel');
+            const titlebar = win.querySelector('.imgui-titlebar');
+            let isDragging = false;
+            let offset = [0, 0];
+
+            titlebar.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offset = [
+                    win.offsetLeft - e.clientX,
+                    win.offsetTop - e.clientY
+                ];
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                win.style.left = (e.clientX + offset[0]) + 'px';
+                win.style.top = (e.clientY + offset[1]) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        // --- Init & Start ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await initWebGPU();
+                setupUI();
+                scheduleRender();
+            } catch (err) {
+                showError(err.message || err);
+            }
+        });
+    </script>
+</body>
+</html>

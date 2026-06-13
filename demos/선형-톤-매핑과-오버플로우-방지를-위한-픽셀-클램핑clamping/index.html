@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/">
       
       
-        <link rel="prev" href="../1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/">
+        <link rel="prev" href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/">
       
-      
-        <link rel="next" href="../imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>[코드 리뷰] CPU 픽셀 버퍼 제어와 RGB 순환 애니메이션 구현 - Computer Graphics Portfolio</title>
+        <title>선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping) - Computer Graphics Portfolio</title>
       
     
     
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cpu-rgb" class="md-skip">
+        <a href="#clamping" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              [코드 리뷰] CPU 픽셀 버퍼 제어와 RGB 순환 애니메이션 구현
+              선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)
             
           </span>
         </div>
@@ -1025,19 +1023,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1053,7 +1042,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1203,10 +1191,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1222,6 +1219,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1272,7 +1270,7 @@
   
 
 
-<h1 id="cpu-rgb">[코드 리뷰] CPU 픽셀 버퍼 제어와 RGB 순환 애니메이션 구현</h1>
+<h1 id="clamping">선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)</h1>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
 <iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
