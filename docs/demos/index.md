@@ -161,6 +161,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[코드 리뷰] 이미지 밝기(Brightness) 조절의 기초와 픽셀 연산](코드-리뷰-이미지-밝기brightness-조절의-기초와-픽셀-연산.md)
+
+
+[→ 데모 열기](코드-리뷰-이미지-밝기brightness-조절의-기초와-픽셀-연산.md){.md-button}
+
+
+---
+
+
 ## [픽셀 버퍼 애니메이션 이해와 DirectX 11 적용](픽셀-버퍼-애니메이션-이해와-directx-11-적용.md)
 
 

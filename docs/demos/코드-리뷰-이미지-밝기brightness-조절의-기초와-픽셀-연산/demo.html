@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DirectX 11 — feat: add image brightening logic</title>
+  <style>
+    /* ImGui Dark Theme Styling */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #f1f1f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .imgui-window {
+      background-color: #1c1c1f;
+      border: 1px solid #3f3f46;
+      border-radius: 4px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      width: 840px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .imgui-titlebar {
+      background-color: #2d2d30;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 13px;
+      border-bottom: 1px solid #3f3f46;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .imgui-title {
+      color: #cccccc;
+    }
+
+    .imgui-controls-window {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 4px;
+      background-color: #252526;
+      border-bottom: 1px solid #3f3f46;
+    }
+
+    .imgui-control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+    }
+
+    .imgui-label {
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+
+    /* Range input styling resembling ImGui sliders */
+    .imgui-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 200px;
+      height: 18px;
+      background: #3e3e42;
+      border: 1px solid #555555;
+      outline: none;
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .imgui-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 16px;
+      background: #007acc;
+      cursor: pointer;
+      border-radius: 1px;
+    }
+
+    .imgui-slider::-moz-range-thumb {
+      width: 12px;
+      height: 16px;
+      background: #007acc;
+      cursor: pointer;
+      border-radius: 1px;
+      border: none;
+    }
+
+    .imgui-value {
+      font-family: monospace;
+      font-size: 12px;
+      min-width: 35px;
+      text-align: right;
+      background-color: #0f0f11;
+      padding: 2px 6px;
+      border: 1px solid #3f3f46;
+      border-radius: 2px;
+    }
+
+    .viewport-container {
+      background-color: #000000;
+      position: relative;
+      width: 800px;
+      height: 600px;
+      margin: 20px auto;
+      border: 1px solid #3f3f46;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Error Overlay */
+    #error-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(30, 30, 30, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      color: #ff6b6b;
+      font-weight: bold;
+      text-align: center;
+      padding: 20px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="imgui-window">
+    <!-- Title Bar -->
+    <div class="imgui-titlebar">
+      <span class="imgui-title">DirectX 11 — feat: add image brightening logic</span>
+      <div style="display: flex; gap: 6px;">
+        <span style="color:#555; font-size: 10px;">🗕</span>
+        <span style="color:#555; font-size: 10px;">🗖</span>
+        <span style="color:#f44; font-size: 10px; cursor: pointer;">🗙</span>
+      </div>
+    </div>
+
+    <!-- Parameter Controls (ImGui Style) -->
+    <div class="imgui-controls-window">
+      <div class="imgui-control-group">
+        <span class="imgui-label">밝기 조절 (Brightness multiplier)</span>
+        <input type="range" id="brightness-slider" class="imgui-slider" min="0.0" max="3.0" step="0.05" value="1.2">
+        <span id="brightness-val" class="imgui-value">1.20</span>
+      </div>
+      <div class="imgui-control-group" style="margin-left: auto;">
+        <span class="imgui-label" style="color: #007acc;">GPU Compute Pipeline Mode</span>
+      </div>
+    </div>
+
+    <!-- Canvas Viewport -->
+    <div class="viewport-container">
+      <div id="error-overlay">WebGPU를 지원하지 않는 브라우저이거나 초기화에 실패했습니다.</div>
+      <canvas id="webgpu-canvas" width="800" height="600"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 600;
+
+    // 이미지 로드 유틸리티
+    async function loadImage(url, w, h) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      
+      try {
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+          img.src = url;
+        });
+      } catch (err) {
+        console.warn(`${url} 로드 실패. 대체 그래디언트 패턴을 생성합니다.`);
+        // 이미지 로드 실패 시 Fallback (그라디언트 + 텍스처 그리드 생성)
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, w, h);
+        gradient.addColorStop(0, '#1e3c72');
+        gradient.addColorStop(0.5, '#2a5298');
+        gradient.addColorStop(1, '#f12711');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+        
+        ctx.fillStyle = "white";
+        ctx.font = "24px sans-serif";
+        ctx.fillText("DirectX 11 - WebGPU Brightening Mock", 50, h/2);
+        return c;
+      }
+
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c;
+    }
+
+    // WebGPU 애플리케이션 메인 흐름
+    async function main() {
+      const errorOverlay = document.getElementById('error-overlay');
+      if (!navigator.gpu) {
+        errorOverlay.style.display = 'flex';
+        return;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        errorOverlay.style.display = 'flex';
+        return;
+      }
+      const device = await adapter.requestDevice();
+
+      const canvas = document.getElementById('webgpu-canvas');
+      const context = canvas.getContext('webgpu');
+      const format = navigator.gpu.getPreferredCanvasFormat();
+
+      context.configure({
+        device: device,
+        format: format,
+        alphaMode: 'opaque'
+      });
+
+      // 1. 소스 이미지 로드 및 텍스처 초기화
+      const srcCanvas = await loadImage('../../images/colosseum.jpg', CANVAS_WIDTH, CANVAS_HEIGHT);
+      const imgData = srcCanvas.getContext('2d').getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      const inputTexture = device.createTexture({
+        size: [CANVAS_WIDTH, CANVAS_HEIGHT, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      });
+
+      device.queue.writeTexture(
+        { texture: inputTexture },
+        imgData.data,
+        { bytesPerRow: CANVAS_WIDTH * 4 },
+        { width: CANVAS_WIDTH, height: CANVAS_HEIGHT }
+      );
+
+      // 2. Storage Texture 생성 (UAV)
+      const outputTexture = device.createTexture({
+        size: [CANVAS_WIDTH, CANVAS_HEIGHT, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      });
+
+      // 3. Uniform Buffer 생성 (색상 파라미터 / 밝기 배수)
+      const paramsBufferSize = 16; // 16-byte alignment
+      const paramsBuffer = device.createBuffer({
+        size: paramsBufferSize,
+        usage: GPUTextureUsage.UNIFORM | GPUTextureUsage.COPY_DST,
+      });
+
+      // 4. Compute Pipeline 세팅 (밝기 로직 실행)
+      const computeShaderWGSL = `
+        struct Params {
+          brightness: f32,
+        }
+
+        @group(0) @binding(0) var<uniform> params: Params;
+        @group(0) @binding(1) var inputTex: texture_2d<f32>;
+        @group(0) @binding(2) var outputTex: texture_storage_2d<rgba8unorm, write>;
+
+        @compute @workgroup_size(8, 8)
+        fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+          let size = textureDimensions(inputTex);
+          if (id.x >= size.x || id.y >= size.y) {
+            return;
+          }
+          let coord = vec2i(id.xy);
+          let color = textureLoad(inputTex, coord, 0);
+
+          // DX11 이미지 밝기 조절 로직 재현: image.pixels[i].v[0] *= 1.2f
+          let brightened = vec4f(color.rgb * params.brightness, color.a);
+
+          textureStore(outputTex, coord, brightened);
+        }
+      `;
+
+      const computeModule = device.createShaderModule({ code: computeShaderWGSL });
+      const computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'cs_main',
+        }
+      });
+
+      const computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: paramsBuffer } },
+          { binding: 1, resource: inputTexture.createView() },
+          { binding: 2, resource: outputTexture.createView() }
+        ]
+      });
+
+      // 5. Render Pipeline 세팅 (Storage Texture를 Fullscreen Quad로 화면에 출력)
+      const renderShaderWGSL = `
+        struct VertexOutput {
+          @builtin(position) position: vec4f,
+          @location(0) uv: vec2f,
+        }
+
+        @vertex
+        fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+          var pos = array<vec2f, 6>(
+            vec2f(-1.0, -1.0),
+            vec2f( 1.0, -1.0),
+            vec2f(-1.0,  1.0),
+            vec2f(-1.0,  1.0),
+            vec2f( 1.0, -1.0),
+            vec2f( 1.0,  1.0)
+          );
+          var uv = array<vec2f, 6>(
+            vec2f(0.0, 1.0),
+            vec2f(1.0, 1.0),
+            vec2f(0.0, 0.0),
+            vec2f(0.0, 0.0),
+            vec2f(1.0, 1.0),
+            vec2f(1.0, 0.0)
+          );
+          var out: VertexOutput;
+          out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+          out.uv = uv[vertexIndex];
+          return out;
+        }
+
+        @group(0) @binding(0) var t_color: texture_2d<f32>;
+        @group(0) @binding(1) var s_color: sampler;
+
+        @fragment
+        fn fr_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSample(t_color, s_color, uv);
+        }
+      `;
+
+      const renderModule = device.createShaderModule({ code: renderShaderWGSL });
+      const renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: renderModule,
+          entryPoint: 'vs_main'
+        },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fr_main',
+          targets: [{ format: format }]
+        }
+      });
+
+      const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear',
+      });
+
+      const renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: outputTexture.createView() },
+          { binding: 1, resource: sampler }
+        ]
+      });
+
+      // UI 및 인터랙션 상태 관리
+      const brightnessSlider = document.getElementById('brightness-slider');
+      const brightnessValText = document.getElementById('brightness-val');
+
+      let currentBrightness = parseFloat(brightnessSlider.value);
+
+      // CPU-GPU 데이터 바인딩 업데이트 및 실행
+      function render() {
+        // 1. Uniform 데이터 업데이트
+        const paramsArray = new Float32Array(4); // 16 bytes (padding 포함)
+        paramsArray[0] = currentBrightness;
+        device.queue.writeBuffer(paramsBuffer, 0, paramsArray);
+
+        // 2. Command Encoder 생성
+        const commandEncoder = device.createCommandEncoder();
+
+        // 3. Compute Pass (밝기 조절 연산)
+        const computePass = commandEncoder.beginComputePass();
+        computePass.setPipeline(computePipeline);
+        computePass.setBindGroup(0, computeBindGroup);
+        // [numthreads(8,8,1)] 에 정밀 매핑하여 디스패치
+        computePass.dispatchWorkgroups(Math.ceil(CANVAS_WIDTH / 8), Math.ceil(CANVAS_HEIGHT / 8), 1);
+        computePass.end();
+
+        // 4. Render Pass (화면 렌더링)
+        const renderPass = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: { r: 0.101, g: 0.101, b: 0.117, a: 1.0 }, // #1a1a2e 느낌의 클리어 컬러
+            loadOp: 'clear',
+            storeOp: 'store'
+          }]
+        });
+        renderPass.setPipeline(renderPipeline);
+        renderPass.setBindGroup(0, renderBindGroup);
+        renderPass.draw(6); // Fullscreen Quad (6 vertices)
+        renderPass.end();
+
+        // 5. Submit
+        device.queue.submit([commandEncoder.finish()]);
+      }
+
+      // RAF 중복 호출을 배제하는 스케줄러 정의
+      let renderRequested = false;
+      function scheduleRender() {
+        if (!renderRequested) {
+          renderRequested = true;
+          requestAnimationFrame(() => {
+            render();
+            renderRequested = false;
+          });
+        }
+      }
+
+      // UI 입력 이벤트 리스너 바인딩
+      brightnessSlider.addEventListener('input', (e) => {
+        currentBrightness = parseFloat(e.target.value);
+        brightnessValText.textContent = currentBrightness.toFixed(2);
+        scheduleRender();
+      });
+
+      // 최초 드로우 프레임 요청
+      scheduleRender();
+    }
+
+    // 초기화 시작
+    main();
+  </script>
+</body>
+</html>
