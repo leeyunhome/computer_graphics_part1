@@ -35,6 +35,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [DirectX 11 그래픽스 파이프라인의 첫 걸음: Window 및 디바이스 초기화](directx-11-그래픽스-파이프라인의-첫-걸음-window-및-디바이.md)
+
+
+[→ 데모 열기](directx-11-그래픽스-파이프라인의-첫-걸음-window-및-디바이.md){.md-button}
+
+
+---
+
+
 ## [DirectX 11/C++ 그래픽스 스터디: 첫 커밋 분석](directx-11c-그래픽스-스터디-첫-커밋-분석.md)
 
 

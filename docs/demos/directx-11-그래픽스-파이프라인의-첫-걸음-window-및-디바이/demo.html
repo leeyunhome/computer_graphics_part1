@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — first commit</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Consolas', 'Courier New', monospace;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #app-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      display: block;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      border: 1px solid #2e2e4a;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* ImGui 스타일의 컨트롤 패널 */
+    .imgui-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      background-color: rgba(28, 28, 38, 0.95);
+      border: 1px solid #4a4a6a;
+      border-radius: 4px;
+      box-shadow: 5px 5px 20px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+
+    .imgui-titlebar {
+      background: linear-gradient(90deg, #3a3a5a, #23233a);
+      padding: 6px 10px;
+      font-weight: bold;
+      font-size: 12px;
+      border-bottom: 1px solid #4a4a6a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+    }
+
+    .imgui-content {
+      padding: 12px;
+      font-size: 11px;
+    }
+
+    .imgui-group {
+      margin-bottom: 14px;
+      border-bottom: 1px solid #2e2e4a;
+      padding-bottom: 8px;
+    }
+
+    .imgui-group:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .imgui-group-title {
+      color: #00ffcc;
+      font-weight: bold;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    .imgui-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 8px;
+    }
+
+    .imgui-row label {
+      margin-bottom: 4px;
+      color: #aaaaaa;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .imgui-row label span {
+      color: #00ffcc;
+    }
+
+    .imgui-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 커스텀 슬라이더 스타일 */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: #10101a;
+      height: 14px;
+      border: 1px solid #4a4a6a;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #007acc;
+      cursor: pointer;
+      border-radius: 2px;
+      border: 1px solid #00ffcc;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      background: #0098ff;
+    }
+
+    /* 오류 출력 */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(10, 10, 20, 0.95);
+      color: #ff5555;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      font-size: 16px;
+      text-align: center;
+      padding: 20px;
+    }
+    #error-overlay h1 { font-size: 24px; margin-bottom: 10px; }
+    #error-overlay p { font-family: sans-serif; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="error-overlay" class="hidden">
+    <h1>WebGPU 초기화 실패</h1>
+    <p id="error-message">이 브라우저는 WebGPU를 지원하지 않거나 설정이 비활성화되어 있습니다.</p>
+  </div>
+
+  <div id="app-container">
+    <!-- UI Panel (ImGui Style) -->
+    <div class="imgui-panel" id="guiPanel">
+      <div class="imgui-titlebar">
+        <span>DirectX 11 — first commit</span>
+        <span style="color: #00ffcc; font-size: 10px;">● ACTIVE</span>
+      </div>
+      <div class="imgui-content">
+        
+        <div class="imgui-group">
+          <div class="imgui-group-title">뷰포트 설정 (Mandelbrot)</div>
+          
+          <div class="imgui-row">
+            <label>중심 X (CenterX): <span id="val_centerX">-0.700</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_centerX" min="-2.000" max="1.000" step="0.001" value="-0.700">
+            </div>
+          </div>
+
+          <div class="imgui-row">
+            <label>중심 Y (CenterY): <span id="val_centerY">0.000</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_centerY" min="-1.500" max="1.500" step="0.001" value="0.000">
+            </div>
+          </div>
+
+          <div class="imgui-row">
+            <label>줌 배율 (Zoom): <span id="val_zoom">1.500</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_zoom" min="0.001" max="3.000" step="0.001" value="1.500">
+            </div>
+          </div>
+        </div>
+
+        <div class="imgui-group">
+          <div class="imgui-group-title">컴퓨트 세이더 파라미터</div>
+          
+          <div class="imgui-row">
+            <label>최대 루프 횟수: <span id="val_maxIter">128</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_maxIter" min="10" max="500" step="1" value="128">
+            </div>
+          </div>
+
+          <div class="imgui-row">
+            <label>색상 주기 R: <span id="val_phaseR">2.1</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_phaseR" min="0.0" max="6.28" step="0.05" value="2.10">
+            </div>
+          </div>
+
+          <div class="imgui-row">
+            <label>색상 주기 G: <span id="val_phaseG">1.5</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_phaseG" min="0.0" max="6.28" step="0.05" value="1.50">
+            </div>
+          </div>
+
+          <div class="imgui-row">
+            <label>색상 주기 B: <span id="val_phaseB">0.8</span></label>
+            <div class="imgui-slider-container">
+              <input type="range" id="slider_phaseB" min="0.0" max="6.28" step="0.05" value="0.80">
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 9px; color: #666; text-align: right;">
+          Render: Compute-to-Raster Pipeline
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <canvas id="gpuCanvas" width="1280" height="720"></canvas>
+  </div>
+
+  <script type="module">
+    // --- 셰이더 코드 정의 (WGSL) ---
+
+    // 1. Compute Shader: RWTexture2D 및 Uniform Buffer를 사용한 만델브로트 연산
+    const computeShaderCode = `
+      struct Params {
+        center: vec2f,
+        zoom: f32,
+        max_iterations: f32,
+        color_phase: vec3f,
+        _padding: f32,
+      }
+
+      @group(0) @binding(0) var<uniform> params: Params;
+      @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+
+      @compute @workgroup_size(8, 8)
+      fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(out_tex);
+        if (id.x >= size.x || id.y >= size.y) {
+          return;
+        }
+
+        // aspect ratio 보정 계산
+        let aspect = f32(size.x) / f32(size.y);
+        let uv = (vec2f(id.xy) - vec2f(size) * 0.5) / f32(size.y);
+        
+        // 프랙탈 공간 매핑
+        let c = params.center + uv * params.zoom;
+        
+        var z = vec2f(0.0, 0.0);
+        var iter = 0.0;
+        let max_i = params.max_iterations;
+
+        // GPU TDR 방지 하드 리밋(500)
+        for (var i: u32 = 0u; i < 500u; i = i + 1u) {
+          if (f32(i) >= max_i || dot(z, z) > 4.0) {
+            break;
+          }
+          z = vec2f(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+          iter = iter + 1.0;
+        }
+
+        var color = vec4f(0.0, 0.0, 0.0, 1.0);
+        if (iter < max_i) {
+          // 연속 채색 알고리즘 (Smooth coloring)
+          let nu = log2(log(dot(z, z)) / 2.0);
+          let iter_smooth = iter + 1.0 - nu;
+          let t = iter_smooth / max_i;
+          
+          let r = sin(t * 10.0 + params.color_phase.x) * 0.5 + 0.5;
+          let g = sin(t * 15.0 + params.color_phase.y) * 0.5 + 0.5;
+          let b = sin(t * 20.0 + params.color_phase.z) * 0.5 + 0.5;
+          color = vec4f(r, g, b, 1.0);
+        } else {
+          color = vec4f(0.02, 0.02, 0.05, 1.0);
+        }
+
+        textureStore(out_tex, id.xy, color);
+      }
+    `;
+
+    // 2. Fullscreen Render Shader (Vertex & Fragment)
+    const renderShaderCode = `
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+      }
+
+      @vertex
+      fn vs_main(@builtin(vertex_index) index: u32) -> VertexOutput {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0),
+          vec2f( 1.0, -1.0),
+          vec2f(-1.0,  1.0),
+          vec2f(-1.0,  1.0),
+          vec2f( 1.0, -1.0),
+          vec2f( 1.0,  1.0)
+        );
+        var uv = array<vec2f, 6>(
+          vec2f(0.0, 1.0),
+          vec2f(1.0, 1.0),
+          vec2f(0.0, 0.0),
+          vec2f(0.0, 0.0),
+          vec2f(1.0, 1.0),
+          vec2f(1.0, 0.0)
+        );
+
+        var out: VertexOutput;
+        out.position = vec4f(pos[index], 0.0, 1.0);
+        out.uv = uv[index];
+        return out;
+      }
+
+      @group(0) @binding(0) var in_sampler: sampler;
+      @group(0) @binding(1) var in_tex: texture_2d<f32>;
+
+      @fragment
+      fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        return textureSample(in_tex, in_sampler, uv);
+      }
+    `;
+
+    // --- WebGPU 메인 애플리케이션 구조 ---
+    
+    let device, context;
+    let computePipeline, renderPipeline;
+    let uniformBuffer;
+    let storageTexture, storageTextureView;
+    let computeBindGroup, renderBindGroup;
+    let sampler;
+
+    const canvas = document.getElementById('gpuCanvas');
+    const width = 1280;
+    const height = 720;
+
+    // GUI 요소 캐싱
+    const elements = {
+      centerX: document.getElementById('slider_centerX'),
+      centerY: document.getElementById('slider_centerY'),
+      zoom: document.getElementById('slider_zoom'),
+      maxIter: document.getElementById('slider_maxIter'),
+      phaseR: document.getElementById('slider_phaseR'),
+      phaseG: document.getElementById('slider_phaseG'),
+      phaseB: document.getElementById('slider_phaseB'),
+      
+      val_centerX: document.getElementById('val_centerX'),
+      val_centerY: document.getElementById('val_centerY'),
+      val_zoom: document.getElementById('val_zoom'),
+      val_maxIter: document.getElementById('val_maxIter'),
+      val_phaseR: document.getElementById('val_phaseR'),
+      val_phaseG: document.getElementById('val_phaseG'),
+      val_phaseB: document.getElementById('val_phaseB'),
+    };
+
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        showError("이 브라우저는 WebGPU를 지원하지 않습니다. 최신 Chrome 또는 Edge 브라우저를 사용해 주세요.");
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        showError("WebGPU 어댑터를 찾지 못했습니다.");
+        return false;
+      }
+
+      device = await adapter.requestDevice();
+      context = canvas.getContext('webgpu');
+
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device: device,
+        format: format,
+        alphaMode: 'opaque'
+      });
+
+      return true;
+    }
+
+    function createPipelines() {
+      // 1. Compute Pipeline 생성
+      const computeModule = device.createShaderModule({ code: computeShaderCode });
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'cs_main'
+        }
+      });
+
+      // 2. Render Pipeline 생성
+      const renderModule = device.createShaderModule({ code: renderShaderCode });
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: renderModule,
+          entryPoint: 'vs_main'
+        },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+        },
+        primitive: {
+          topology: 'triangle-list'
+        }
+      });
+    }
+
+    function createResources() {
+      // Uniform Buffer 생성 (32 bytes 정렬 필요)
+      // struct Params { center: vec2f(8), zoom: f32(4), max_iterations: f32(4), color_phase: vec3f(12), _padding: f32(4) }
+      uniformBuffer = device.createBuffer({
+        size: 32,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // Storage Texture 생성 (컴퓨트 셰이더 결과 출력 및 프래그먼트 셰이더 입력 겸용)
+      storageTexture = device.createTexture({
+        size: [width, height, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+      storageTextureView = storageTexture.createView();
+
+      // Sampler 생성
+      sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+
+      // Bind Groups 자동 레이아웃 기반 생성
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: storageTextureView }
+        ]
+      });
+
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: sampler },
+          { binding: 1, resource: storageTextureView }
+        ]
+      });
+    }
+
+    // 버퍼로 제어 변수들 쓰기
+    function updateUniforms() {
+      const centerX = parseFloat(elements.centerX.value);
+      const centerY = parseFloat(elements.centerY.value);
+      const zoom = parseFloat(elements.zoom.value);
+      const maxIter = parseFloat(elements.maxIter.value);
+      const phaseR = parseFloat(elements.phaseR.value);
+      const phaseG = parseFloat(elements.phaseG.value);
+      const phaseB = parseFloat(elements.phaseB.value);
+
+      // UI 텍스트 업데이트
+      elements.val_centerX.textContent = centerX.toFixed(3);
+      elements.val_centerY.textContent = centerY.toFixed(3);
+      elements.val_zoom.textContent = zoom.toFixed(3);
+      elements.val_maxIter.textContent = Math.round(maxIter).toString();
+      elements.val_phaseR.textContent = phaseR.toFixed(2);
+      elements.val_phaseG.textContent = phaseG.toFixed(2);
+      elements.val_phaseB.textContent = phaseB.toFixed(2);
+
+      // Float32 Array (32 bytes 크기)
+      const dataArray = new Float32Array([
+        centerX, centerY,     // center (vec2f)
+        zoom,                 // zoom
+        maxIter,              // max_iterations
+        phaseR, phaseG, phaseB,// color_phase (vec3f)
+        0.0                   // padding
+      ]);
+
+      device.queue.writeBuffer(uniformBuffer, 0, dataArray.buffer);
+    }
+
+    let renderRequested = false;
+
+    function scheduleRender() {
+      if (renderRequested) return;
+      renderRequested = true;
+      requestAnimationFrame(() => {
+        render();
+        renderRequested = false;
+      });
+    }
+
+    function render() {
+      updateUniforms();
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // Step 1: Compute Pass 실행 (DirectX 11 Dispatch 유사)
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      
+      const workgroupSizeX = 8;
+      const workgroupSizeY = 8;
+      const dispatchX = Math.ceil(width / workgroupSizeX);
+      const dispatchY = Math.ceil(height / workgroupSizeY);
+      computePass.dispatchWorkgroups(dispatchX, dispatchY, 1);
+      computePass.end();
+
+      // Step 2: Render Pass 실행 (Storage Texture를 Screen에 Fullscreen Quad로 출력)
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6); // 6 vertices -> Fullscreen Quad
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+    }
+
+    function showError(msg) {
+      const overlay = document.getElementById('error-overlay');
+      const text = document.getElementById('error-message');
+      text.textContent = msg;
+      overlay.classList.remove('hidden');
+    }
+
+    // --- UI 조작 및 드래그 이벤트 설정 ---
+    function setupUI() {
+      const inputs = [
+        elements.centerX, elements.centerY, elements.zoom,
+        elements.maxIter, elements.phaseR, elements.phaseG, elements.phaseB
+      ];
+
+      inputs.forEach(input => {
+        input.addEventListener('input', scheduleRender);
+      });
+
+      // ImGui 윈도우 마우스 드래깅 로직
+      const panel = document.getElementById('guiPanel');
+      const titlebar = panel.querySelector('.imgui-titlebar');
+      let isDragging = false;
+      let offsetX, offsetY;
+
+      titlebar.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offsetX = e.clientX - panel.offsetLeft;
+        offsetY = e.clientY - panel.offsetTop;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panel.style.left = `${e.clientX - offsetX}px`;
+        panel.style.top = `${e.clientY - offsetY}px`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+    }
+
+    // 초기화 엔트리포인트
+    async function main() {
+      const ok = await initWebGPU();
+      if (!ok) return;
+
+      createPipelines();
+      createResources();
+      setupUI();
+      
+      // 첫 프레임 강제 드로우
+      scheduleRender();
+    }
+
+    main();
+  </script>
+</body>
+</html>
