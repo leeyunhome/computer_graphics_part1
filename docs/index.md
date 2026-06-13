@@ -108,6 +108,11 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)</strong><br><br>
+<a href="demos/선형-톤-매핑과-오버플로우-방지를-위한-픽셀-클램핑clamping/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작</strong><br><br>
 <a href="demos/이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작/">데모 보기 →</a>
 </div>
