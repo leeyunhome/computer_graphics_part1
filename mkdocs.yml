@@ -61,3 +61,4 @@ nav:
     - Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해: demos/box-blur-5x5-수평-패스-구현-및-분리형-컨볼루션-이해.md
     - DirectX 11/C++ 그래픽스 스터디: 첫 커밋 분석: demos/directx-11c-그래픽스-스터디-첫-커밋-분석.md
     - 학습자 커밋 분석: add source code: demos/학습자-커밋-분석-add-source-code.md
+    - 픽셀 조작을 통한 캔버스 초기화 이해: (2,0) 위치에 파란색 픽셀 추가: demos/픽셀-조작을-통한-캔버스-초기화-이해-20-위치에-파란색-픽셀-추가.md
