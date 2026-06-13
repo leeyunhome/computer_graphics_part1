@@ -296,8 +296,8 @@
         `;
 
         // --- Application State ---
-        const IMG_WIDTH = 512;
-        const IMG_HEIGHT = 512;
+        let IMG_WIDTH = 800;
+        let IMG_HEIGHT = 600;
         let device, context, queue;
         let computePipeline, renderPipeline;
         let srcTexture, outputTexture;
@@ -315,14 +315,17 @@
             overlay.style.display = 'flex';
         }
 
-        // --- DX11 Image Loading Helper Pattern ---
-        async function loadImage(url, w, h) {
+        // 이미지를 원본 비율로 로드 (최대 크기 제한)
+        async function loadImageNaturalSize(url, maxW, maxH) {
             const img = new Image();
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
                 img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
                 img.src = url;
             });
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
             const c = document.createElement('canvas');
             c.width = w; c.height = h;
             c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -342,6 +345,28 @@
             device = await adapter.requestDevice();
             queue = device.queue;
 
+            // 이미지를 먼저 로드해서 원본 비율로 캔버스 크기 결정
+            let imgData;
+            try {
+                const srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 800, 600);
+                IMG_WIDTH = srcCanvas.width;
+                IMG_HEIGHT = srcCanvas.height;
+                imgData = srcCanvas.getContext('2d').getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
+            } catch (err) {
+                console.warn("이미지 로드 실패, 그라데이션으로 대체합니다:", err);
+                IMG_WIDTH = 800; IMG_HEIGHT = 600;
+                const fb = document.createElement('canvas');
+                fb.width = IMG_WIDTH; fb.height = IMG_HEIGHT;
+                const ctx = fb.getContext('2d');
+                const grad = ctx.createLinearGradient(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                grad.addColorStop(0, '#f0a500');
+                grad.addColorStop(0.5, '#cf7500');
+                grad.addColorStop(1, '#1a1c20');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
+                imgData = ctx.getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
+            }
+
             const canvas = document.getElementById('webgpu-canvas');
             canvas.width = IMG_WIDTH;
             canvas.height = IMG_HEIGHT;
@@ -354,8 +379,7 @@
                 alphaMode: 'opaque'
             });
 
-            // 1. Uniform Buffer 생성 (Params)
-            // WGSL struct Params requires 16-byte alignment (float + 3 padding floats)
+            // 1. Uniform Buffer 생성
             paramsBuffer = device.createBuffer({
                 size: 16,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -374,6 +398,14 @@
                 usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
             });
 
+            // 이미지 데이터 업로드
+            queue.writeTexture(
+                { texture: srcTexture },
+                imgData.data,
+                { bytesPerRow: IMG_WIDTH * 4 },
+                { width: IMG_WIDTH, height: IMG_HEIGHT }
+            );
+
             sampler = device.createSampler({
                 magFilter: 'linear',
                 minFilter: 'linear'
@@ -383,33 +415,22 @@
             const computeModule = device.createShaderModule({ code: computeShaderCode });
             const renderModule = device.createShaderModule({ code: renderShaderCode });
 
-            // Compute Pipeline
             computePipeline = device.createComputePipeline({
                 layout: 'auto',
-                compute: {
-                    module: computeModule,
-                    entryPoint: 'main'
-                }
+                compute: { module: computeModule, entryPoint: 'main' }
             });
 
-            // Render Pipeline (Fullscreen Quad Output)
             renderPipeline = device.createRenderPipeline({
                 layout: 'auto',
-                vertex: {
-                    module: renderModule,
-                    entryPoint: 'vs_main'
-                },
+                vertex: { module: renderModule, entryPoint: 'vs_main' },
                 fragment: {
                     module: renderModule,
                     entryPoint: 'fs_main',
                     targets: [{ format: canvasFormat }]
                 },
-                primitive: {
-                    topology: 'triangle-list'
-                }
+                primitive: { topology: 'triangle-list' }
             });
 
-            // Bind Groups 생성
             computeBindGroup = device.createBindGroup({
                 layout: computePipeline.getBindGroupLayout(0),
                 entries: [
@@ -426,41 +447,6 @@
                     { binding: 1, resource: sampler }
                 ]
             });
-
-            // Image load
-            try {
-                const srcCanvas = await loadImage('../../images/colosseum.jpg', IMG_WIDTH, IMG_HEIGHT);
-                const ctx = srcCanvas.getContext('2d');
-                const imgData = ctx.getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
-                
-                queue.writeTexture(
-                    { texture: srcTexture },
-                    imgData.data,
-                    { bytesPerRow: IMG_WIDTH * 4 },
-                    { width: IMG_WIDTH, height: IMG_HEIGHT }
-                );
-            } catch (err) {
-                console.warn("로컬 이미지 로드 실패, 절차적 그라데이션으로 대체합니다: ", err);
-                // Fallback: Create procedural gradient to simulate Colosseum
-                const fallbackCanvas = document.createElement('canvas');
-                fallbackCanvas.width = IMG_WIDTH;
-                fallbackCanvas.height = IMG_HEIGHT;
-                const ctx = fallbackCanvas.getContext('2d');
-                const grad = ctx.createLinearGradient(0, 0, IMG_WIDTH, IMG_HEIGHT);
-                grad.addColorStop(0, '#f0a500');
-                grad.addColorStop(0.5, '#cf7500');
-                grad.addColorStop(1, '#1a1c20');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
-                
-                const imgData = ctx.getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
-                queue.writeTexture(
-                    { texture: srcTexture },
-                    imgData.data,
-                    { bytesPerRow: IMG_WIDTH * 4 },
-                    { width: IMG_WIDTH, height: IMG_HEIGHT }
-                );
-            }
         }
 
         function draw() {
