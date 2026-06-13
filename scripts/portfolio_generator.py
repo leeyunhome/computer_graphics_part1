@@ -234,9 +234,18 @@ def rebuild_posts_index():
 
 def rebuild_homepage():
     """docs/index.md 의 데모 카드와 최근 포스트 목록을 현재 상태로 갱신합니다."""
-    # 데모 목록 (index.md 제외, 알파벳순)
+    def _demo_mtime(demo_slug):
+        """demo.html 수정 시간 반환 — 없으면 float('inf') (맨 뒤 배치)."""
+        demo_html = os.path.join(DEMOS_PATH, demo_slug, 'demo.html')
+        try:
+            return os.path.getmtime(demo_html)
+        except OSError:
+            return float('inf')
+
+    # 데모 목록 (index.md 제외, demo.html 수정 시간 오름차순 — 파일 없는 항목은 맨 뒤)
     demo_pages = sorted(
-        [f for f in os.listdir(DEMOS_PATH) if f.endswith('.md') and f != 'index.md']
+        [f for f in os.listdir(DEMOS_PATH) if f.endswith('.md') and f != 'index.md'],
+        key=lambda f: _demo_mtime(f[:-3])
     )
     # 최근 포스트 5개 (날짜 역순)
     recent_posts = sorted(
