@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/">
       
       
-        <link rel="prev" href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/">
+        <link rel="prev" href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/">
       
-      
-        <link rel="next" href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>ImGui를 활용한 캔버스 배경색 제어 구현 - Computer Graphics Portfolio</title>
+        <title>실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현 - Computer Graphics Portfolio</title>
       
     
     
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#imgui" class="md-skip">
+        <a href="#pixel-decay" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ImGui를 활용한 캔버스 배경색 제어 구현
+              실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현
             
           </span>
         </div>
@@ -829,19 +827,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -857,7 +846,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1259,10 +1247,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1278,6 +1275,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1328,7 +1326,7 @@
   
 
 
-<h1 id="imgui">ImGui를 활용한 캔버스 배경색 제어 구현</h1>
+<h1 id="pixel-decay">실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현</h1>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
 <iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
