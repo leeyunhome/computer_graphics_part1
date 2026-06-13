@@ -38,6 +38,11 @@ graph LR
 <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해</strong><br><br>
+<a href="demos/box-blur-5x5-수평-패스-구현-및-분리형-컨볼루션-이해/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰</strong><br><br>
 <a href="demos/boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰/">데모 보기 →</a>
 </div>
@@ -75,10 +80,10 @@ graph LR
 
 ## 최근 학습 포스트
 
+- [Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해](posts/2026-06-13-box-blur-5x5-수평-패스-구현-및-분리형-컨볼루션-이해.md) <small style='color:#64748b'>(2026-06-13)</small>
 - [이미지 밝기 조절 로직 추가: 픽셀 단위 연산의 시작](posts/2026-06-11-이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작.md) <small style='color:#64748b'>(2026-06-11)</small>
 - [BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰](posts/2026-06-11-boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰.md) <small style='color:#64748b'>(2026-06-11)</small>
 - [학습자의 DirectX 11 / C++ 그래픽스 스터디 커밋 분석: 입력 이미지 및 렌더 타겟 클리어 색상 변경](posts/2026-06-10-학습자의-directx-11-c-그래픽스-스터디-커밋-분석-입력-이미지-및-렌더-타겟-클리어-색상-변경.md) <small style='color:#64748b'>(2026-06-10)</small>
 - [이미지 밝기 조절: 픽셀 값 직접 조작하기](posts/2026-06-10-이미지-밝기-조절-픽셀-값-직접-조작하기.md) <small style='color:#64748b'>(2026-06-10)</small>
-- [이미지 밝기 조절 로직 구현 피드백](posts/2026-06-10-이미지-밝기-조절-로직-구현-피드백.md) <small style='color:#64748b'>(2026-06-10)</small>
 
 [모든 포스트 보기 →](posts/index.md)
