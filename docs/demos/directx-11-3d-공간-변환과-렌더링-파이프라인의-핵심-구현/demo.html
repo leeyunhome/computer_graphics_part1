@@ -489,7 +489,7 @@
       // 3. Uniform Buffer 구조체 생성 (시간, 강도 조절 파라미터)
       const uniformBuffer = device.createBuffer({
         size: 32, // f32 8개
-        usage: GPUTextureUsage.COPY_DST | GPUBufferUsage.UNIFORM
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
       });
 
       const paramsArray = new Float32Array(8);
