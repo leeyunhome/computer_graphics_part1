@@ -152,6 +152,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현](리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추.md)
+
+
+[→ 데모 열기](리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추.md){.md-button}
+
+
+---
+
+
 ## [선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)](선형-톤-매핑과-오버플로우-방지를-위한-픽셀-클램핑clamping.md)
 
 
