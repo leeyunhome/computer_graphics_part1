@@ -407,7 +407,13 @@
         return c;
     }
 
+    let _rafId = null;
+    let _currentDevice = null;
+
     async function init() {
+        if (_rafId !== null) { cancelAnimationFrame(_rafId); _rafId = null; }
+        if (_currentDevice) { _currentDevice.destroy(); _currentDevice = null; }
+
         if (!navigator.gpu) {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('error-message').textContent = "이 브라우저에서는 WebGPU를 지원하지 않습니다. Chrome/Edge/Firefox 최신 버전을 사용하십시오.";
@@ -422,6 +428,7 @@
         }
 
         const device = await adapter.requestDevice();
+        _currentDevice = device;
         const canvas = document.getElementById('gpu-canvas');
         const context = canvas.getContext('webgpu');
 
@@ -735,10 +742,10 @@
             const end = performance.now();
             txtFps.textContent = `Frame Time: ${(end - start).toFixed(2)} ms`;
 
-            requestAnimationFrame(frame);
+            _rafId = requestAnimationFrame(frame);
         }
 
-        requestAnimationFrame(frame);
+        _rafId = requestAnimationFrame(frame);
     }
 
     init();
