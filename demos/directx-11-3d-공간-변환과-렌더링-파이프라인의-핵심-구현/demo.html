@@ -378,8 +378,8 @@
 
     const canvas = document.getElementById('gpu-canvas');
     const errOverlay = document.getElementById('error-overlay');
-    const W = 800;
-    const H = 600;
+    let W = 800;
+    let H = 600;
 
     // UI 요소 연동
     const animEnable = document.getElementById('anim-enable');
@@ -401,15 +401,18 @@
     sliderScale.oninput = () => valScale.textContent = parseFloat(sliderScale.value).toFixed(1);
     sliderSpeed.oninput = () => valSpeed.textContent = parseFloat(sliderSpeed.value).toFixed(2);
 
-    // 이미지 로더 구현
-    async function loadImage(url, w, h) {
+    // 이미지 로더 구현 (자연 크기 유지)
+    async function loadImageNaturalSize(url, maxW, maxH) {
       const img = new Image();
       img.crossOrigin = "anonymous";
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
         img.src = url;
       });
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -439,7 +442,7 @@
       // 1. 소스 이미지 로드 및 GPU 리소스 바인딩
       let srcCanvas;
       try {
-        srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
       } catch (err) {
         console.warn("로컬 이미지를 찾을 수 없어 절차적 백업 텍스처를 생성합니다.");
         srcCanvas = document.createElement('canvas');
@@ -457,6 +460,11 @@
           ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke();
         }
       }
+
+      W = srcCanvas.width;
+      H = srcCanvas.height;
+      canvas.width = W;
+      canvas.height = H;
 
       const srcData = srcCanvas.getContext('2d').getImageData(0, 0, W, H).data;
 

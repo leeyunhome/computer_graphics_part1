@@ -313,8 +313,8 @@
     // | cbuffer                     | struct Params + var<uniform>            |
     // | Dispatch(W/8, H/8, 1)     | dispatchWorkgroups(ceil(W/8), ceil(H/8))|
 
-    const imageWidth = 512;
-    const imageHeight = 512;
+    let imageWidth = 512;
+    let imageHeight = 512;
 
     // UI elements
     const btnPlayPause = document.getElementById('btn-play-pause');
@@ -364,17 +364,19 @@
         requestReset = true;
     });
 
-    // Required Image Loader matching exactly the requested pattern
-    async function loadImage(url, w, h) {
+    // Natural-size image loader: scales image to fit within maxW x maxH while preserving aspect ratio
+    async function loadImageNaturalSize(url, maxW, maxH) {
         const img = new Image();
         await new Promise((resolve, reject) => {
             img.onload = resolve;
-            img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+            img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
             img.src = url;
         });
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
         const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
+        c.width = w; c.height = h;
         c.getContext('2d').drawImage(img, 0, 0, w, h);
         return c;
     }
@@ -397,21 +399,10 @@
         const canvas = document.getElementById('gpu-canvas');
         const context = canvas.getContext('webgpu');
 
-        // Set high DPI canvas bounds
-        canvas.width = imageWidth;
-        canvas.height = imageHeight;
-
-        const format = navigator.gpu.getPreferredCanvasFormat();
-        context.configure({
-            device: device,
-            format: format,
-            alphaMode: 'opaque'
-        });
-
-        // 1. Load Source Image (Colosseum)
+        // 1. Load Source Image (Colosseum) at natural size
         let srcCanvas;
         try {
-            srcCanvas = await loadImage('../../images/colosseum.jpg', imageWidth, imageHeight);
+            srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1024, 1024);
         } catch (err) {
             console.warn(err.message + ". 절차적 기본 그라디언트 맵을 대신 생성합니다.");
             // Fallback gradient in case path structure differs locally
@@ -431,6 +422,21 @@
             ctx.arc(imageWidth * 0.5, imageHeight * 0.4, 50, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        // Set width/height from the loaded canvas (natural aspect ratio)
+        imageWidth = srcCanvas.width;
+        imageHeight = srcCanvas.height;
+
+        // Set canvas element dimensions to match image
+        canvas.width = imageWidth;
+        canvas.height = imageHeight;
+
+        const format = navigator.gpu.getPreferredCanvasFormat();
+        context.configure({
+            device: device,
+            format: format,
+            alphaMode: 'opaque'
+        });
 
         const imageData = srcCanvas.getContext('2d').getImageData(0, 0, imageWidth, imageHeight);
 

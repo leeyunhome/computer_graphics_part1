@@ -271,8 +271,8 @@
         // --- Application Setup ---
 
         const canvas = document.getElementById('webgpu-canvas');
-        const W = canvas.width;
-        const H = canvas.height;
+        let W = canvas.width;
+        let H = canvas.height;
 
         let device, context, presentationFormat;
         let pipelineCompute, pipelineRender;
@@ -286,13 +286,16 @@
         let brightness = 1.2;
         let blurEnabled = true;
 
-        async function loadImage(url, w, h) {
+        async function loadImageNaturalSize(url, maxW, maxH) {
             const img = new Image();
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
-                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
                 img.src = url;
             });
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
             const c = document.createElement('canvas');
             c.width = w; c.height = h;
             c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -326,7 +329,11 @@
             // 1. 소스 이미지 로드 (실패 시 절차적 무늬로 대체)
             let srcCanvas;
             try {
-                srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+                srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
+                W = srcCanvas.width;
+                H = srcCanvas.height;
+                canvas.width = W;
+                canvas.height = H;
             } catch (e) {
                 console.warn("로컬 이미지를 찾을 수 없어 대체 이미지를 생성합니다.", e);
                 srcCanvas = document.createElement('canvas');

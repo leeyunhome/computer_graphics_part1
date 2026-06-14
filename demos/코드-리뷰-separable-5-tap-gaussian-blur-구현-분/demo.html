@@ -241,7 +241,7 @@
     <div id="app-container">
         <!-- 뷰포트 영역 (좌측) -->
         <div id="viewport-container">
-            <canvas id="gpuCanvas" width="800" height="600"></canvas>
+            <canvas id="gpuCanvas"></canvas>
         </div>
 
         <!-- DX11 ImGui 컨트롤 패널 (우측) -->
@@ -336,14 +336,17 @@
     </div>
 
     <script>
-        // 안전한 비동기식 이미지 로더
-        async function loadImage(url, w, h) {
+        // 자연 크기 비율을 유지하는 이미지 로더
+        async function loadImageNaturalSize(url, maxW, maxH) {
             const img = new Image();
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
-                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
                 img.src = url;
             });
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
             const c = document.createElement('canvas');
             c.width = w; c.height = h;
             c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -469,27 +472,30 @@
             });
 
             // 1. 소스 이미지 로드
-            const width = 800;
-            const height = 600;
             let srcCanvas;
             try {
-                srcCanvas = await loadImage('../../images/colosseum.jpg', width, height);
+                srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
             } catch (e) {
                 console.warn("로컬 경로 로드 실패, 데모용 그라디언트를 생성합니다.");
                 // 폴백 (경로가 올바르지 않거나 로컬 테스트용)
                 srcCanvas = document.createElement('canvas');
-                srcCanvas.width = width; srcCanvas.height = height;
+                srcCanvas.width = 800; srcCanvas.height = 600;
                 const ctx = srcCanvas.getContext('2d');
-                const grad = ctx.createLinearGradient(0, 0, width, height);
+                const grad = ctx.createLinearGradient(0, 0, 800, 600);
                 grad.addColorStop(0, '#ff0055');
                 grad.addColorStop(0.5, '#00ffcc');
                 grad.addColorStop(1, '#0022ff');
                 ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, width, height);
+                ctx.fillRect(0, 0, 800, 600);
                 ctx.fillStyle = "#ffffff";
                 ctx.font = "bold 40px sans-serif";
                 ctx.fillText("DirectX 11 Separable Blur", 100, 300);
             }
+
+            let width = srcCanvas.width;
+            let height = srcCanvas.height;
+            canvas.width = width;
+            canvas.height = height;
 
             const imgData = srcCanvas.getContext('2d').getImageData(0, 0, width, height);
 

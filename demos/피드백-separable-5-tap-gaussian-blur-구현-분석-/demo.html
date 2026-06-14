@@ -375,16 +375,16 @@
 
         // --- Core Application Code ---
 
-        const IMAGE_WIDTH = 800;
-        const IMAGE_HEIGHT = 600;
-
-        async function loadImage(url, w, h) {
+        async function loadImageNaturalSize(url, maxW, maxH) {
             const img = new Image();
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
-                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
                 img.src = url;
             });
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
             const c = document.createElement('canvas');
             c.width = w; c.height = h;
             c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -407,65 +407,71 @@
             const canvas = document.getElementById('gpu-canvas');
             const context = canvas.getContext('webgpu');
             const format = navigator.gpu.getPreferredCanvasFormat();
+
+            // Load Colosseum Image at natural aspect ratio
+            let srcCanvas;
+            try {
+                srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
+            } catch (err) {
+                console.error("Failed to load colosseum image, using procedural pattern as backup", err);
+                // Fail-safe procedural image generation
+                srcCanvas = document.createElement('canvas');
+                srcCanvas.width = 800;
+                srcCanvas.height = 600;
+                const ctx = srcCanvas.getContext('2d');
+                ctx.fillStyle = '#442288';
+                ctx.fillRect(0, 0, srcCanvas.width, srcCanvas.height);
+                ctx.fillStyle = '#ffaa44';
+                ctx.beginPath();
+                ctx.arc(srcCanvas.width / 2, srcCanvas.height / 2, 180, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            let width = srcCanvas.width;
+            let height = srcCanvas.height;
+            canvas.width = width;
+            canvas.height = height;
+
             context.configure({
                 device: device,
                 format: format,
                 alphaMode: 'opaque'
             });
 
-            // Load Colosseum Image using exact pattern requested
-            let srcCanvas;
-            try {
-                srcCanvas = await loadImage('../../images/colosseum.jpg', IMAGE_WIDTH, IMAGE_HEIGHT);
-            } catch (err) {
-                console.error("Failed to load colosseum image, using procedural pattern as backup", err);
-                // Fail-safe procedural image generation
-                srcCanvas = document.createElement('canvas');
-                srcCanvas.width = IMAGE_WIDTH;
-                srcCanvas.height = IMAGE_HEIGHT;
-                const ctx = srcCanvas.getContext('2d');
-                ctx.fillStyle = '#442288';
-                ctx.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-                ctx.fillStyle = '#ffaa44';
-                ctx.beginPath();
-                ctx.arc(IMAGE_WIDTH / 2, IMAGE_HEIGHT / 2, 180, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            const imgData = srcCanvas.getContext('2d').getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+            const imgData = srcCanvas.getContext('2d').getImageData(0, 0, width, height);
 
             // --- Allocate WebGPU Textures ---
 
             // 1. Original static image source
             const originalTexture = device.createTexture({
-                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                size: [width, height],
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
             });
             device.queue.writeTexture(
                 { texture: originalTexture },
                 imgData.data,
-                { bytesPerRow: IMAGE_WIDTH * 4 },
-                [IMAGE_WIDTH, IMAGE_HEIGHT]
+                { bytesPerRow: width * 4 },
+                [width, height]
             );
 
             // 2. Dual ping-pong textures for separable passes
             const pingPong0 = device.createTexture({
-                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                size: [width, height],
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST
             });
 
             const pingPong1 = device.createTexture({
-                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                size: [width, height],
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
             });
 
             // --- Uniform Buffer for Compute Pass ---
 
-            const uboHData = new Uint32Array([0, IMAGE_WIDTH, IMAGE_HEIGHT, 0]); // dir = 0 (Horizontal)
-            const uboVData = new Uint32Array([1, IMAGE_WIDTH, IMAGE_HEIGHT, 0]); // dir = 1 (Vertical)
+            const uboHData = new Uint32Array([0, width, height, 0]); // dir = 0 (Horizontal)
+            const uboVData = new Uint32Array([1, width, height, 0]); // dir = 1 (Vertical)
 
             const uboH = device.createBuffer({
                 size: 16,
@@ -602,14 +608,14 @@
                     commandEncoder.copyTextureToTexture(
                         { texture: originalTexture },
                         { texture: pingPong0 },
-                        [IMAGE_WIDTH, IMAGE_HEIGHT]
+                        [width, height]
                     );
 
                     // Step 2: Dispatch Separable Blur passes in loop
                     const computePass = commandEncoder.beginComputePass();
                     computePass.setPipeline(computePipeline);
-                    const workgroupsX = Math.ceil(IMAGE_WIDTH / 8);
-                    const workgroupsY = Math.ceil(IMAGE_HEIGHT / 8);
+                    const workgroupsX = Math.ceil(width / 8);
+                    const workgroupsY = Math.ceil(height / 8);
 
                     for (let i = 0; i < iterations; i++) {
                         // Horizontal Blur Pass

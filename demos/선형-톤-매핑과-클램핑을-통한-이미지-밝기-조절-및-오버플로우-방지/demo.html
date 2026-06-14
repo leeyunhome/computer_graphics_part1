@@ -277,14 +277,17 @@
       setTimeout(() => { statusMsg.style.display = 'none'; }, 2000);
     }
 
-    // Load Image via standard pattern (Required)
-    async function loadImage(url, w, h) {
+    // Load Image using natural dimensions (preserves aspect ratio)
+    async function loadImageNaturalSize(url, maxW, maxH) {
       const img = new Image();
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
         img.src = url;
       });
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -303,6 +306,33 @@
       const device = await adapter.requestDevice();
 
       const canvas = document.getElementById('gpu-canvas');
+
+      // 1. Source Image loading (natural size, max 1280x960)
+      let srcCanvas;
+      try {
+        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1280, 960);
+      } catch (e) {
+        console.error(e);
+        // Fallback procedural visual in case the image cannot be found
+        srcCanvas = document.createElement('canvas');
+        srcCanvas.width = 800; srcCanvas.height = 600;
+        const ctx = srcCanvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 800, 600);
+        grad.addColorStop(0, '#502010');
+        grad.addColorStop(0.5, '#f0d0a0');
+        grad.addColorStop(1, '#103050');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 800, 600);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 32px sans-serif';
+        ctx.fillText('colosseum.jpg (로딩 대체 패턴)', 100, 300);
+      }
+
+      const width = srcCanvas.width;
+      const height = srcCanvas.height;
+      canvas.width = width;
+      canvas.height = height;
+
       const context = canvas.getContext('webgpu');
       const format = navigator.gpu.getPreferredCanvasFormat();
 
@@ -312,30 +342,9 @@
         alphaMode: 'opaque'
       });
 
-      const W = canvas.width;
-      const H = canvas.height;
+      const W = width;
+      const H = height;
 
-      // 1. Source Image loading
-      let srcCanvas;
-      try {
-        srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
-      } catch (e) {
-        console.error(e);
-        // Fallback procedural visual in case the image cannot be found
-        srcCanvas = document.createElement('canvas');
-        srcCanvas.width = W; srcCanvas.height = H;
-        const ctx = srcCanvas.getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, W, H);
-        grad.addColorStop(0, '#502010');
-        grad.addColorStop(0.5, '#f0d0a0');
-        grad.addColorStop(1, '#103050');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 32px sans-serif';
-        ctx.fillText('colosseum.jpg (로딩 대체 패턴)', 100, H/2);
-      }
-      
       const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
 
       // Create WebGPU Input Texture

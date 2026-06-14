@@ -109,16 +109,17 @@ input[type=range]::-webkit-slider-thumb {
 <div id="status">WebGPU 초기화 중...</div>
 
 <script>
-const W = 250, H = 200;
-
-// --- Load source image ---
-async function loadImage(url, w, h) {
+// --- Load source image at natural size (capped to maxW x maxH) ---
+async function loadImageNaturalSize(url, maxW, maxH) {
   const img = new Image();
   await new Promise((resolve, reject) => {
     img.onload = resolve;
-    img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+    img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
     img.src = url;
   });
+  let w = img.naturalWidth, h = img.naturalHeight;
+  if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+  if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -133,8 +134,10 @@ function scheduleRender() {
 
 let device, computePipeline, uniformBuf, inputTex, outputTex, bindGroup;
 let mulR = 1.5, mulG = 1.5, mulB = 1.5;
+let W, H;
 
-const COMPUTE_WGSL = `
+function makeComputeWGSL(width, height) {
+  return `
 struct Params { mulR: f32, mulG: f32, mulB: f32, _pad: f32 }
 @group(0) @binding(0) var<uniform> p: Params;
 @group(0) @binding(1) var src: texture_2d<f32>;
@@ -142,7 +145,7 @@ struct Params { mulR: f32, mulG: f32, mulB: f32, _pad: f32 }
 
 @compute @workgroup_size(8, 8)
 fn main(@builtin(global_invocation_id) id: vec3u) {
-  if (id.x >= ${W}u || id.y >= ${H}u) { return; }
+  if (id.x >= ${width}u || id.y >= ${height}u) { return; }
   let coords = vec2i(i32(id.x), i32(id.y));
   let c = textureLoad(src, coords, 0);
   textureStore(dst, coords, vec4f(
@@ -152,6 +155,7 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
     1.0
   ));
 }`;
+}
 
 const VERT_WGSL = `
 struct V { @builtin(position) pos: vec4f, @location(0) uv: vec2f }
@@ -178,7 +182,11 @@ async function init() {
   device = await adapter.requestDevice();
 
   const srcCanvas = document.getElementById('srcCanvas');
-  const loaded = await loadImage('../../images/colosseum.jpg', W, H);
+  const loaded = await loadImageNaturalSize('../../images/colosseum.jpg', 540, 400);
+  W = loaded.width; H = loaded.height;
+  srcCanvas.width = W; srcCanvas.height = H;
+  const dstCanvasEl = document.getElementById('dstCanvas');
+  dstCanvasEl.width = W; dstCanvasEl.height = H;
   srcCanvas.getContext('2d').drawImage(loaded, 0, 0);
 
   const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
@@ -205,7 +213,7 @@ async function init() {
 
   computePipeline = device.createComputePipeline({
     layout: device.createPipelineLayout({ bindGroupLayouts: [bgl] }),
-    compute: { module: device.createShaderModule({ code: COMPUTE_WGSL }), entryPoint: 'main' }
+    compute: { module: device.createShaderModule({ code: makeComputeWGSL(W, H) }), entryPoint: 'main' }
   });
 
   bindGroup = device.createBindGroup({ layout: bgl, entries: [
