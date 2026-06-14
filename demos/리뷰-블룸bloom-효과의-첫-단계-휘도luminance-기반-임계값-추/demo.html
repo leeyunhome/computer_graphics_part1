@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Bloom: Luminance Threshold Extraction</title>
+  <style>
+    /* 기본 초기화 및 다크 스타일 배경 */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 메인 뷰포트 캔버스 */
+    canvas#webgpu-canvas {
+      display: block;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.7);
+      border-radius: 4px;
+      border: 1px solid #2d3748;
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    /* ImGui 스타일의 컨트롤 패널 */
+    .imgui-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      background-color: rgba(28, 28, 40, 0.95);
+      border: 1px solid #4a5568;
+      border-top: 20px solid #2d3748;
+      border-radius: 4px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      padding: 12px;
+      font-size: 13px;
+      user-select: none;
+      z-index: 10;
+    }
+
+    /* 패널 타이틀바 제목 */
+    .imgui-title {
+      position: absolute;
+      top: -18px;
+      left: 8px;
+      font-weight: bold;
+      color: #cbd5e0;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 그룹 박스 */
+    .imgui-group {
+      border: 1px solid #3f4454;
+      border-radius: 3px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: rgba(20, 20, 28, 0.5);
+    }
+
+    .imgui-group-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #90cdf4;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    /* 개별 행 */
+    .imgui-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .imgui-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .imgui-label {
+      flex: 1;
+      color: #cbd5e0;
+    }
+
+    .imgui-value {
+      width: 45px;
+      text-align: right;
+      color: #4fd1c5;
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    /* 슬라이더 커스텀 스타일 */
+    input[type="range"] {
+      flex: 1.5;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #2d3748;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+      margin: 0 8px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4fd1c5;
+      cursor: pointer;
+      border: 1px solid #1a202c;
+      transition: background 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #63b3ed;
+    }
+
+    /* 디버그 출력 구역 */
+    .imgui-stats {
+      font-family: monospace;
+      color: #a0aec0;
+      font-size: 11px;
+      line-height: 1.4;
+      background: #14141c;
+      padding: 6px;
+      border-radius: 2px;
+      border: 1px solid #2d3748;
+    }
+
+    /* WebGPU 에러 팝업 */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(10, 10, 15, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      flex-direction: column;
+      display: none;
+    }
+
+    .error-box {
+      background: #2d1e2f;
+      border: 2px solid #f56565;
+      padding: 20px;
+      border-radius: 6px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .error-box h2 { color: #f56565; margin-top: 0; }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- WebGPU Canvas -->
+    <canvas id="webgpu-canvas"></canvas>
+
+    <!-- DirectX 11 / ImGui 스타일 UI 컨트롤러 -->
+    <div class="imgui-panel">
+      <div class="imgui-title">DirectX 11 — Bloom Filter Isolation</div>
+
+      <div class="imgui-group">
+        <div class="imgui-group-title">Threshold Extraction Params</div>
+        
+        <!-- Threshold 슬라이더 -->
+        <div class="imgui-row">
+          <span class="imgui-label">Threshold</span>
+          <input type="range" id="param-threshold" min="0.0" max="1.0" step="0.01" value="0.30">
+          <span class="imgui-value" id="val-threshold">0.30</span>
+        </div>
+
+        <!-- Weight 슬라이더 -->
+        <div class="imgui-row">
+          <span class="imgui-label">Weight</span>
+          <input type="range" id="param-weight" min="0.0" max="2.0" step="0.05" value="1.00">
+          <span class="imgui-value" id="val-weight">1.00</span>
+        </div>
+
+        <!-- Repeat Count 슬라이더 (DX11 루프 벤치마크용) -->
+        <div class="imgui-row">
+          <span class="imgui-label">Repeats</span>
+          <input type="range" id="param-repeats" min="1" max="1000" step="10" value="1000">
+          <span class="imgui-value" id="val-repeats">1000</span>
+        </div>
+      </div>
+
+      <div class="imgui-group">
+        <div class="imgui-group-title">GPU Performance Status</div>
+        <div class="imgui-stats" id="stats-panel">
+          Device: WebGPU Compute Pipeline<br>
+          Format: RGBA8 UNorm (Colosseum)<br>
+          Render Latency: <span id="stat-time" style="color: #63b3ed;">0.00 ms</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 에러 오버레이 -->
+  <div id="error-overlay" id="error-overlay-container">
+    <div class="error-box">
+      <h2>WebGPU Initialization Failed</h2>
+      <p id="error-message">WebGPU is not supported or enabled in your browser.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // 이미지 사이즈 정의
+    const IMAGE_WIDTH = 512;
+    const IMAGE_HEIGHT = 512;
+
+    // UI 요소 취득
+    const canvas = document.getElementById('webgpu-canvas');
+    const thresholdSlider = document.getElementById('param-threshold');
+    const weightSlider = document.getElementById('param-weight');
+    const repeatsSlider = document.getElementById('param-repeats');
+
+    const thresholdVal = document.getElementById('val-threshold');
+    const weightVal = document.getElementById('val-weight');
+    const repeatsVal = document.getElementById('val-repeats');
+    const statTime = document.getElementById('stat-time');
+
+    let device, context, computePipeline, renderPipeline;
+    let inputTexture, resultTexture, renderBindGroup, computeBindGroup;
+    let paramsBuffer;
+    let renderRequested = false;
+
+    // 이미지 로드 헬퍼 함수 (절대 경로 준수 및 RENDER_ATTACHMENT 우회 크래시 방지)
+    async function loadImage(url, w, h) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.src = url;
+      });
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      return ctx.getImageData(0, 0, w, h);
+    }
+
+    // WebGPU 초기화 흐름
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        showError("WebGPU is not supported on this browser/hardware.");
+        return;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        showError("No WebGPU adapter found.");
+        return;
+      }
+
+      device = await adapter.requestDevice();
+      if (!device) {
+        showError("Failed to request WebGPU logical device.");
+        return;
+      }
+
+      // 캔버스 크기 및 컨텍스트 성질 결정
+      canvas.width = IMAGE_WIDTH;
+      canvas.height = IMAGE_HEIGHT;
+      context = canvas.getContext('webgpu');
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: 'opaque'
+      });
+
+      // 1. 소스 이미지 로드 (colosseum.jpg)
+      let imgData;
+      try {
+        imgData = await loadImage('../../images/colosseum.jpg', IMAGE_WIDTH, IMAGE_HEIGHT);
+      } catch (err) {
+        console.warn("로컬 상대경로 로드 실패, 대체 이미지 생성 프로세스를 진행합니다.", err);
+        imgData = createProceduralImage(IMAGE_WIDTH, IMAGE_HEIGHT);
+      }
+
+      // 2. Texture 생성 및 데이터 탑재
+      inputTexture = device.createTexture({
+        size: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+
+      device.queue.writeTexture(
+        { texture: inputTexture },
+        imgData.data,
+        { bytesPerRow: IMAGE_WIDTH * 4 },
+        { width: IMAGE_WIDTH, height: IMAGE_HEIGHT }
+      );
+
+      // 연산 결과를 기록할 Storage Texture 생성 (샘플러 바인딩도 가능케 함)
+      resultTexture = device.createTexture({
+        size: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+
+      // 3. Uniform Buffer 설정
+      paramsBuffer = device.createBuffer({
+        size: 16, // threshold, weight, numRepeat, padding
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // 4. Compute WGSL Shader 및 파이프라인 구성
+      const computeShaderSource = `
+        struct Params {
+          threshold: f32,
+          weight: f32,
+          numRepeat: u32,
+          padding: u32,
+        }
+
+        @group(0) @binding(0) var inputTex: texture_2d<f32>;
+        @group(0) @binding(1) var outputTex: texture_storage_2d<rgba8unorm, write>;
+        @group(0) @binding(2) var<uniform> params: Params;
+
+        @compute @workgroup_size(8, 8)
+        fn main(@builtin(global_invocation_id) id: vec3u) {
+          let size = textureDimensions(inputTex);
+          if (id.x >= size.x || id.y >= size.y) {
+            return;
+          }
+
+          let coords = vec2i(id.xy);
+          var color = textureLoad(inputTex, coords, 0);
+
+          // DX11 원본의 Bloom logic (numRepeat 만큼 연산 시뮬레이션 반복)
+          // relativeLuminance 계산: ITU-R BT.709 기준 배합 비율
+          // 아래 Luminance 임계 연산을 지정된 횟수만큼 내부 루프로 시뮬레이션합니다.
+          for (var i = 0u; i < params.numRepeat; i = i + 1u) {
+            let relativeLuminance = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+            if (relativeLuminance < params.threshold) {
+              color = vec4f(0.0, 0.0, 0.0, 1.0);
+            } else {
+              color = vec4f(color.rgb * params.weight, 1.0);
+            }
+          }
+
+          textureStore(outputTex, coords, color);
+        }
+      `;
+
+      const computeModule = device.createShaderModule({ code: computeShaderSource });
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'main'
+        }
+      });
+
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: inputTexture.createView() },
+          { binding: 1, resource: resultTexture.createView() },
+          { binding: 2, resource: { buffer: paramsBuffer } }
+        ]
+      });
+
+      // 5. Render WGSL Shader (FullScreen Quad) 구성
+      const renderShaderSource = `
+        struct VertexOutput {
+          @builtin(position) position: vec4f,
+          @location(0) uv: vec2f,
+        }
+
+        @vertex
+        fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+          var pos = array<vec2f, 6>(
+            vec2f(-1.0, -1.0),
+            vec2f(1.0, -1.0),
+            vec2f(-1.0, 1.0),
+            vec2f(-1.0, 1.0),
+            vec2f(1.0, -1.0),
+            vec2f(1.0, 1.0)
+          );
+          var uv = array<vec2f, 6>(
+            vec2f(0.0, 1.0),
+            vec2f(1.0, 1.0),
+            vec2f(0.0, 0.0),
+            vec2f(0.0, 0.0),
+            vec2f(1.0, 1.0),
+            vec2f(1.0, 0.0)
+          );
+
+          var output: VertexOutput;
+          output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+          output.uv = uv[vertexIndex];
+          return output;
+        }
+
+        @group(0) @binding(0) var t_result: texture_2d<f32>;
+        @group(0) @binding(1) var s_result: sampler;
+
+        @fragment
+        fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSample(t_result, s_result, uv);
+        }
+      `;
+
+      const renderModule = device.createShaderModule({ code: renderShaderSource });
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: renderModule,
+          entryPoint: 'vs_main'
+        },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: presentationFormat }]
+        }
+      });
+
+      const linearSampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: resultTexture.createView() },
+          { binding: 1, resource: linearSampler }
+        ]
+      });
+
+      // UI 입력 이벤트 등록
+      const sliders = [thresholdSlider, weightSlider, repeatsSlider];
+      sliders.forEach(slider => {
+        slider.addEventListener('input', updateValuesAndRender);
+      });
+
+      // 최초 드로우 콜 예약
+      updateValuesAndRender();
+    }
+
+    // 예외 상황 시 대비한 그라디언트 절차적 대체 패턴
+    function createProceduralImage(w, h) {
+      const canvasTmp = document.createElement('canvas');
+      canvasTmp.width = w; canvasTmp.height = h;
+      const ctx = canvasTmp.getContext('2d');
+      // 그라디언트 + 인공적인 빌딩(휘도 테스트용 원) 그리기
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, '#0a0a23');
+      grad.addColorStop(1, '#1a1a2e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // 휘도가 매우 높은 원형 빔(태양 역할)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(200, 200, 80, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 중간 휘도의 사각형
+      ctx.fillStyle = '#ffaa33';
+      ctx.fillRect(300, 250, 150, 150);
+
+      // 저휘도의 블루 패턴
+      ctx.fillStyle = '#114488';
+      ctx.fillRect(50, 350, 100, 100);
+
+      return ctx.getImageData(0, 0, w, h);
+    }
+
+    // 슬라이더 변경 감지 및 동기화
+    function updateValuesAndRender() {
+      const threshold = parseFloat(thresholdSlider.value);
+      const weight = parseFloat(weightSlider.value);
+      const repeats = parseInt(repeatsSlider.value);
+
+      thresholdVal.textContent = threshold.toFixed(2);
+      weightVal.textContent = weight.toFixed(2);
+      repeatsVal.textContent = repeats;
+
+      // Uniform 버퍼 기록
+      const bufferData = new ArrayBuffer(16);
+      const view = new DataView(bufferData);
+      view.setFloat32(0, threshold, true);
+      view.setFloat32(4, weight, true);
+      view.setUint32(8, repeats, true);
+      view.setUint32(12, 0, true); // padding
+
+      device.queue.writeBuffer(paramsBuffer, 0, bufferData);
+
+      scheduleRender();
+    }
+
+    // RAF 렌더 루프 호출 제어
+    function scheduleRender() {
+      if (renderRequested) return;
+      renderRequested = true;
+      requestAnimationFrame(renderFrame);
+    }
+
+    // 실제 화면 드로우 함수
+    async function renderFrame() {
+      renderRequested = false;
+
+      // GPU 명령 지연 정밀 계측을 위한 쿼리셋 대용 퍼포먼스 체크
+      const startTime = performance.now();
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // 1. Compute Pass
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      const workgroupX = Math.ceil(IMAGE_WIDTH / 8);
+      const workgroupY = Math.ceil(IMAGE_HEIGHT / 8);
+      computePass.dispatchWorkgroups(workgroupX, workgroupY, 1);
+      computePass.end();
+
+      // 2. Render Pass
+      const renderPassDescriptor = {
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      };
+
+      const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6, 1, 0, 0); // 6개의 버텍스로 full-screen quad 수행
+      renderPass.end();
+
+      // Submit
+      device.queue.submit([commandEncoder.finish()]);
+
+      // WebGPU 파이프라인 지연 계측 반영
+      await device.queue.onSubmittedWorkDone();
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+      statTime.textContent = `${latency} ms`;
+    }
+
+    function showError(msg) {
+      document.getElementById('error-overlay').style.display = 'flex';
+      document.getElementById('error-message').textContent = msg;
+    }
+
+    // WebGPU 메인 스트림 시작
+    window.addEventListener('load', initWebGPU);
+  </script>
+</body>
+</html>

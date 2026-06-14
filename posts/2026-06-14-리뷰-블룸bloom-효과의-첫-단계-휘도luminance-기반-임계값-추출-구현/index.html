@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-11-boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-14-%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94%EC%B6%9C-%EA%B5%AC%ED%98%84/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰 - Computer Graphics Portfolio</title>
+        <title>[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현 - Computer Graphics Portfolio</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#boxblur5" class="md-skip">
+        <a href="#bloom-luminance" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰
+              [리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현
             
           </span>
         </div>
@@ -1464,10 +1464,49 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        학습자가 구현하며 이해한 핵심 개념
+        1. 핵심 수학적 개념 및 알고리즘
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 핵심 수학적 개념 및 알고리즘">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#relative-luminance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인간의 시각 특성을 반영한 상대 휘도 (Relative Luminance)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thresholding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        임계값 처리 (Thresholding)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-pseudo-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 알고리즘의 의사코드 (Pseudo-code)
       
     </span>
   </a>
@@ -1475,29 +1514,57 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        핵심 알고리즘 (수평 패스)
+        3. 전체 그래픽스 파이프라인 관점에서의 분석
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. WebGPU 인터랙티브 데모로 확장하기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. WebGPU 인터랙티브 데모로 확장하기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webgpu-compute-shader-wgsl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGPU Compute Shader (WGSL) 구현 컨셉
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인터랙티브 UI 구성 및 기대 시각 효과
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#webgpu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WebGPU 인터랙티브 데모
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#webgpu_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         인터랙티브 WebGPU 데모
@@ -1527,77 +1594,81 @@
   
 
 
-<h1 id="boxblur5">BoxBlur5 분리 가능한 컨볼루션(수평 패스) 구현 리뷰</h1>
-<p>학습자님, DirectX 11/C++ 그래픽스 스터디 리포지토리에 BoxBlur5 분리 가능한 컨볼루션의 수평 패스를 구현한 커밋을 하셨군요. 매우 잘 하셨습니다! 이미지 처리에서 컨볼루션은 핵심 개념이며, 특히 분리 가능한 컨볼루션은 효율적인 이미지 블러링 기법으로 중요하게 다뤄집니다. 이번 커밋을 통해 학습자님이 어떤 개념들을 이해하고 구현했는지 살펴보겠습니다.</p>
-<h2 id="_1">학습자가 구현하며 이해한 핵심 개념</h2>
-<p>이번 커밋은 <code>image.BoxBlur5()</code> 함수를 100번 호출하는 코드를 활성화함으로써, 박스 블러(Box Blur) 필터의 수평 패스 구현을 테스트하는 것으로 보입니다. 이를 통해 학습자님은 다음과 같은 핵심 개념들을 직접 구현하고 이해했을 것이라고 생각합니다.</p>
-<ol>
-<li><strong>컨볼루션(Convolution)의 기본 원리:</strong><ul>
-<li>이미지의 각 픽셀에 대해 주변 픽셀들의 가중 평균을 계산하여 새로운 픽셀 값을 결정하는 과정입니다. 필터(커널)는 이 가중치를 정의합니다.</li>
-</ul>
-</li>
-<li><strong>박스 블러(Box Blur) 필터:</strong><ul>
-<li>주변 픽셀들에 모두 동일한 가중치(예: 1/N)를 적용하여 평균을 내는 가장 간단한 형태의 블러 필터입니다. 5x5 박스 블러의 경우, 각 픽셀은 주변 5x5 영역의 25개 픽셀들의 평균이 됩니다.</li>
-</ul>
-</li>
-<li><strong>분리 가능한 컨볼루션(Separable Convolution)의 이해:</strong><ul>
-<li>2D 컨볼루션 커널 <span class="arithmatex">\(K\)</span>가 수평 1D 커널 <span class="arithmatex">\(K_h\)</span>와 수직 1D 커널 <span class="arithmatex">\(K_v\)</span>의 외적(<span class="arithmatex">\(K = K_v \otimes K_h\)</span>)으로 표현될 수 있을 때, 이를 분리 가능하다고 합니다. 5x5 박스 블러 커널은 다음과 같이 두 개의 1D 커널로 분리될 수 있습니다:
-    $$ K_{5 \times 5} = \begin{pmatrix} 1/5 \ 1/5 \ 1/5 \ 1/5 \ 1/5 \end{pmatrix} \otimes \begin{pmatrix} 1/5 &amp; 1/5 &amp; 1/5 &amp; 1/5 &amp; 1/5 \end{pmatrix} $$</li>
-<li>이렇게 분리하면, 원래 <span class="arithmatex">\(N \times N\)</span> 커널을 한 번에 적용하는 것(픽셀당 <span class="arithmatex">\(N^2\)</span> 연산)보다, 먼저 수평 1D 커널을 적용한 후(픽셀당 <span class="arithmatex">\(N\)</span> 연산) 그 결과에 수직 1D 커널을 적용하는 방식(픽셀당 <span class="arithmatex">\(N\)</span> 연산)이 훨씬 효율적(<span class="arithmatex">\(2N\)</span> 연산)이라는 것을 이해하셨을 것입니다. 5x5 커널의 경우, 25번의 곱셈/덧셈 대신 10번의 곱셈/덧셈으로 동일한 효과를 낼 수 있어 성능 향상에 크게 기여합니다.</li>
-</ul>
-</li>
-<li><strong>수평 패스(Horizontal Pass) 구현:</strong><ul>
-<li>분리 가능한 컨볼루션의 첫 단계로, 이미지의 각 행(row)에 대해 수평 1D 커널을 적용하는 과정을 직접 구현하셨습니다. 이는 각 픽셀이 자신의 양옆 픽셀들과 함께 평균되는 과정입니다.</li>
-<li>이 과정에서 이미지 경계(boundary)를 벗어나는 픽셀에 대한 처리 방식(예: 클램프(clamp), 반복(repeat), 미러링(mirror) 등)에 대해서도 고민하고 적용했을 것입니다.</li>
-</ul>
-</li>
-<li><strong>반복 적용의 효과:</strong><ul>
-<li><code>BoxBlur5()</code> 함수를 100번 반복하여 호출하는 것은 블러 효과를 극대화하는 방법입니다. 여러 번의 박스 블러 반복 적용은 가우시안 블러(Gaussian Blur)와 유사한 부드러운 블러 효과를 낸다고 알려져 있습니다. 이를 통해 블러 강도가 어떻게 조절되는지 직접 확인하셨을 것입니다.</li>
-</ul>
-</li>
-</ol>
-<h2 id="_2">핵심 알고리즘 (수평 패스)</h2>
-<p>박스 블러의 수평 패스는 각 픽셀 <span class="arithmatex">\((x, y)\)</span>에 대해 해당 행의 주변 픽셀들을 평균하는 방식으로 작동합니다. 5x5 박스 블러의 수평 1D 커널은 <code>[1/5, 1/5, 1/5, 1/5, 1/5]</code>입니다.</p>
-<p>입력 이미지 <span class="arithmatex">\(I\)</span>와 출력될 중간 이미지 <span class="arithmatex">\(I_{temp}\)</span>가 있을 때, 각 픽셀의 새로운 값 <span class="arithmatex">\(I_{temp}[x, y]\)</span>는 다음과 같이 계산됩니다:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>함수 BoxBlurHorizontal(SourceImage, TargetImage, KernelRadius):
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ImageWidth = SourceImage.Width
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ImageHeight = SourceImage.Height
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  KernelSize = 2 * KernelRadius + 1 // 예: KernelRadius=2 이면 KernelSize=5
+<h1 id="bloom-luminance">[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현</h1>
+<p>학습자가 작성한 커밋은 이미지 프로세싱 및 실시간 그래픽스에서 널리 쓰이는 <strong>블룸(Bloom) 효과</strong>의 파이프라인 중 가장 첫 번째 단계인 <strong>밝은 영역 추출(Bright Pass/Thresholding)</strong>을 성공적으로 구현하고 있습니다.</p>
+<p>이 단계는 화면에서 빛이 번지는 듯한 시각적 효과를 만들기 위해, 전체 이미지에서 "빛을 방출할 만큼 충분히 밝은" 영역만 남기고 나머지는 검은색(무효화)으로 걸러내는 핵심 전처리 과정입니다.</p>
+<hr />
+<h2 id="1">1. 핵심 수학적 개념 및 알고리즘</h2>
+<h3 id="relative-luminance">인간의 시각 특성을 반영한 상대 휘도 (Relative Luminance)</h3>
+<p>단순히 RGB 채널의 산술 평균 <span class="arithmatex">\(\frac{R+G+B}{3}\)</span>을 사용하여 밝기를 구하면 인간의 실제 눈이 느끼는 밝기와 괴리가 생깁니다. 인간의 안구는 망막의 원추세포 분포 특성상 <strong>초록색(Green)에 가장 민감하고, 파란색(Blue)에 가장 둔감</strong>합니다. </p>
+<p>이러한 인간의 시각 인지 특성을 표준화한 것이 <strong>ITU-R BT.709</strong> 규격이며, 디지털 표준 RGB(sRGB) 색 공간에서 휘도 <span class="arithmatex">\(Y\)</span>를 계산하는 공식은 다음과 같습니다.</p>
+<div class="arithmatex">\[Y = 0.2126 \cdot R + 0.7152 \cdot G + 0.0722 \cdot B\]</div>
+<p>학습자는 이 수식을 각 픽셀의 RGB 채널에 정확히 적용하여 물리적/인지적으로 올바른 밝기 값을 도출해 냈습니다.</p>
+<h3 id="thresholding">임계값 처리 (Thresholding)</h3>
+<p>추출된 상대 휘도 <span class="arithmatex">\(Y\)</span>가 사전에 정의된 임계값(Threshold, 본 코드에서는 <code>0.3</code>)보다 작다면, 해당 픽셀은 빛을 발하지 않는 어두운 영역으로 판단하여 완전히 검은색으로 소거합니다.</p>
+<div class="arithmatex">\[Color_{out} = \begin{cases} Color_{in} &amp; \text{if } Y \ge Threshold \\ (0, 0, 0) &amp; \text{if } Y &lt; Threshold \end{cases}\]</div>
+<hr />
+<h2 id="2-pseudo-code">2. 알고리즘의 의사코드 (Pseudo-code)</h2>
+<p>학습자가 구현한 <code>Image::Bloom</code> 함수의 핵심 흐름은 다음과 같이 추상화할 수 있습니다. </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">function</span> <span class="n">ExtractBrightPass</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">for</span> <span class="n">each</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="n">image</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="c1"># 1. 픽셀의 RGB 색상 참조</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">color</span> <span class="o">=</span> <span class="n">pixel</span><span class="o">.</span><span class="n">rgb</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  // 이미지의 각 행(row)에 대해 반복
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  for y from 0 to ImageHeight - 1:
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    // 각 행의 각 픽셀(column)에 대해 반복
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    for x from 0 to ImageWidth - 1:
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>      Sum = (0, 0, 0) // RGB 채널 또는 각 채널별로 합계 초기화
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      // 5x5 박스 블러의 경우 KernelRadius = 2 (중심 픽셀 포함 총 5개)
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>      // 현재 픽셀을 중심으로 좌우로 KernelRadius만큼 떨어진 픽셀들을 합산
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>      for i from -KernelRadius to KernelRadius:
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        // 경계 조건 처리: 이미지 범위를 벗어나지 않도록 픽셀 좌표 클램프
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        NeighborX = Clamp(x + i, 0, ImageWidth - 1) 
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        Sum += SourceImage.GetPixel(NeighborX, y)
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>      // 계산된 합계를 커널 크기로 나누어 평균을 구하고 결과 이미지에 저장
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>      TargetImage.SetPixel(x, y, Sum / KernelSize)
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>  return TargetImage
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="c1"># 2. ITU-R BT.709 공식을 이용한 휘도 계산</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">luminance</span> <span class="o">=</span> <span class="mf">0.2126</span> <span class="o">*</span> <span class="n">color</span><span class="o">.</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.7152</span> <span class="o">*</span> <span class="n">color</span><span class="o">.</span><span class="n">g</span> <span class="o">+</span> <span class="mf">0.0722</span> <span class="o">*</span> <span class="n">color</span><span class="o">.</span><span class="n">b</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="c1"># 3. 임계값과 비교하여 어두운 영역 제거 (제외된 영역은 검은색 처리)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="k">if</span> <span class="n">luminance</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">pixel</span><span class="o">.</span><span class="n">rgb</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
 </code></pre></div>
-<p>수식으로 표현하면, <span class="arithmatex">\(P'_{x,y}\)</span>는 원본 이미지 <span class="arithmatex">\(I\)</span>의 픽셀 <span class="arithmatex">\((x,y)\)</span>에 대한 수평 블러링 결과이며, <span class="arithmatex">\(K_h\)</span>는 5-탭 수평 박스 블러 커널 <span class="arithmatex">\([1/5, 1/5, 1/5, 1/5, 1/5]\)</span>입니다.
-$$ P'<em i="i">{x,y} = \sum</em> $$
-여기서 }^{2} I_{clamp(x+i), y} \cdot K_{h_i} = \frac{1}{5} \sum_{i = -2}^{2} I_{clamp(x+i), y<span class="arithmatex">\(clamp(v, min, max)\)</span>는 값이 <span class="arithmatex">\(min\)</span>과 <span class="arithmatex">\(max\)</span> 사이에 있도록 제한하는 함수입니다. 예를 들어, <span class="arithmatex">\(0\)</span> 미만이면 <span class="arithmatex">\(0\)</span>으로, 너비(<span class="arithmatex">\(ImageWidth-1\)</span>)보다 크면 너비(<span class="arithmatex">\(ImageWidth-1\)</span>)로 조정됩니다.</p>
-<h2 id="webgpu">WebGPU 인터랙티브 데모</h2>
-<p>이 박스 블러의 수평 패스를 WebGPU의 Compute Shader를 이용해 구현한다면 다음과 같은 방식으로 작동하며 시각화될 것입니다.</p>
+<p>이 단계가 완료되면 어두운 배경(예: 콜로세움의 그늘진 벽면 등)은 모두 검은색으로 변하고, 하늘이나 강한 조명과 같이 밝은 영역만 원래 색상 그대로 남게 됩니다. 이후 이 결과물에 가우시안 블러(Gaussian Blur)를 적용하고 원본 이미지와 합성(Additive Blend)하면 비로소 블룸 효과가 완성됩니다.</p>
+<hr />
+<h2 id="3">3. 전체 그래픽스 파이프라인 관점에서의 분석</h2>
+<ul>
+<li><strong>성능 및 병렬화</strong>: 학습자는 CPU 환경에서 이를 처리하기 위해 <code>#pragma omp parallel for</code>를 사용하는 OpenMP 병렬화를 염두에 두고 설계했습니다. 픽셀 간의 연산 의존성이 없는 대표적인 <strong>상호 독립적 연산(Embarrassingly Parallel)</strong>이므로, CPU 멀티스레딩 및 GPU 파이프라인에 매우 적합합니다.</li>
+<li><strong>인플레이스(In-place) 연산의 한계</strong>: 현재 구현은 원본 <code>pixels</code> 배열을 직접 수정하는 구조입니다. 실제 실시간 렌더링 엔진(DirectX 11)에서는 원본 씬을 보존해야 하므로, 별도의 텍스처(Render Target)에 이 밝은 영역만 따로 그려내는 <strong>포스트 프로세싱 패스(Post-processing Pass)</strong> 형태로 구현하는 것이 일반적입니다.</li>
+</ul>
+<hr />
+<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모로 확장하기</h2>
+<p>이 알고리즘을 최신 웹 그래픽스 표준인 <strong>WebGPU</strong>의 <strong>Compute Shader</strong>로 시각화하면, 웹 브라우저에서 GPU 하드웨어 가속을 통해 수백만 픽셀의 이미지를 실시간(60fps 이상)으로 처리하는 인터랙티브 데모를 구성할 수 있습니다.</p>
+<h3 id="webgpu-compute-shader-wgsl">WebGPU Compute Shader (WGSL) 구현 컨셉</h3>
+<p>웹 상에서 캔버스에 이미지를 업로드하고, 슬라이더를 통해 임계값(Threshold)을 실시간으로 조절하는 데모를 위한 WGSL 셰이더 핵심 부분입니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="n">inputTex</span><span class="p">:</span><span class="w"> </span><span class="nb">texture_2d</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="n">outputTex</span><span class="p">:</span><span class="w"> </span><span class="nb">texture_storage_2d</span><span class="o">&lt;</span><span class="nb">rgba8unorm</span><span class="p">,</span><span class="w"> </span><span class="nb">write</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nd">@compute</span><span class="w"> </span><span class="nd">@workgroup_size</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">fn</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="nd">@builtin</span><span class="p">(</span><span class="nb">global_invocation_id</span><span class="p">)</span><span class="w"> </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">u32</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">dims</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">textureDimensions</span><span class="p">(</span><span class="n">inputTex</span><span class="p">);</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">dims</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">id</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">dims</span><span class="p">.</span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">coords</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">i32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">id</span><span class="p">.</span><span class="n">xy</span><span class="p">);</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">textureLoad</span><span class="p">(</span><span class="n">inputTex</span><span class="p">,</span><span class="w"> </span><span class="n">coords</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="c1">// ITU-R BT.709 휘도 계산</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">luminance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dot</span><span class="p">(</span><span class="n">color</span><span class="p">.</span><span class="n">rgb</span><span class="p">,</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.2126</span><span class="p">,</span><span class="w"> </span><span class="mf">0.7152</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0722</span><span class="p">));</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="c1">// 유저가 슬라이더로 조절하는 임계값 매개변수 (Uniform Buffer에서 바인딩했다고 가정)</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">threshold</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">threshold</span><span class="p">;</span><span class="w"> </span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="n">finalColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">luminance</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">threshold</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">        </span><span class="n">finalColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">color</span><span class="p">.</span><span class="n">rgb</span><span class="p">;</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span><span class="n">textureStore</span><span class="p">(</span><span class="n">outputTex</span><span class="p">,</span><span class="w"> </span><span class="n">coords</span><span class="p">,</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">finalColor</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">));</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="ui">인터랙티브 UI 구성 및 기대 시각 효과</h3>
 <ol>
-<li><strong>Compute Shader 작성:</strong> GLSL 또는 WGSL로 작성된 Compute Shader는 각 워크그룹(workgroup) 또는 개별 인보케이션(invocation)이 이미지의 특정 픽셀을 처리하도록 구성됩니다.</li>
-<li><strong>데이터 바인딩:</strong> 원본 이미지 데이터는 <code>storage_texture_2d&lt;rgba8unorm, read&gt;</code>와 같은 텍스처 형태로 바인딩되고, 수평 블러링된 결과가 저장될 중간 이미지 텍스처는 <code>storage_texture_2d&lt;rgba8unorm, write&gt;</code>로 바인딩됩니다.</li>
-<li><strong>커널 실행:</strong> Compute Shader의 각 인보케이션은 <code>global_invocation_id.xy</code>를 통해 처리할 픽셀의 전역 좌표 <span class="arithmatex">\((x, y)\)</span>를 얻습니다.</li>
-<li><strong>픽셀 처리:</strong> 각 인보케이션은 자신의 <span class="arithmatex">\((x, y)\)</span> 좌표를 중심으로 좌우로 2칸씩 떨어진 픽셀들 (총 5개)의 색상 값을 원본 이미지 텍스처에서 읽어옵니다. 이 5개 픽셀의 색상 값을 평균하여, 결과 텍스처의 <span class="arithmatex">\((x, y)\)</span> 위치에 기록합니다. 경계 조건 처리는 <code>textureLoad</code> 함수와 함께 <code>clamp</code> 등의 유틸리티 함수를 사용하거나, <code>textureSample</code>의 샘플링 모드를 <code>clamp_to_edge</code>로 설정하여 간단히 처리할 수 있습니다.</li>
-<li><strong>시각적 효과:</strong> 브라우저에서 이 데모를 실행하면, 원본 이미지가 로드된 후 컴퓨트 셰이더가 실행되어 새로운 이미지로 렌더링될 것입니다. 시각적으로는 이미지가 마치 좌우로 길게 늘어트린 것처럼 <strong>수평 방향으로만 흐려지는(smearing)</strong> 효과를 관찰할 수 있습니다. 수직 방향의 디테일은 그대로 유지되지만, 수평 방향의 디테일은 크게 손실되어 뿌옇게 보일 것입니다. <code>BoxBlur5()</code> 함수를 100번 반복 적용한 결과라면, 이미지는 거의 완전히 수평 방향으로만 색상 띠가 이어진 것처럼 보여 원본 이미지의 형체를 알아보기 어려울 정도로 강한 수평 블러가 적용될 것입니다.</li>
+<li><strong>입력 이미지 로드</strong>: 로컬 파일이나 제공된 콜로세움 이미지를 WebGPU 텍스처로 로드합니다.</li>
+<li><strong>실시간 임계값 제어</strong>: 사용자가 웹 UI의 슬라이더를 조작하여 <code>threshold</code> 값을 <code>0.0</code>에서 <code>1.0</code>까지 변화시킵니다.</li>
+<li><strong>인터랙티브 반응</strong>: 슬라이더를 움직일 때마다 Compute Shader가 매 프레임 실행되어, 실시간으로 어두운 부분이 칼같이 지워지며 밝은 영역(태양광이 닿는 석조물, 하늘 등)만 선명하게 추출되는 시각적 변화를 브라우저에서 지연 없이 관찰할 수 있습니다.</li>
 </ol>
 <hr />
-<h2 id="webgpu_1">인터랙티브 WebGPU 데모</h2>
+<h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="../../demos/boxblur5-분리-가능한-컨볼루션수평-패스-구현-리뷰/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
