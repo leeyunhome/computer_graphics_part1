@@ -30,7 +30,17 @@
   #msg { font-size:0.65rem; color:#64748b; margin-top:6px; }
   #err { color:#fca5a5; background:#450a0a; border:1px solid #7f1d1d; border-radius:6px;
          padding:10px; margin-top:10px; font-size:0.75rem; display:none; max-width:560px; text-align:center; }
-</style>
+
+    /* == Mobile responsive == */
+    @media (max-width: 768px) {
+      canvas { max-width: 100% !important; height: auto !important; }
+      .viewport-container { width: 100% !important; height: auto !important; }
+      .dx-body { padding: 10px !important; gap: 10px !important; }
+      .control-panel { min-width: unset !important; width: 100% !important; max-height: none !important; }
+      #imgui-panel { position: relative !important; top: auto !important; left: auto !important; width: calc(100% - 20px) !important; margin: 10px auto !important; max-height: 55vh; overflow-y: auto; }
+    }
+
+  </style>
 </head>
 <body>
 <h2>BoxBlur5 — 분리 가능한 컨볼루션 (수평 패스)</h2>

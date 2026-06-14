@@ -213,6 +213,16 @@
       border: 1px solid #333;
       pointer-events: none;
     }
+  
+    /* == Mobile responsive == */
+    @media (max-width: 768px) {
+      canvas { max-width: 100% !important; height: auto !important; }
+      .viewport-container { width: 100% !important; height: auto !important; }
+      .dx-body { padding: 10px !important; gap: 10px !important; }
+      .control-panel { min-width: unset !important; width: 100% !important; max-height: none !important; }
+      #imgui-panel { position: relative !important; top: auto !important; left: auto !important; width: calc(100% - 20px) !important; margin: 10px auto !important; max-height: 55vh; overflow-y: auto; }
+    }
+
   </style>
 </head>
 <body>
