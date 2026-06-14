@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -299,6 +299,8 @@
                 <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
                 <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
                 <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/st-p.jpg" src="../../images/st-p.jpg" title="st-p" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/swiss-guards.jpg" src="../../images/swiss-guards.jpg" title="swiss-guards" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
               </div>
               <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
                 <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
@@ -569,7 +571,7 @@
                         );
                         
                         var sampleColor: vec4f;
-                        if (params.resetFlag == 1u) {
+                        if (params.resetFlag >= 0.5) {
                             sampleColor = textureLoad(texOriginal, sampleCoords, 0) + vec4f(1e-2, 1e-2, 1e-2, 0.0);
                         } else {
                             sampleColor = textureLoad(texIn, sampleCoords, 0);
