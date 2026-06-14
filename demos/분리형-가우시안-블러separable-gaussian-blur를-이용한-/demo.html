@@ -277,7 +277,26 @@
 
       <!-- ImGui Control Panel -->
       <div class="control-panel">
-        
+
+        <!-- Image Picker (top for visibility) -->
+        <div class="panel-section">
+<div class="collapsing-header" style="margin-top:0;">IMAGE SOURCE</div>
+<div class="control-group">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+    <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+    <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/st-p.jpg" src="../../images/st-p.jpg" title="st-p" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/swiss-guards.jpg" src="../../images/swiss-guards.jpg" title="swiss-guards" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+  </div>
+  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+    <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+    <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+  </label>
+</div>
+        </div>
+
         <!-- Bloom Parameters -->
         <div class="panel-section">
           <h3>Bloom Threshold &amp; Weights</h3>
@@ -334,24 +353,6 @@
           </div>
         </div>
 
-        <!-- Image Picker -->
-        <div class="panel-section">
-<div class="collapsing-header" style="margin-top:15px;">IMAGE SOURCE</div>
-<div class="control-group">
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
-    <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
-    <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
-    <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
-    <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
-    <img class="img-thumb" data-src="../../images/st-p.jpg" src="../../images/st-p.jpg" title="st-p" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
-    <img class="img-thumb" data-src="../../images/swiss-guards.jpg" src="../../images/swiss-guards.jpg" title="swiss-guards" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
-  </div>
-  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
-    <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
-    <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
-  </label>
-</div>
-        </div>
 
         <!-- Live Diagnostics -->
         <div class="perf-stats">
