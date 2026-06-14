@@ -538,6 +538,18 @@
       return c;
     }
 
+    // Proxy so event listeners always call the latest render from any init() call
+    let _currentRender = null;
+    let _rafRequested = false;
+    function scheduleRender() {
+      if (_rafRequested || !_currentRender) return;
+      _rafRequested = true;
+      requestAnimationFrame(() => {
+        if (_currentRender) _currentRender();
+        _rafRequested = false;
+      });
+    }
+
     async function init() {
       if (!navigator.gpu) {
         showError("WebGPU를 지원하지 않는 브라우저입니다. 최신 Chrome/Edge를 탑재하고 하드웨어 가속을 켜주세요.");
@@ -559,11 +571,6 @@
       const canvas = document.getElementById('webgpu-canvas');
       const context = canvas.getContext('webgpu');
       const format = navigator.gpu.getPreferredCanvasFormat();
-      context.configure({
-        device,
-        format,
-        alphaMode: 'opaque'
-      });
 
       // 1. Create Core Textures — load image at natural size (max 800×600)
       let srcCanvas;
@@ -587,8 +594,14 @@
       }
       const W = srcCanvas.width;
       const H = srcCanvas.height;
+      // Set canvas dimensions BEFORE configure — resizing after configure resets the context
       canvas.width = W;
       canvas.height = H;
+      context.configure({
+        device,
+        format,
+        alphaMode: 'opaque'
+      });
 
       const originalTexture = device.createTexture({
         size: [W, H],
@@ -779,17 +792,6 @@
             _setupImagePicker();
       }
 
-      // Render execution Scheduler
-      let renderRequested = false;
-      function scheduleRender() {
-        if (renderRequested) return;
-        renderRequested = true;
-        requestAnimationFrame(() => {
-          render();
-          renderRequested = false;
-        });
-      }
-
       function render() {
         const startTime = performance.now();
         updateParamsBuffer();
@@ -846,6 +848,9 @@
         const endTime = performance.now();
         statFps.textContent = (endTime - startTime).toFixed(2);
       }
+
+      // Register current render with proxy so event listeners always use latest
+      _currentRender = render;
 
       // Initial Setup
       updateUI();

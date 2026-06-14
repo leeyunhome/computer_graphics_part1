@@ -343,12 +343,6 @@
 
             document.getElementById('gpu-format').innerText = presentationFormat.toUpperCase();
 
-            context.configure({
-                device,
-                format: presentationFormat,
-                alphaMode: 'opaque'
-            });
-
             // 1. 소스 이미지 로드 (실패 시 절차적 무늬로 대체)
             let srcCanvas;
             try {
@@ -397,6 +391,12 @@
                 ctx.fillStyle = '#00ffff';
                 ctx.fillText('BoxBlur5 Separable Convolution', 50, 115);
             }
+
+            context.configure({
+                device,
+                format: presentationFormat,
+                alphaMode: 'opaque'
+            });
 
             // 2. 텍스처 리소스 생성
             const imgData = srcCanvas.getContext('2d').getImageData(0, 0, W, H);
