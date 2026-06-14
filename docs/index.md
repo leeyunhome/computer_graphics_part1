@@ -228,13 +228,18 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>GLM을 활용한 3차원 벡터 연산의 기초: 내적, 외적, 그리고 DirectXMath와의 비교</strong><br><br>
+<a href="demos/glm을-활용한-3차원-벡터-연산의-기초-내적-외적-그리고-directx/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>GLM을 활용한 벡터 연산의 수학적 이해 및 DirectXMath와의 비교 분석</strong><br><br>
 <a href="demos/glm을-활용한-벡터-연산의-수학적-이해-및-directxmath와의-비/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>GLM을 활용한 3차원 벡터 연산의 기초: 내적, 외적, 그리고 DirectXMath와의 비교</strong><br><br>
-<a href="demos/glm을-활용한-3차원-벡터-연산의-기초-내적-외적-그리고-directx/">데모 보기 →</a>
+<strong>스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test)</strong><br><br>
+<a href="demos/스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-t/">데모 보기 →</a>
 </div>
 
 </div>
@@ -248,7 +253,7 @@ graph LR
 - [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](posts/2026-06-14-피드백-separable-5-tap-gaussian-blur-구현-분석-및-최적화-제안.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](posts/2026-06-14-코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-decay와-이미지-프로세싱-파이프라인-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화](posts/2026-06-14-코드-리뷰-separable-5-tap-gaussian-blur-구현-분석-및-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
+- [스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test)](posts/2026-06-14-스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-test.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰](posts/2026-06-14-분리형-가우시안-블러separable-gaussian-blur를-이용한-bloom-효과-구현-리뷰.md) <small style='color:#64748b'>(2026-06-14)</small>
-- [[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현](posts/2026-06-14-리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추출-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
 
 [모든 포스트 보기 →](posts/index.md)

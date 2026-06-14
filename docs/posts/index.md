@@ -33,6 +33,15 @@
 ---
 
 
+## [스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test)](2026-06-14-스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-test.md)
+
+
+📅 2026-06-14
+
+
+---
+
+
 ## [분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰](2026-06-14-분리형-가우시안-블러separable-gaussian-blur를-이용한-bloom-효과-구현-리뷰.md)
 
 

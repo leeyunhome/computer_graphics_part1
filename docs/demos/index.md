@@ -224,6 +224,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test)](스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-t.md)
+
+
+[→ 데모 열기](스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-t.md){.md-button}
+
+
+---
+
+
 ## [실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현](실시간-픽셀-감쇄pixel-decay를-통한-점진적-암전-효과-구현.md)
 
 

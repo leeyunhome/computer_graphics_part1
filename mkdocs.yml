@@ -92,3 +92,4 @@ nav:
     - "[DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초": demos/directx-11-c-그래픽스-환경에서의-glm-실험적-확장-활성화-및.md
     - GLM을 활용한 벡터 연산의 수학적 이해 및 DirectXMath와의 비교 분석: demos/glm을-활용한-벡터-연산의-수학적-이해-및-directxmath와의-비.md
     - "GLM을 활용한 3차원 벡터 연산의 기초: 내적, 외적, 그리고 DirectXMath와의 비교": demos/glm을-활용한-3차원-벡터-연산의-기초-내적-외적-그리고-directx.md
+    - 스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test): demos/스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-t.md
