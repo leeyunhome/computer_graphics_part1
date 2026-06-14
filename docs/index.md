@@ -242,6 +242,11 @@ graph LR
 <a href="demos/스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-t/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>스크린 공간에서의 원 판정(Point-in-Circle) 알고리즘 구현 및 최적화</strong><br><br>
+<a href="demos/스크린-공간에서의-원-판정point-in-circle-알고리즘-구현-및-/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
@@ -253,7 +258,7 @@ graph LR
 - [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](posts/2026-06-14-피드백-separable-5-tap-gaussian-blur-구현-분석-및-최적화-제안.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](posts/2026-06-14-코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-decay와-이미지-프로세싱-파이프라인-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화](posts/2026-06-14-코드-리뷰-separable-5-tap-gaussian-blur-구현-분석-및-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
+- [스크린 공간에서의 원 판정(Point-in-Circle) 알고리즘 구현 및 최적화](posts/2026-06-14-스크린-공간에서의-원-판정point-in-circle-알고리즘-구현-및-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test)](posts/2026-06-14-스크린-공간에서의-원-판별-알고리즘-구현-point-in-circle-test.md) <small style='color:#64748b'>(2026-06-14)</small>
-- [분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰](posts/2026-06-14-분리형-가우시안-블러separable-gaussian-blur를-이용한-bloom-효과-구현-리뷰.md) <small style='color:#64748b'>(2026-06-14)</small>
 
 [모든 포스트 보기 →](posts/index.md)
