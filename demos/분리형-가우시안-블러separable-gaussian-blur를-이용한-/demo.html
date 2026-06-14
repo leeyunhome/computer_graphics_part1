@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Bloom Glow & Repeated Gaussian Blur</title>
+  <style>
+    :root {
+      --bg-color: #1a1a2e;
+      --panel-bg: #161625;
+      --panel-border: #007acc;
+      --text-color: #e0e0e0;
+      --accent-color: #007acc;
+      --accent-hover: #0098ff;
+      --slider-track: #2a2a40;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      background: var(--panel-bg);
+      border: 2px solid var(--panel-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      border-radius: 4px;
+      padding: 20px;
+      max-width: 1100px;
+      width: 95%;
+      margin: 20px;
+      box-sizing: border-box;
+    }
+
+    /* DirectX Window Header Style */
+    .dx-header {
+      width: 100%;
+      background: var(--accent-color);
+      color: white;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      border-radius: 3px 3px 0 0;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dx-window {
+      border: 2px solid var(--panel-border);
+      background: var(--panel-bg);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .dx-body {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 850px) {
+      .dx-body {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    /* Viewport Frame */
+    .viewport-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 2px;
+      width: 512px;
+      height: 512px;
+    }
+
+    canvas {
+      width: 512px;
+      height: 512px;
+      display: block;
+    }
+
+    /* UI Panel (ImGui style) */
+    .control-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      min-width: 300px;
+    }
+
+    .panel-section {
+      background: #1f1f33;
+      border: 1px solid #3d3d5c;
+      border-radius: 3px;
+      padding: 15px;
+    }
+
+    .panel-section h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--accent-hover);
+      border-bottom: 1px solid #3d3d5c;
+      padding-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      color: #bbb;
+    }
+
+    .control-value {
+      color: #fff;
+      font-weight: bold;
+    }
+
+    /* Sliders styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--slider-track);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Select/Dropdown styling */
+    select {
+      background: #111;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 6px;
+      border-radius: 3px;
+      outline: none;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: var(--accent-color);
+    }
+
+    /* Info text & Warnings */
+    .info-box {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #aaa;
+    }
+
+    .warning-text {
+      color: #ffaa00;
+      font-size: 11px;
+      margin-top: 5px;
+      display: none;
+    }
+
+    /* Performance Overlay */
+    .perf-stats {
+      margin-top: auto;
+      font-family: monospace;
+      font-size: 11px;
+      color: #888;
+      background: #111;
+      padding: 8px;
+      border-radius: 3px;
+      border-left: 3px solid var(--accent-color);
+    }
+
+    /* Fallback/Error Overlay */
+    #error-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 10, 20, 0.95);
+      color: #ff5555;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      font-family: monospace;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    #error-overlay h1 {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="error-overlay" style="display: none;">
+    <h1>WebGPU API Error</h1>
+    <p id="error-message">이 브라우저는 WebGPU를 지원하지 않거나 설정되어 있지 않습니다.</p>
+  </div>
+
+  <div class="dx-window">
+    <div class="dx-header">
+      <span>DirectX 11 — Bloom Glow &amp; Repeated Gaussian Blur</span>
+      <span style="font-size: 11px; opacity: 0.8;">Compute Shader Pipeline</span>
+    </div>
+    <div class="dx-body">
+      
+      <!-- Viewport Frame -->
+      <div class="viewport-container">
+        <canvas id="webgpu-canvas" width="512" height="512"></canvas>
+      </div>
+
+      <!-- ImGui Control Panel -->
+      <div class="control-panel">
+        
+        <!-- Bloom Parameters -->
+        <div class="panel-section">
+          <h3>Bloom Threshold &amp; Weights</h3>
+          
+          <!-- Threshold -->
+          <div class="control-group">
+            <div class="control-label">
+              <span>추출 임계값 (Threshold)</span>
+              <span class="control-value" id="val-threshold">0.30</span>
+            </div>
+            <input type="range" id="slider-threshold" min="0.0" max="1.0" step="0.01" value="0.30">
+            <span class="info-box">해당 값보다 밝은 픽셀(Luminance)만 블룸 소스로 추출합니다.</span>
+          </div>
+
+          <!-- Bloom Weight -->
+          <div class="control-group">
+            <div class="control-label">
+              <span>블룸 가중치 (Glow Weight)</span>
+              <span class="control-value" id="val-weight">1.50</span>
+            </div>
+            <input type="range" id="slider-weight" min="0.0" max="5.0" step="0.1" value="1.50">
+          </div>
+        </div>
+
+        <!-- Repeated Gaussian Blur -->
+        <div class="panel-section">
+          <h3>Repeated Gaussian Blur (5x5)</h3>
+          
+          <!-- Repeat Count -->
+          <div class="control-group">
+            <div class="control-label">
+              <span>반복 횟수 (numRepeat)</span>
+              <span class="control-value" id="val-repeat">100</span>
+            </div>
+            <input type="range" id="slider-repeat" min="0" max="500" step="1" value="100">
+            <div class="warning-text" id="warning-performance">⚠️ 반복 횟수가 높을수록 저사양 GPU에서 프레임 레이트가 감소할 수 있습니다.</div>
+          </div>
+
+          <div class="info-box" style="margin-top: 5px;">
+            <strong>Separable Convolution:</strong> 5-tap Gaussian 필터(수평/수직)를 GPU Ping-Pong 텍스처 버퍼에 지정된 횟수만큼 교대로 반복 연산합니다.
+          </div>
+        </div>
+
+        <!-- Render Target & Modes -->
+        <div class="panel-section">
+          <h3>Render Target Mode</h3>
+          <div class="control-group">
+            <label class="control-label" for="select-mode">출력 화면 모드</label>
+            <select id="select-mode">
+              <option value="0">Bloom Composition (Original + Glow)</option>
+              <option value="1">Threshold-Extracted Glow Map</option>
+              <option value="2">Isolated Bright Pixels Only</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Live Diagnostics -->
+        <div class="perf-stats">
+          <div>DEVICE: WebGPU / WGSL Compute</div>
+          <div>TEXTURE SIZE: 512 x 512 (RGBA8)</div>
+          <div>DISPATCH CALLS: <span id="stat-dispatches" style="color: #00ffcc;">201</span> passes/frame</div>
+          <div>GPU TIME: <span id="stat-fps" style="color: #00ffcc;">0.00</span> ms</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- WGSL Shaders ---
+
+    // 1. Bright Region Extraction Shader (Threshold)
+    const thresholdWGSL = `
+      struct Params {
+        threshold: f32,
+        weight: f32,
+        mode: f32,
+        padding: f32,
+      };
+
+      @group(0) @binding(0) var imgIn: texture_2d<f32>;
+      @group(0) @binding(1) var imgOut: texture_storage_2d<rgba8unorm, write>;
+      @group(0) @binding(2) var<uniform> params: Params;
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(imgIn);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+        
+        let coord = vec2i(id.xy);
+        let color = textureLoad(imgIn, coord, 0);
+        
+        // Calculate standard luminance (Rec. 709)
+        let luma = dot(color.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+        
+        var outColor = vec4f(0.0, 0.0, 0.0, 1.0);
+        if (luma > params.threshold) {
+          outColor = vec4f(color.rgb, 1.0);
+        }
+        
+        textureStore(imgOut, coord, outColor);
+      }
+    `;
+
+    // 2. Horizontal Gaussian Blur 5-Tap
+    const blurHorizWGSL = `
+      @group(0) @binding(0) var imgIn: texture_2d<f32>;
+      @group(0) @binding(1) var imgOut: texture_storage_2d<rgba8unorm, write>;
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(imgIn);
+        let x = i32(id.x);
+        let y = i32(id.y);
+        if (x >= i32(size.x) || y >= i32(size.y)) { return; }
+        
+        // Binomial weights for 5-tap Gaussian Blur [1, 4, 6, 4, 1] / 16
+        let weights = array<f32, 5>(0.0625, 0.2500, 0.3750, 0.2500, 0.0625);
+        var sum = vec4f(0.0);
+        
+        for (var i: i32 = -2; i <= 2; i++) {
+          let sampleX = clamp(x + i, 0, i32(size.x) - 1);
+          let col = textureLoad(imgIn, vec2i(sampleX, y), 0);
+          sum += col * weights[i + 2];
+        }
+        
+        textureStore(imgOut, vec2i(x, y), vec4f(sum.rgb, 1.0));
+      }
+    `;
+
+    // 3. Vertical Gaussian Blur 5-Tap
+    const blurVertWGSL = `
+      @group(0) @binding(0) var imgIn: texture_2d<f32>;
+      @group(0) @binding(1) var imgOut: texture_storage_2d<rgba8unorm, write>;
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(imgIn);
+        let x = i32(id.x);
+        let y = i32(id.y);
+        if (x >= i32(size.x) || y >= i32(size.y)) { return; }
+        
+        let weights = array<f32, 5>(0.0625, 0.2500, 0.3750, 0.2500, 0.0625);
+        var sum = vec4f(0.0);
+        
+        for (var i: i32 = -2; i <= 2; i++) {
+          let sampleY = clamp(y + i, 0, i32(size.y) - 1);
+          let col = textureLoad(imgIn, vec2i(x, sampleY), 0);
+          sum += col * weights[i + 2];
+        }
+        
+        textureStore(imgOut, vec2i(x, y), vec4f(sum.rgb, 1.0));
+      }
+    `;
+
+    // 4. Composition & Presentation Shader (Render Pass)
+    const compositeWGSL = `
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+      };
+
+      @vertex
+      fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+          vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+        );
+        var uv = array<vec2f, 6>(
+          vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+          vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+        );
+        var out: VertexOutput;
+        out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+        out.uv = uv[vertexIndex];
+        return out;
+      }
+
+      struct Params {
+        threshold: f32,
+        weight: f32,
+        mode: f32, // 0.0: Bloom (Composite), 1.0: Glow Map, 2.0: Threshold Map
+        padding: f32,
+      };
+
+      @group(0) @binding(0) var texOriginal: texture_2d<f32>;
+      @group(0) @binding(1) var texGlow: texture_2d<f32>;
+      @group(0) @binding(2) var texThreshold: texture_2d<f32>;
+      @group(0) @binding(3) var texSampler: sampler;
+      @group(0) @binding(4) var<uniform> params: Params;
+
+      @fragment
+      fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        let original = textureSample(texOriginal, texSampler, uv);
+        let glow = textureSample(texGlow, texSampler, uv);
+        let thresholdMap = textureSample(texThreshold, texSampler, uv);
+        
+        if (params.mode == 0.0) {
+          // Bloom Glow Composition: Original + Weight * Blurred Glow
+          let finalColor = original.rgb + glow.rgb * params.weight;
+          return vec4f(finalColor, 1.0);
+        } else if (params.mode == 1.0) {
+          // Glow Map Only
+          return vec4f(glow.rgb * params.weight, 1.0);
+        } else {
+          // Isolated Bright Pixels (Raw Threshold output before blur)
+          return vec4f(thresholdMap.rgb, 1.0);
+        }
+      }
+    `;
+
+    // --- WebGPU Implementation ---
+
+    function showError(message) {
+      document.getElementById('error-overlay').style.display = 'flex';
+      document.getElementById('error-message').textContent = message;
+    }
+
+    async function loadImage(url, w, h) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.src = url;
+      });
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c;
+    }
+
+    async function init() {
+      if (!navigator.gpu) {
+        showError("WebGPU를 지원하지 않는 브라우저입니다. 최신 Chrome/Edge를 탑재하고 하드웨어 가속을 켜주세요.");
+        return;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        showError("호환되는 GPU 어댑터를 찾을 수 없습니다.");
+        return;
+      }
+
+      const device = await adapter.requestDevice();
+      if (!device) {
+        showError("WebGPU 장치 초기화에 실패했습니다.");
+        return;
+      }
+
+      const canvas = document.getElementById('webgpu-canvas');
+      const context = canvas.getContext('webgpu');
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format,
+        alphaMode: 'opaque'
+      });
+
+      const W = 512;
+      const H = 512;
+
+      // 1. Create Core Textures
+      let srcCanvas;
+      try {
+        srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+      } catch (e) {
+        console.warn("로컬 경로 이미지 로드 실패, 대체 데이터 생성", e);
+        // Fallback procedural pattern if image fails to load
+        srcCanvas = document.createElement('canvas');
+        srcCanvas.width = W; srcCanvas.height = H;
+        const ctx = srcCanvas.getContext('2d');
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(256, 256, 120, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ff3366';
+        ctx.fillRect(100, 100, 120, 120);
+        ctx.fillStyle = '#33ccff';
+        ctx.fillRect(292, 292, 120, 120);
+      }
+
+      const originalTexture = device.createTexture({
+        size: [W, H],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+
+      const textureData = srcCanvas.getContext('2d').getImageData(0, 0, W, H).data;
+      device.queue.writeTexture(
+        { texture: originalTexture },
+        textureData,
+        { bytesPerRow: W * 4 },
+        { width: W, height: H }
+      );
+
+      // Intermediate textures for Ping-Pong & Isolation
+      const thresholdTexture = device.createTexture({
+        size: [W, H],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+      });
+
+      const blurTextureA = device.createTexture({
+        size: [W, H],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+      });
+
+      const blurTextureB = device.createTexture({
+        size: [W, H],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+      });
+
+      // 2. Uniform Buffer
+      const paramsBuffer = device.createBuffer({
+        size: 16, // Float32 x 4
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // 3. Compile Shaders
+      const moduleThreshold = device.createShaderModule({ code: thresholdWGSL });
+      const moduleBlurHoriz = device.createShaderModule({ code: blurHorizWGSL });
+      const moduleBlurVert = device.createShaderModule({ code: blurVertWGSL });
+      const moduleComposite = device.createShaderModule({ code: compositeWGSL });
+
+      // 4. Compute Pipelines
+      const thresholdPipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: { module: moduleThreshold, entryPoint: 'main' }
+      });
+
+      const blurHorizPipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: { module: moduleBlurHoriz, entryPoint: 'main' }
+      });
+
+      const blurVertPipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: { module: moduleBlurVert, entryPoint: 'main' }
+      });
+
+      // 5. Render Pipeline
+      const renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: { module: moduleComposite, entryPoint: 'vs_main' },
+        fragment: {
+          module: moduleComposite,
+          entryPoint: 'fs_main',
+          targets: [{ format }]
+        },
+        primitive: { topology: 'triangle-list' }
+      });
+
+      // 6. Bind Groups
+      const thresholdBindGroup = device.createBindGroup({
+        layout: thresholdPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: originalTexture.createView() },
+          { binding: 1, resource: thresholdTexture.createView() },
+          { binding: 2, resource: { buffer: paramsBuffer } }
+        ]
+      });
+
+      // Initial copy to Blur Buffer A from Thresholded outputs
+      const initBlurBindGroup = device.createBindGroup({
+        layout: thresholdPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: originalTexture.createView() },
+          { binding: 1, resource: blurTextureA.createView() },
+          { binding: 2, resource: { buffer: paramsBuffer } }
+        ]
+      });
+
+      const blurHorizBindGroup = device.createBindGroup({
+        layout: blurHorizPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: blurTextureA.createView() },
+          { binding: 1, resource: blurTextureB.createView() }
+        ]
+      });
+
+      const blurVertBindGroup = device.createBindGroup({
+        layout: blurVertPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: blurTextureB.createView() },
+          { binding: 1, resource: blurTextureA.createView() }
+        ]
+      });
+
+      const linearSampler = device.createSampler({
+        minFilter: 'linear',
+        magFilter: 'linear'
+      });
+
+      const renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: originalTexture.createView() },
+          { binding: 1, resource: blurTextureA.createView() },
+          { binding: 2, resource: thresholdTexture.createView() },
+          { binding: 3, resource: linearSampler },
+          { binding: 4, resource: { buffer: paramsBuffer } }
+        ]
+      });
+
+      // Interactive Control States
+      let threshold = 0.30;
+      let weight = 1.50;
+      let numRepeat = 100;
+      let mode = 0.0; // Bloom composition
+
+      // Elements Selection
+      const sliderThreshold = document.getElementById('slider-threshold');
+      const valThreshold = document.getElementById('val-threshold');
+      const sliderWeight = document.getElementById('slider-weight');
+      const valWeight = document.getElementById('val-weight');
+      const sliderRepeat = document.getElementById('slider-repeat');
+      const valRepeat = document.getElementById('val-repeat');
+      const selectMode = document.getElementById('select-mode');
+      const statDispatches = document.getElementById('stat-dispatches');
+      const statFps = document.getElementById('stat-fps');
+      const warningPerf = document.getElementById('warning-performance');
+
+      function updateParamsBuffer() {
+        const floatData = new Float32Array([threshold, weight, mode, 0.0]);
+        device.queue.writeBuffer(paramsBuffer, 0, floatData);
+      }
+
+      function updateUI() {
+        valThreshold.textContent = threshold.toFixed(2);
+        valWeight.textContent = weight.toFixed(2);
+        valRepeat.textContent = numRepeat;
+        statDispatches.textContent = 1 + (numRepeat * 2);
+        if (numRepeat > 200) {
+          warningPerf.style.display = 'block';
+        } else {
+          warningPerf.style.display = 'none';
+        }
+      }
+
+      // Live Interaction Event Handlers
+      sliderThreshold.addEventListener('input', (e) => {
+        threshold = parseFloat(e.target.value);
+        updateUI();
+        scheduleRender();
+      });
+
+      sliderWeight.addEventListener('input', (e) => {
+        weight = parseFloat(e.target.value);
+        updateUI();
+        scheduleRender();
+      });
+
+      sliderRepeat.addEventListener('input', (e) => {
+        numRepeat = parseInt(e.target.value);
+        updateUI();
+        scheduleRender();
+      });
+
+      selectMode.addEventListener('change', (e) => {
+        mode = parseFloat(e.target.value);
+        updateUI();
+        scheduleRender();
+      });
+
+      // Render execution Scheduler
+      let renderRequested = false;
+      function scheduleRender() {
+        if (renderRequested) return;
+        renderRequested = true;
+        requestAnimationFrame(() => {
+          render();
+          renderRequested = false;
+        });
+      }
+
+      function render() {
+        const startTime = performance.now();
+        updateParamsBuffer();
+
+        const commandEncoder = device.createCommandEncoder();
+
+        // Pass 1: Extract bright region to thresholdTexture (static reference for display mode 2)
+        const thresholdPass = commandEncoder.beginComputePass();
+        thresholdPass.setPipeline(thresholdPipeline);
+        thresholdPass.setBindGroup(0, thresholdBindGroup);
+        thresholdPass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
+        thresholdPass.end();
+
+        // Pass 2: Initialize Blur Texture A from Threshold
+        const initBlurPass = commandEncoder.beginComputePass();
+        initBlurPass.setPipeline(thresholdPipeline);
+        initBlurPass.setBindGroup(0, initBlurPassGroup);
+        initBlurPass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
+        initBlurPass.end();
+
+        // Pass 3: Repeated Gaussian Ping-Pong blurs
+        for (let i = 0; i < numRepeat; i++) {
+          // Horizontal pass: BlurTextureA -> BlurTextureB
+          const hPass = commandEncoder.beginComputePass();
+          hPass.setPipeline(blurHorizPipeline);
+          hPass.setBindGroup(0, blurHorizBindGroup);
+          hPass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
+          hPass.end();
+
+          // Vertical pass: BlurTextureB -> BlurTextureA
+          const vPass = commandEncoder.beginComputePass();
+          vPass.setPipeline(blurVertPipeline);
+          vPass.setBindGroup(0, blurVertBindGroup);
+          vPass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
+          vPass.end();
+        }
+
+        // Pass 4: Composite & Display Results
+        const renderPass = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+            loadOp: 'clear',
+            storeOp: 'store'
+          }]
+        });
+        renderPass.setPipeline(renderPipeline);
+        renderPass.setBindGroup(0, renderBindGroup);
+        renderPass.draw(6);
+        renderPass.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+
+        const endTime = performance.now();
+        statFps.textContent = (endTime - startTime).toFixed(2);
+      }
+
+      // Initial Setup
+      updateUI();
+      scheduleRender();
+    }
+
+    // Run when loaded
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
