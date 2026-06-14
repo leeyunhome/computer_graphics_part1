@@ -10,13 +10,9 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-14-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F-%EB%94%94%EB%B2%84%EA%B9%85-%EA%B8%B0%EC%B4%88/">
       
       
-        <link rel="prev" href="../%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/">
-      
-      
-        <link rel="next" href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/">
       
       
         
@@ -27,7 +23,7 @@
     
     
       
-        <title>Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화 - Computer Graphics Portfolio</title>
+        <title>[DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초 - Computer Graphics Portfolio</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#bloom-2" class="md-skip">
+        <a href="#directx-11-c-glm" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -112,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화
+              [DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초
             
           </span>
         </div>
@@ -242,7 +238,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../posts/" class="md-tabs__link">
+      <a href="../" class="md-tabs__link">
         
   
   
@@ -259,13 +255,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../demos/" class="md-tabs__link">
           
   
   
@@ -356,7 +350,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../posts/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -380,31 +374,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -422,7 +411,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -440,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../demos/" class="md-nav__link">
         
   
   
@@ -468,7 +457,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pixel-animation/" class="md-nav__link">
+      <a href="../../demos/pixel-animation/" class="md-nav__link">
         
   
   
@@ -496,7 +485,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../raytracer/" class="md-nav__link">
+      <a href="../../demos/raytracer/" class="md-nav__link">
         
   
   
@@ -524,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
+      <a href="../../demos/boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
         
   
   
@@ -552,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
         
   
   
@@ -580,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
         
   
   
@@ -608,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
         
   
   
@@ -636,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
+      <a href="../../demos/box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
         
   
   
@@ -664,7 +653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
+      <a href="../../demos/directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
         
   
   
@@ -692,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
         
   
   
@@ -720,7 +709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
         
   
   
@@ -748,7 +737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
         
   
   
@@ -776,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
         
   
   
@@ -804,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -832,7 +821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -860,7 +849,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
         
   
   
@@ -888,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
+      <a href="../../demos/directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
         
   
   
@@ -916,7 +905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -944,7 +933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
         
   
   
@@ -972,7 +961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
         
   
   
@@ -1000,7 +989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1028,7 +1017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1056,7 +1045,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
+      <a href="../../demos/imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
         
   
   
@@ -1084,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
+      <a href="../../demos/directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
         
   
   
@@ -1112,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
         
   
   
@@ -1140,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
         
   
   
@@ -1168,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/" class="md-nav__link">
         
   
   
@@ -1196,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
         
   
   
@@ -1224,7 +1213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
         
   
   
@@ -1252,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1277,19 +1266,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../demos/bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
         
   
   
@@ -1305,7 +1285,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1318,7 +1297,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
         
   
   
@@ -1346,7 +1325,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
         
   
   
@@ -1374,7 +1353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
         
   
   
@@ -1402,7 +1381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
         
   
   
@@ -1430,7 +1409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
         
   
   
@@ -1458,7 +1437,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
+      <a href="../../demos/%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
         
   
   
@@ -1486,7 +1465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/" class="md-nav__link">
+      <a href="../../demos/glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/" class="md-nav__link">
         
   
   
@@ -1514,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
         
   
   
@@ -1562,6 +1541,131 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-glm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 커밋의 핵심 개념: 그래픽스 디버깅과 GLM 매크로 설정
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 커밋의 핵심 개념: 그래픽스 디버깅과 GLM 매크로 설정">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3d-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3D 변환 Matrix와 디버깅의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glmgtxstring_casthpp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        glm/gtx/string_cast.hpp와 실험적 확장 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 학습자가 직접 구현하며 이해한 핵심 구조
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 학습자가 직접 구현하며 이해한 핵심 구조">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        전처리 정의 통합의 아키텍처적 의미
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        추상화된 디버깅 워크플로우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. WebGPU 인터랙티브 데모로의 확장 관점
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. WebGPU 인터랙티브 데모로의 확장 관점">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webgpu-compute-shader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGPU Compute Shader 기반 행렬 변환 시각화 시나리오
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인터랙티브 WebGPU 데모
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1580,9 +1684,82 @@
   
 
 
-<h1 id="bloom-2">Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화</h1>
+<h1 id="directx-11-c-glm">[DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초</h1>
+<p>이번 커밋은 DirectX 11 / C++ 그래픽스 학습 과정에서 수학 라이브러리인 <strong>GLM(OpenGL Mathematics)</strong>의 디버깅 유틸리티를 안전하게 통합하기 위한 프로젝트 설정 변경을 담고 있습니다. </p>
+<p>단순히 빌드 에러를 해결한 것을 넘어, 그래픽스 프로그래밍에서 필수적인 <strong>수학적 데이터 시각화(디버깅)의 기틀</strong>을 마련했다는 점에서 의미가 큽니다.</p>
+<hr />
+<h2 id="1-glm">1. 커밋의 핵심 개념: 그래픽스 디버깅과 GLM 매크로 설정</h2>
+<h3 id="3d-matrix">3D 변환 Matrix와 디버깅의 한계</h3>
+<p>그래픽스 파이프라인을 구축할 때, 우리는 수많은 벡터와 행렬 연산을 수행합니다. 로컬 좌표계의 정점을 스크린 공간으로 변환하는 대표적인 공식은 다음과 같습니다.</p>
+<div class="arithmatex">\[ \mathbf{v}_{clip} = P \times V \times M \times \mathbf{v}_{local} \]</div>
+<p>여기서 <span class="arithmatex">\(M\)</span>(Model), <span class="arithmatex">\(V\)</span>(View), <span class="arithmatex">\(P\)</span>(Projection)는 모두 <span class="arithmatex">\(4 \times 4\)</span> 행렬입니다. 셰이더나 C++ 애플리케이션 단계에서 변환이 잘못되었을 때, 이를 콘솔에 출력하여 값을 확인하는 것은 디버깅의 출발점입니다. </p>
+<p>하지만 C++ 표준 라이브러리(<code>std::cout</code>)는 <code>glm::vec3</code>나 <code>glm::mat4</code> 같은 고차원 수학 타입을 기본적으로 출력할 수 없습니다.</p>
+<h3 id="glmgtxstring_casthpp"><code>glm/gtx/string_cast.hpp</code>와 실험적 확장 기능</h3>
+<p>GLM 라이브러리는 이를 해결하기 위해 행렬과 벡터를 문자열로 쉽게 변환해 주는 <code>glm::to_string()</code> 함수를 제공합니다. 이 함수는 <code>glm/gtx/string_cast.hpp</code> 헤더에 정의되어 있습니다.</p>
+<ul>
+<li><strong>GTX(Extension)의 의미</strong>: GLM에서 <code>gtx</code> 경로에 있는 헤더들은 '실험적(Experimental)' 기능을 의미합니다. 향후 API가 변경될 가능성이 있으므로, 개발자가 이 위험을 인지하고 사용하겠다는 명시적인 동의를 요구합니다.</li>
+<li><strong>해결책</strong>: 프리프로세서(전처리기) 단계에서 <code>GLM_ENABLE_EXPERIMENTAL</code> 매크로를 정의해야만 해당 헤더의 기능을 컴파일러가 허용합니다. 학습자는 이를 프로젝트 전반(<code>.vcxproj</code> 설정)에 반영하여 해결했습니다.</li>
+</ul>
+<hr />
+<h2 id="2">2. 학습자가 직접 구현하며 이해한 핵심 구조</h2>
+<p>학습자는 단순 소스 코드 레벨(<code>#define</code>)에서 매크로를 선언하는 대신, Visual Studio 프로젝트 구성 요소(<code>.vcxproj</code>)에 직접 정의를 추가했습니다. 이는 규모가 큰 그래픽스 엔진 아키텍처에서 매우 권장되는 방식입니다.</p>
+<h3 id="_1">전처리 정의 통합의 아키텍처적 의미</h3>
+<p>모든 빌드 환경(Debug, Release, Win32, x64)에 매크로를 주입함으로써 다음과 같은 이점을 얻습니다.
+1. <strong>일관성</strong>: 특정 소스 파일에서 <code>#define</code>을 누락하여 발생하는 산발적인 빌드 에러를 방지합니다.
+2. <strong>사전 컴파일된 헤더(PCH)와의 호환성</strong>: 그래픽스 프로젝트에서 흔히 쓰이는 <code>pch.h</code> 등과 엉키지 않고 안전하게 GLM 설정을 전역에 전파합니다.</p>
+<h3 id="_2">추상화된 디버깅 워크플로우</h3>
+<p>학습자가 구축한 디버깅 환경의 논리적 흐름은 다음과 같이 요약할 수 있습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// 1. 그래픽스 렌더링 루프 중 카메라 또는 오브젝트의 행렬 계산</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">Matrix4x4</span><span class="w"> </span><span class="n">modelMatrix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CalculateModelTransform</span><span class="p">(</span><span class="n">translation</span><span class="p">,</span><span class="w"> </span><span class="n">rotation</span><span class="p">,</span><span class="w"> </span><span class="n">scale</span><span class="p">);</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">Matrix4x4</span><span class="w"> </span><span class="n">viewMatrix</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">CalculateViewMatrix</span><span class="p">(</span><span class="n">cameraPosition</span><span class="p">,</span><span class="w"> </span><span class="n">lookAt</span><span class="p">);</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">Matrix4x4</span><span class="w"> </span><span class="n">projectionMatrix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CalculateProjectionMatrix</span><span class="p">(</span><span class="n">fov</span><span class="p">,</span><span class="w"> </span><span class="n">aspectRatio</span><span class="p">,</span><span class="w"> </span><span class="n">nearZ</span><span class="p">,</span><span class="w"> </span><span class="n">farZ</span><span class="p">);</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1">// 2. MVP 결합 행렬 도출</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">Matrix4x4</span><span class="w"> </span><span class="n">mvpMatrix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">projectionMatrix</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">viewMatrix</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">modelMatrix</span><span class="p">;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">// 3. 빌드 에러 없이 작동하는 GLM 문자열 변환 디버깅 (학습자가 해결한 핵심 영역)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="cp">#ifdef _DEBUG</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="c1">// 콘솔 창에 4x4 행렬의 원소들을 포맷팅하여 실시간 출력</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">formattedMatrix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="o">::</span><span class="n">ToString</span><span class="p">(</span><span class="n">mvpMatrix</span><span class="p">);</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="n">Debug</span><span class="o">::</span><span class="n">Log</span><span class="p">(</span><span class="s">&quot;Current MVP Matrix:</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">formattedMatrix</span><span class="p">);</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="cp">#endif</span>
+</code></pre></div>
+<hr />
+<h2 id="3-webgpu">3. WebGPU 인터랙티브 데모로의 확장 관점</h2>
+<p>웹 환경의 차세대 그래픽스 API인 <strong>WebGPU</strong>에서도 이와 유사한 수학적 디버깅 및 연산 문제가 발생합니다. WebGPU의 셰이더 언어인 <strong>WGSL(WebGPU Shading Language)</strong> 역시 복잡한 행렬 연산을 수행하지만, 셰이더 내부의 값을 CPU(JavaScript) 측에서 직접 확인하는 것은 매우 까다롭습니다.</p>
+<p>이 커밋에서 다룬 <strong>"수학적 연산 결과를 CPU로 가져와 확인하는 시각화 기법"</strong>을 WebGPU Compute Shader 데모로 재구성한다면 다음과 같은 방식으로 시각화할 수 있습니다.</p>
+<h3 id="webgpu-compute-shader">WebGPU Compute Shader 기반 행렬 변환 시각화 시나리오</h3>
+<ol>
+<li><strong>상황 설정</strong>: 수만 개의 정점(Vertices)에 임의의 3D 회전 행렬 <span class="arithmatex">\(R(\theta)\)</span>를 적용하는 Compute Shader를 가동합니다.</li>
+<li><strong>디버깅 버퍼(Storage Buffer) 생성</strong>:</li>
+<li>CPU와 GPU가 공유하는 <code>readback</code> 버퍼를 만듭니다.</li>
+<li>GPU 연산 결과로 도출된 변환 행렬 및 정점 위치 정보를 이 버퍼에 기록합니다.</li>
+<li><strong>JS를 통한 시각화(WebGPU의 <code>string_cast</code> 구현)</strong>:</li>
+<li>GPU 연산이 끝나면 <code>GPUBuffer.mapAsync()</code>를 호출하여 데이터를 메모리에 매핑합니다.</li>
+<li>JavaScript 콘솔 또는 HTML 브라우저 화면에 3D 변환 행렬 상태와 정점들의 변화를 실시간 텍스트 및 3D 기하구조로 렌더링합니다.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// WGSL (Compute Shader 예시)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">struct</span><span class="w"> </span><span class="nc">DebugData</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="n">transformMatrix</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">mat4x4</span><span class="o">&lt;</span><span class="kt">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="n">calculatedPos</span><span class="w">   </span><span class="p">:</span><span class="w"> </span><span class="nc">vec4</span><span class="o">&lt;</span><span class="kt">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="o">@</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">@</span><span class="n">binding</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">var</span><span class="o">&lt;</span><span class="n">storage</span><span class="p">,</span><span class="w"> </span><span class="n">read_write</span><span class="o">&gt;</span><span class="w"> </span><span class="n">debugBuffer</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">DebugData</span><span class="p">;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="o">@</span><span class="n">compute</span><span class="w"> </span><span class="o">@</span><span class="n">workgroup_size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="c1">// GPU 내부에서 복잡한 행렬 연산 수행</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">M</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mat4x4</span><span class="o">&lt;</span><span class="kt">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="o">..</span><span class="p">.);</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="n">debugBuffer</span><span class="p">.</span><span class="n">transformMatrix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">M</span><span class="p">;</span><span class="w"> </span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="n">debugBuffer</span><span class="p">.</span><span class="n">calculatedPos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">M</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">vec4</span><span class="o">&lt;</span><span class="kt">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><strong>데모 화면 구성</strong>: 사용자가 웹페이지의 슬라이더를 조절하면, WebGPU가 실시간으로 행렬 변환을 계산합니다. 화면 한편에는 학습자가 DirectX 11 환경에서 <code>glm::to_string()</code>으로 확인하고자 했던 포맷 그대로, <strong>변환 행렬 데이터가 실시간 텍스트로 갱신</strong>되며 3D 오브젝트가 회전하는 모습을 직관적으로 관찰할 수 있습니다.</li>
+</ul>
+<hr />
+<h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/directx-11-c-그래픽스-환경에서의-glm-실험적-확장-활성화-및/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
