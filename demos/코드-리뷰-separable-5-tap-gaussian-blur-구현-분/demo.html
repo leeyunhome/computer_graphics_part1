@@ -439,11 +439,9 @@
 
             @fragment
             fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-                if (uv.x < r_params.splitRatio) {
-                    return textureSample(t_final, s_sampler, uv);
-                } else {
-                    return textureSample(t_orig, s_sampler, uv);
-                }
+                let blurred = textureSample(t_final, s_sampler, uv);
+                let original = textureSample(t_orig, s_sampler, uv);
+                return select(original, blurred, uv.x < r_params.splitRatio);
             }
         `;
 
