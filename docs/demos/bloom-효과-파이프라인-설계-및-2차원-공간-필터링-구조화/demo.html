@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DirectX 11 — Bloom Effect Pipeline</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      display: flex;
+      user-select: none;
+    }
+
+    /* ImGui-style Dark UI Panel */
+    #imgui-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 340px;
+      background-color: rgba(22, 22, 37, 0.95);
+      border: 1px solid #4f4f6a;
+      border-radius: 4px;
+      padding: 15px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      font-size: 13px;
+    }
+
+    .panel-header {
+      font-weight: bold;
+      font-size: 14px;
+      border-bottom: 1px solid #4f4f6a;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      color: #00bcd4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-group {
+      margin-bottom: 14px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #b0b0cf;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: #00bcd4;
+      background: #2a2a40;
+      border: 1px solid #4f4f6a;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .val-display {
+      width: 45px;
+      text-align: right;
+      font-family: monospace;
+      color: #00bcd4;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    button {
+      background-color: #00bcd4;
+      color: #121212;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #00e5ff;
+    }
+
+    button:active {
+      background-color: #00b0ff;
+    }
+
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #0f0f1b;
+    }
+
+    canvas {
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+      border: 1px solid #33334c;
+      max-width: 90%;
+      max-height: 90%;
+      aspect-ratio: 1/1;
+    }
+
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 15, 27, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #ff5555;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 100;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="error-overlay">WebGPU를 지원하지 않는 브라우저이거나 구동에 실패했습니다.</div>
+
+  <!-- ImGui Window Frame -->
+  <div id="imgui-panel">
+    <div class="panel-header">
+      <span>DirectX 11 — Bloom Pipeline</span>
+      <span style="font-size: 10px; color: #888;">v1.0.0</span>
+    </div>
+
+    <div class="control-group">
+      <label>임계값 (Brightness Threshold)</label>
+      <div class="slider-row">
+        <input type="range" id="threshold-slider" min="0.0" max="1.0" step="0.01" value="0.50">
+        <span class="val-display" id="threshold-val">0.50</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>블러 범위 (Gaussian Sigma)</label>
+      <div class="slider-row">
+        <input type="range" id="sigma-slider" min="0.5" max="10.0" step="0.1" value="3.0">
+        <span class="val-display" id="sigma-val">3.0</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>블룸 강도 (Bloom Intensity)</label>
+      <div class="slider-row">
+        <input type="range" id="intensity-slider" min="0.0" max="3.0" step="0.05" value="1.50">
+        <span class="val-display" id="intensity-val">1.50</span>
+      </div>
+    </div>
+
+    <div class="control-group" style="border-top: 1px dashed #4f4f6a; padding-top: 12px;">
+      <label>실시간 이미지 감쇠 (Dimming Rate - DX11 Hook)</label>
+      <div class="slider-row">
+        <input type="range" id="dimming-slider" min="0.90" max="1.00" step="0.001" value="0.99">
+        <span class="val-display" id="dimming-val">0.990</span>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="realtime-dim-cb" checked>
+        <label for="realtime-dim-cb" style="margin: 0; font-size: 12px; cursor: pointer;">실시간 피드백 루프 활성화</label>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px; display: flex; gap: 8px;">
+      <button id="reset-btn">이미지 리셋 (Reset Source)</button>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="webgpu-canvas" width="512" height="512"></canvas>
+  </div>
+
+  <script>
+    // --- WGSL Shaders ---
+    const SHADER_SOURCE = `
+      struct Params {
+        threshold: f32,
+        sigma: f32,
+        dimming: f32,
+        bloomIntensity: f32,
+      };
+
+      @group(0) @binding(0) var<uniform> params: Params;
+
+      // ----------------------------------------------------
+      // Compute Shader 1: Image Processing & Brightness Filter
+      // ----------------------------------------------------
+      @group(0) @binding(1) var inputTex: texture_2d<f32>;
+      @group(0) @binding(2) var feedbackTex: texture_2d<f32>;
+      @group(0) @binding(3) var outWorkTex: texture_storage_2d<rgba8unorm, write>;
+      @group(0) @binding(4) var outBrightTex: texture_storage_2d<rgba8unorm, write>;
+      @group(0) @binding(5) var<uniform> dynamicFlag: u32; // 1: use feedback, 0: use static input
+
+      @compute @workgroup_size(8, 8)
+      fn cs_process(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(inputTex);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        var color: vec4f;
+        if (dynamicFlag == 1u) {
+          // Read from previous frame's work texture and apply real-time dimming (0.99f clamp logic)
+          let prevCol = textureLoad(feedbackTex, id.xy, 0);
+          color = vec4f(clamp(prevCol.rgb * params.dimming, vec3f(0.0), vec3f(1.0)), 1.0);
+        } else {
+          color = textureLoad(inputTex, id.xy, 0);
+        }
+
+        // Brightness filtering (Extracting highlights)
+        let luma = dot(color.rgb, vec3f(0.299, 0.587, 0.114));
+        var bright = vec4f(0.0, 0.0, 0.0, 1.0);
+        if (luma > params.threshold) {
+          // Soft-threshold highlight extraction
+          bright = vec4f(color.rgb * (luma - params.threshold) / (1.0 - params.threshold + 0.0001), 1.0);
+        }
+
+        textureStore(outWorkTex, id.xy, color);
+        textureStore(outBrightTex, id.xy, bright);
+      }
+
+      // ----------------------------------------------------
+      // Compute Shader 2: Gaussian Blur (Separable Horizontal / Vertical)
+      // ----------------------------------------------------
+      @group(1) var srcTex: texture_2d<f32>;
+      @group(1) var dstTex: texture_storage_2d<rgba8unorm, write>;
+
+      fn gaussian(x: f32, sigma: f32) -> f32 {
+        let s = 2.0 * sigma * sigma;
+        if (s <= 0.0) { return 1.0; }
+        return exp(-(x * x) / s) / (3.141592 * s);
+      }
+
+      @compute @workgroup_size(8, 8)
+      fn cs_blur_h(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(srcTex);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        var col = vec4f(0.0);
+        var totalWeight = 0.0;
+        let r = i32(ceil(params.sigma * 2.0));
+
+        for (var i = -r; i <= r; i++) {
+          let coords = vec2i(vec2i(id.xy) + vec2i(i, 0));
+          if (coords.x >= 0 && coords.x < i32(size.x)) {
+            let weight = gaussian(f32(i), params.sigma);
+            col += textureLoad(srcTex, vec2u(coords), 0) * weight;
+            totalWeight += weight;
+          }
+        }
+
+        if (totalWeight > 0.0) { col /= totalWeight; }
+        textureStore(dstTex, id.xy, vec4f(col.rgb, 1.0));
+      }
+
+      @compute @workgroup_size(8, 8)
+      fn cs_blur_v(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(srcTex);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        var col = vec4f(0.0);
+        var totalWeight = 0.0;
+        let r = i32(ceil(params.sigma * 2.0));
+
+        for (var i = -r; i <= r; i++) {
+          let coords = vec2i(vec2i(id.xy) + vec2i(0, i));
+          if (coords.y >= 0 && coords.y < i32(size.y)) {
+            let weight = gaussian(f32(i), params.sigma);
+            col += textureLoad(srcTex, vec2u(coords), 0) * weight;
+            totalWeight += weight;
+          }
+        }
+
+        if (totalWeight > 0.0) { col /= totalWeight; }
+        textureStore(dstTex, id.xy, vec4f(col.rgb, 1.0));
+      }
+
+      // ----------------------------------------------------
+      // Compute Shader 3: Bloom Composite & Final Output
+      // ----------------------------------------------------
+      @group(2) var baseTex: texture_2d<f32>;
+      @group(2) var blurTex: texture_2d<f32>;
+      @group(2) var outFinalTex: texture_storage_2d<rgba8unorm, write>;
+
+      @compute @workgroup_size(8, 8)
+      fn cs_composite(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(baseTex);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        let base = textureLoad(baseTex, id.xy, 0);
+        let blur = textureLoad(blurTex, id.xy, 0);
+
+        // Render pipeline Bloom Composite : Base + Blur * Intensity
+        let finalColor = clamp(base.rgb + blur.rgb * params.bloomIntensity, vec3f(0.0), vec3f(1.0));
+
+        textureStore(outFinalTex, id.xy, vec4f(finalColor, 1.0));
+      }
+
+      // ----------------------------------------------------
+      // Vertex & Fragment Shaders: Screen-space rendering
+      // ----------------------------------------------------
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+      };
+
+      @vertex
+      fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+          vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+        );
+        var uv = array<vec2f, 6>(
+          vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+          vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+        );
+        var out: VertexOutput;
+        out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+        out.uv = uv[vertexIndex];
+        return out;
+      }
+
+      @group(3) @binding(0) var imgSampler: sampler;
+      @group(3) @binding(1) var finalTextureToDraw: texture_2d<f32>;
+
+      @fragment
+      fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        return textureSample(finalTextureToDraw, imgSampler, uv);
+      }
+    `;
+
+    // --- Core Logic ---
+    const IMG_WIDTH = 512;
+    const IMG_HEIGHT = 512;
+
+    async function loadImage(url, w, h) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.src = url;
+      });
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c;
+    }
+
+    async function init() {
+      if (!navigator.gpu) {
+        document.getElementById('error-overlay').style.display = 'flex';
+        return;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      const device = await adapter.requestDevice();
+
+      const canvas = document.getElementById('webgpu-canvas');
+      const context = canvas.getContext('webgpu');
+      const format = navigator.gpu.getPreferredCanvasFormat();
+
+      context.configure({
+        device,
+        format,
+        alphaMode: 'opaque'
+      });
+
+      // Shaders module
+      const shaderModule = device.createShaderModule({ code: SHADER_SOURCE });
+
+      // Load static texture (Colosseum)
+      let srcCanvas;
+      try {
+        srcCanvas = await loadImage('../../images/colosseum.jpg', IMG_WIDTH, IMG_HEIGHT);
+      } catch (e) {
+        // Fallback procedural visualizer if image loading fails locally
+        srcCanvas = document.createElement('canvas');
+        srcCanvas.width = IMG_WIDTH; srcCanvas.height = IMG_HEIGHT;
+        const ctx = srcCanvas.getContext('2d');
+        const grad = ctx.createRadialGradient(256, 256, 10, 256, 256, 250);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.2, '#ff00ff');
+        grad.addColorStop(0.5, '#00ffff');
+        grad.addColorStop(1, '#000000');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
+      }
+
+      const imgData = srcCanvas.getContext('2d').getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
+
+      // Create GPU textures
+      const createGPUTexture = (usage) => device.createTexture({
+        size: [IMG_WIDTH, IMG_HEIGHT],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | usage
+      });
+
+      const originalTexture = createGPUTexture(0);
+      const workTexture = createGPUTexture(GPUTextureUsage.STORAGE_BINDING);
+      const brightTexture = createGPUTexture(GPUTextureUsage.STORAGE_BINDING);
+      const blurHTexture = createGPUTexture(GPUTextureUsage.STORAGE_BINDING);
+      const blurVTexture = createGPUTexture(GPUTextureUsage.STORAGE_BINDING);
+      const finalTexture = createGPUTexture(GPUTextureUsage.STORAGE_BINDING);
+
+      // Upload original static image texture
+      const uploadOriginalImage = () => {
+        device.queue.writeTexture(
+          { texture: originalTexture },
+          imgData.data,
+          { bytesPerRow: IMG_WIDTH * 4 },
+          [IMG_WIDTH, IMG_HEIGHT]
+        );
+        // Copy original to workTexture as initial state
+        const commandEncoder = device.createCommandEncoder();
+        commandEncoder.copyTextureToTexture(
+          { texture: originalTexture },
+          { texture: workTexture },
+          [IMG_WIDTH, IMG_HEIGHT]
+        );
+        device.queue.submit([commandEncoder.finish()]);
+      };
+      uploadOriginalImage();
+
+      // Uniform buffers
+      const uniformBuffer = device.createBuffer({
+        size: 16, // 4 x f32
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      const dynamicFlagBuffer = device.createBuffer({
+        size: 4, // 1 x u32
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // Pipelines
+      const pipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+          device.createBindGroupLayout({
+            entries: [
+              { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+              { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+              { binding: 2, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+              { binding: 3, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm' } },
+              { binding: 4, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm' } },
+              { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } }
+            ]
+          }),
+          device.createBindGroupLayout({
+            entries: [
+              { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+              { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm' } }
+            ]
+          }),
+          device.createBindGroupLayout({
+            entries: [
+              { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+              { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: 'float' } },
+              { binding: 2, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm' } }
+            ]
+          })
+        ]
+      });
+
+      // Compute pipeline creation
+      const csProcessPipeline = device.createComputePipeline({
+        layout: pipelineLayout,
+        compute: { module: shaderModule, entryPoint: 'cs_process' }
+      });
+
+      const csBlurHPipeline = device.createComputePipeline({
+        layout: pipelineLayout,
+        compute: { module: shaderModule, entryPoint: 'cs_blur_h' }
+      });
+
+      const csBlurVPipeline = device.createComputePipeline({
+        layout: pipelineLayout,
+        compute: { module: shaderModule, entryPoint: 'cs_blur_v' }
+      });
+
+      const csCompositePipeline = device.createComputePipeline({
+        layout: pipelineLayout,
+        compute: { module: shaderModule, entryPoint: 'cs_composite' }
+      });
+
+      // Render Pipeline
+      const renderBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+          { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+        ]
+      });
+
+      const renderPipeline = device.createRenderPipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [renderBindGroupLayout] }),
+        vertex: { module: shaderModule, entryPoint: 'vs_main' },
+        fragment: {
+          module: shaderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format }]
+        }
+      });
+
+      // Bind Groups
+      const processBindGroup = device.createBindGroup({
+        layout: csProcessPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: originalTexture.createView() },
+          { binding: 2, resource: workTexture.createView() },
+          { binding: 3, resource: workTexture.createView() }, // Feedback destination
+          { binding: 4, resource: brightTexture.createView() },
+          { binding: 5, resource: { buffer: dynamicFlagBuffer } }
+        ]
+      });
+
+      const blurHBindGroup = device.createBindGroup({
+        layout: csBlurHPipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: brightTexture.createView() },
+          { binding: 1, resource: blurHTexture.createView() }
+        ]
+      });
+
+      const blurVBindGroup = device.createBindGroup({
+        layout: csBlurVPipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: blurHTexture.createView() },
+          { binding: 1, resource: blurVTexture.createView() }
+        ]
+      });
+
+      const compositeBindGroup = device.createBindGroup({
+        layout: csCompositePipeline.getBindGroupLayout(2),
+        entries: [
+          { binding: 0, resource: workTexture.createView() },
+          { binding: 1, resource: blurVTexture.createView() },
+          { binding: 2, resource: finalTexture.createView() }
+        ]
+      });
+
+      const sampler = device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
+      const renderBindGroup = device.createBindGroup({
+        layout: renderBindGroupLayout,
+        entries: [
+          { binding: 0, resource: sampler },
+          { binding: 1, resource: finalTexture.createView() }
+        ]
+      });
+
+      // Parameters Object
+      const params = {
+        threshold: 0.50,
+        sigma: 3.0,
+        dimming: 0.990,
+        intensity: 1.50,
+        realtimeDim: true
+      };
+
+      // UI Sync Functions
+      const updateUniforms = () => {
+        const arrayBuffer = new Float32Array([
+          params.threshold,
+          params.sigma,
+          params.dimming,
+          params.intensity
+        ]);
+        device.queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+      };
+
+      // UI Handlers
+      const setupUI = () => {
+        const syncSlider = (id, paramKey, scale = 1, fixed = 2) => {
+          const slider = document.getElementById(`${id}-slider`);
+          const valDisplay = document.getElementById(`${id}-val`);
+          slider.addEventListener('input', (e) => {
+            params[paramKey] = parseFloat(e.target.value);
+            valDisplay.textContent = params[paramKey].toFixed(fixed);
+            updateUniforms();
+            scheduleRender();
+          });
+        };
+
+        syncSlider('threshold', 'threshold', 1, 2);
+        syncSlider('sigma', 'sigma', 1, 1);
+        syncSlider('intensity', 'intensity', 1, 2);
+        syncSlider('dimming', 'dimming', 1, 3);
+
+        const rtCb = document.getElementById('realtime-dim-cb');
+        rtCb.addEventListener('change', (e) => {
+          params.realtimeDim = e.target.checked;
+          scheduleRender();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+          uploadOriginalImage();
+          scheduleRender();
+        });
+      };
+
+      setupUI();
+      updateUniforms();
+
+      // Rendering Loop
+      let isRenderPending = false;
+
+      function render() {
+        isRenderPending = false;
+
+        // Dynamic flag selection: If feedback is checked, feed current work texture state. If not, refresh with base.
+        const dynamicFlagArray = new Uint32Array([params.realtimeDim ? 1 : 0]);
+        device.queue.writeBuffer(dynamicFlagBuffer, 0, dynamicFlagArray);
+
+        const commandEncoder = device.createCommandEncoder();
+
+        // 1. Process / Extractor Pass
+        const pass1 = commandEncoder.beginComputePass();
+        pass1.setPipeline(csProcessPipeline);
+        pass1.setBindGroup(0, processBindGroup);
+        pass1.dispatchWorkgroups(Math.ceil(IMG_WIDTH / 8), Math.ceil(IMG_HEIGHT / 8));
+        pass1.end();
+
+        // 2. Gaussian Blur (H)
+        const pass2 = commandEncoder.beginComputePass();
+        pass2.setPipeline(csBlurHPipeline);
+        pass2.setBindGroup(0, processBindGroup);
+        pass2.setBindGroup(1, blurHBindGroup);
+        pass2.dispatchWorkgroups(Math.ceil(IMG_WIDTH / 8), Math.ceil(IMG_HEIGHT / 8));
+        pass2.end();
+
+        // 3. Gaussian Blur (V)
+        const pass3 = commandEncoder.beginComputePass();
+        pass3.setPipeline(csBlurVPipeline);
+        pass3.setBindGroup(0, processBindGroup);
+        pass3.setBindGroup(1, blurVBindGroup);
+        pass3.dispatchWorkgroups(Math.ceil(IMG_WIDTH / 8), Math.ceil(IMG_HEIGHT / 8));
+        pass3.end();
+
+        // 4. Bloom Composition Pass
+        const pass4 = commandEncoder.beginComputePass();
+        pass4.setPipeline(csCompositePipeline);
+        pass4.setBindGroup(0, processBindGroup);
+        pass4.setBindGroup(2, compositeBindGroup);
+        pass4.dispatchWorkgroups(Math.ceil(IMG_WIDTH / 8), Math.ceil(IMG_HEIGHT / 8));
+        pass4.end();
+
+        // 5. Blit Final Texture to Screen RenderPass
+        const pass5 = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+            loadOp: 'clear',
+            storeOp: 'store'
+          }]
+        });
+        pass5.setPipeline(renderPipeline);
+        pass5.setBindGroup(3, renderBindGroup);
+        pass5.draw(6);
+        pass5.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+
+        // Continuous Loop hook if real-time animation is enabled
+        if (params.realtimeDim) {
+          scheduleRender();
+        }
+      }
+
+      function scheduleRender() {
+        if (!isRenderPending) {
+          isRenderPending = true;
+          requestAnimationFrame(render);
+        }
+      }
+
+      // Start initial render
+      scheduleRender();
+    }
+
+    init();
+  </script>
+</body>
+</html>
