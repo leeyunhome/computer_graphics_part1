@@ -125,6 +125,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [GLM을 활용한 벡터 연산의 수학적 이해 및 DirectXMath와의 비교 분석](glm을-활용한-벡터-연산의-수학적-이해-및-directxmath와의-비.md)
+
+
+[→ 데모 열기](glm을-활용한-벡터-연산의-수학적-이해-및-directxmath와의-비.md){.md-button}
+
+
+---
+
+
 ## [ImGui를 활용한 캔버스 배경색 제어 구현](imgui를-활용한-캔버스-배경색-제어-구현.md)
 
 
