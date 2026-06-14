@@ -486,14 +486,16 @@
       document.getElementById('error-message').textContent = message;
     }
 
-    async function loadImage(url, w, h) {
+    async function loadImageNaturalSize(url, maxW, maxH) {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
         img.src = url;
       });
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -527,30 +529,30 @@
         alphaMode: 'opaque'
       });
 
-      const W = 512;
-      const H = 512;
-
-      // 1. Create Core Textures
+      // 1. Create Core Textures — load image at natural size (max 800×600)
       let srcCanvas;
       try {
-        srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
+        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 800, 600);
       } catch (e) {
         console.warn("로컬 경로 이미지 로드 실패, 대체 데이터 생성", e);
-        // Fallback procedural pattern if image fails to load
         srcCanvas = document.createElement('canvas');
-        srcCanvas.width = W; srcCanvas.height = H;
+        srcCanvas.width = 800; srcCanvas.height = 600;
         const ctx = srcCanvas.getContext('2d');
         ctx.fillStyle = '#050510';
-        ctx.fillRect(0, 0, W, H);
+        ctx.fillRect(0, 0, 800, 600);
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(256, 256, 120, 0, Math.PI * 2);
+        ctx.arc(400, 300, 120, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#ff3366';
         ctx.fillRect(100, 100, 120, 120);
         ctx.fillStyle = '#33ccff';
         ctx.fillRect(292, 292, 120, 120);
       }
+      const W = srcCanvas.width;
+      const H = srcCanvas.height;
+      canvas.width = W;
+      canvas.height = H;
 
       const originalTexture = device.createTexture({
         size: [W, H],
@@ -764,7 +766,7 @@
         // Pass 2: Initialize Blur Texture A from Threshold
         const initBlurPass = commandEncoder.beginComputePass();
         initBlurPass.setPipeline(thresholdPipeline);
-        initBlurPass.setBindGroup(0, initBlurPassGroup);
+        initBlurPass.setBindGroup(0, initBlurBindGroup);
         initBlurPass.dispatchWorkgroups(Math.ceil(W / 16), Math.ceil(H / 16));
         initBlurPass.end();
 
