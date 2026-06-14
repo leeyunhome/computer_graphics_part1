@@ -242,6 +242,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](피드백-separable-5-tap-gaussian-blur-구현-분석-.md)
+
+
+[→ 데모 열기](피드백-separable-5-tap-gaussian-blur-구현-분석-.md){.md-button}
+
+
+---
+
+
 ## [픽셀 버퍼 애니메이션 이해와 DirectX 11 적용](픽셀-버퍼-애니메이션-이해와-directx-11-적용.md)
 
 

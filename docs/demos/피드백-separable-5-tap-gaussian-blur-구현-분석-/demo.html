@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Separable 5-Tap Gaussian Blur</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            user-select: none;
+        }
+
+        #app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #0f0f1a;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border: 1px solid #2d2d44;
+            border-radius: 4px;
+        }
+
+        /* ImGui Style Control Panel */
+        #imgui-panel {
+            width: 350px;
+            background-color: #1c1c28;
+            border-left: 2px solid #2d2d44;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .panel-header {
+            background-color: #252538;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #3d3d5c;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #4ba3ff;
+        }
+
+        .panel-header .win-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .panel-header .win-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #444;
+        }
+        .panel-header .win-btn.close { background-color: #ff5f56; }
+        .panel-header .win-btn.min { background-color: #ffbd2e; }
+        .panel-header .win-btn.max { background-color: #27c93f; }
+
+        .panel-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #8f9cae;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #2d2d44;
+            padding-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #cbd5e1;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            background: #2d2d44;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4ba3ff;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #60b0ff;
+        }
+
+        .value-display {
+            font-family: monospace;
+            font-size: 13px;
+            width: 40px;
+            text-align: right;
+            color: #4ba3ff;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .checkbox-container input {
+            cursor: pointer;
+        }
+
+        .stats-panel {
+            background-color: #14141f;
+            border: 1px solid #2d2d44;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stats-val {
+            color: #4ba3ff;
+        }
+
+        #error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #11111b;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #ff5f56;
+            font-family: monospace;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #error-overlay h1 {
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-overlay" style="display: none;">
+        <h1>WebGPU 미지원 브라우저</h1>
+        <p>이 기기 또는 브라우저는 WebGPU를 지원하지 않습니다. Chrome, Edge, 또는 Safari 최신 버전을 사용해주세요.</p>
+    </div>
+
+    <div id="app-container">
+        <!-- Render Viewport -->
+        <div id="canvas-container">
+            <canvas id="gpu-canvas" width="800" height="600"></canvas>
+        </div>
+
+        <!-- DX11/ImGui Style Inspector -->
+        <div id="imgui-panel">
+            <div class="panel-header">
+                <span>DirectX 11 — Separable 5-Tap Gaussian Blur</span>
+                <div class="win-controls">
+                    <div class="win-btn min"></div>
+                    <div class="win-btn max"></div>
+                    <div class="win-btn close"></div>
+                </div>
+            </div>
+
+            <div class="panel-content">
+                <div class="section-title">가우시안 블러 컨트롤</div>
+                
+                <div class="control-group">
+                    <label for="blur-iterations">반복 횟수 (Iterations)</label>
+                    <div class="slider-container">
+                        <input type="range" id="blur-iterations" min="0" max="100" value="100">
+                        <span id="iterations-val" class="value-display">100</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>커널 크기 (Kernel Size)</label>
+                    <div style="font-size: 13px; color: #a0aec0; background: #14141f; padding: 6px 10px; border-radius: 4px; border: 1px solid #2d2d44;">
+                        5-Tap (고정)
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>필터 가중치 (Weights)</label>
+                    <div class="stats-panel" style="font-size: 11px;">
+                        <div class="stats-row"><span>Tap -2 [x-2]:</span><span class="stats-val">0.0545</span></div>
+                        <div class="stats-row"><span>Tap -1 [x-1]:</span><span class="stats-val">0.2442</span></div>
+                        <div class="stats-row"><span>Tap  0 [x]:</span><span class="stats-val">0.4026</span></div>
+                        <div class="stats-row"><span>Tap +1 [x+1]:</span><span class="stats-val">0.2442</span></div>
+                        <div class="stats-row"><span>Tap +2 [x+2]:</span><span class="stats-val">0.0545</span></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="toggle-blur" checked>
+                        <span>블러 필터 활성화</span>
+                    </label>
+                </div>
+
+                <div class="section-title">파이프라인 통계</div>
+                <div class="stats-panel">
+                    <div class="stats-row">
+                        <span>상태:</span>
+                        <span id="status-val" class="stats-val" style="color: #27c93f;">준비 완료</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>입력 이미지:</span>
+                        <span class="stats-val">colosseum.jpg</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>해상도:</span>
+                        <span class="stats-val">800 x 600</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>패스 방식:</span>
+                        <span class="stats-val" style="color: #ffbd2e;">1D Separable Pass</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>디스패치 크기:</span>
+                        <span class="stats-val">100 x 75 x 1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- WGSL Shaders ---
+
+        // 1. Compute Shader for Separable Gaussian Blur
+        const computeShaderSource = `
+            struct Params {
+                direction: u32, // 0 = Horizontal, 1 = Vertical
+                width: u32,
+                height: u32,
+                pad: u32,
+            }
+
+            @group(0) @binding(0) var srcTex: texture_2d<f32>;
+            @group(0) @binding(1) var dstTex: texture_storage_2d<rgba8unorm, write>;
+            @group(0) @binding(2) var<uniform> params: Params;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) id: vec3u) {
+                let x = i32(id.x);
+                let y = i32(id.y);
+                let w = i32(params.width);
+                let h = i32(params.height);
+
+                if (x >= w || y >= h) { return; }
+
+                // 5-Tap Gaussian weights
+                let weights = array<f32, 5>(0.0545, 0.2442, 0.4026, 0.2442, 0.0545);
+                var sum = vec3f(0.0);
+
+                if (params.direction == 0u) {
+                    // Horizontal Pass
+                    for (var si: i32 = 0; si < 5; si++) {
+                        let sampleX = clamp(x + si - 2, 0, w - 1);
+                        let texel = textureLoad(srcTex, vec2i(sampleX, y), 0).rgb;
+                        sum += texel * weights[si];
+                    }
+                } else {
+                    // Vertical Pass
+                    for (var si: i32 = 0; si < 5; si++) {
+                        let sampleY = clamp(y + si - 2, 0, h - 1);
+                        let texel = textureLoad(srcTex, vec2i(x, sampleY), 0).rgb;
+                        sum += texel * weights[si];
+                    }
+                }
+
+                textureStore(dstTex, vec2i(x, y), vec4f(sum, 1.0));
+            }
+        `;
+
+        // 2. Vertex Shader for Fullscreen Quad Display
+        const vertexShaderSource = `
+            struct VertexOutput {
+                @builtin(position) pos: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn main(@builtin(vertex_index) idx: u32) -> VertexOutput {
+                var pos = array<vec2f, 4>(
+                    vec2f(-1.0,  1.0),
+                    vec2f( 1.0,  1.0),
+                    vec2f(-1.0, -1.0),
+                    vec2f( 1.0, -1.0)
+                );
+                var uv = array<vec2f, 4>(
+                    vec2f(0.0, 0.0),
+                    vec2f(1.0, 0.0),
+                    vec2f(0.0, 1.0),
+                    vec2f(1.0, 1.0)
+                );
+                var out: VertexOutput;
+                out.pos = vec4f(pos[idx], 0.0, 1.0);
+                out.uv = uv[idx];
+                return out;
+            }
+        `;
+
+        // 3. Fragment Shader for Fullscreen Quad Display
+        const fragmentShaderSource = `
+            @group(0) @binding(0) var mySampler: sampler;
+            @group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+            @fragment
+            fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(myTexture, mySampler, uv);
+            }
+        `;
+
+        // --- Core Application Code ---
+
+        const IMAGE_WIDTH = 800;
+        const IMAGE_HEIGHT = 600;
+
+        async function loadImage(url, w, h) {
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.src = url;
+            });
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            return c;
+        }
+
+        async function init() {
+            if (!navigator.gpu) {
+                document.getElementById('error-overlay').style.display = 'flex';
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                document.getElementById('error-overlay').style.display = 'flex';
+                return;
+            }
+            const device = await adapter.requestDevice();
+
+            const canvas = document.getElementById('gpu-canvas');
+            const context = canvas.getContext('webgpu');
+            const format = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: format,
+                alphaMode: 'opaque'
+            });
+
+            // Load Colosseum Image using exact pattern requested
+            let srcCanvas;
+            try {
+                srcCanvas = await loadImage('../../images/colosseum.jpg', IMAGE_WIDTH, IMAGE_HEIGHT);
+            } catch (err) {
+                console.error("Failed to load colosseum image, using procedural pattern as backup", err);
+                // Fail-safe procedural image generation
+                srcCanvas = document.createElement('canvas');
+                srcCanvas.width = IMAGE_WIDTH;
+                srcCanvas.height = IMAGE_HEIGHT;
+                const ctx = srcCanvas.getContext('2d');
+                ctx.fillStyle = '#442288';
+                ctx.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+                ctx.fillStyle = '#ffaa44';
+                ctx.beginPath();
+                ctx.arc(IMAGE_WIDTH / 2, IMAGE_HEIGHT / 2, 180, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const imgData = srcCanvas.getContext('2d').getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+            // --- Allocate WebGPU Textures ---
+
+            // 1. Original static image source
+            const originalTexture = device.createTexture({
+                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+            });
+            device.queue.writeTexture(
+                { texture: originalTexture },
+                imgData.data,
+                { bytesPerRow: IMAGE_WIDTH * 4 },
+                [IMAGE_WIDTH, IMAGE_HEIGHT]
+            );
+
+            // 2. Dual ping-pong textures for separable passes
+            const pingPong0 = device.createTexture({
+                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST
+            });
+
+            const pingPong1 = device.createTexture({
+                size: [IMAGE_WIDTH, IMAGE_HEIGHT],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+            });
+
+            // --- Uniform Buffer for Compute Pass ---
+
+            const uboHData = new Uint32Array([0, IMAGE_WIDTH, IMAGE_HEIGHT, 0]); // dir = 0 (Horizontal)
+            const uboVData = new Uint32Array([1, IMAGE_WIDTH, IMAGE_HEIGHT, 0]); // dir = 1 (Vertical)
+
+            const uboH = device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+            const uboV = device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+            device.queue.writeBuffer(uboH, 0, uboHData);
+            device.queue.writeBuffer(uboV, 0, uboVData);
+
+            // --- Pipelines ---
+
+            // 1. Compute Pipeline
+            const computeShaderModule = device.createShaderModule({ code: computeShaderSource });
+            const computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeShaderModule,
+                    entryPoint: 'main'
+                }
+            });
+
+            // 2. Render Pipeline (Fullscreen display)
+            const vsModule = device.createShaderModule({ code: vertexShaderSource });
+            const fsModule = device.createShaderModule({ code: fragmentShaderSource });
+            const renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: vsModule,
+                    entryPoint: 'main'
+                },
+                fragment: {
+                    module: fsModule,
+                    entryPoint: 'main',
+                    targets: [{ format: format }]
+                },
+                primitive: {
+                    topology: 'triangle-strip'
+                }
+            });
+
+            const renderSampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            // --- Create Bind Groups ---
+
+            // Bind Group for first Horizontal step (reads originalTexture, writes pingPong1)
+            const bg_H_first = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: originalTexture.createView() },
+                    { binding: 1, resource: pingPong1.createView() },
+                    { binding: 2, resource: { buffer: uboH } }
+                ]
+            });
+
+            // Bind Group for loop Horizontal steps (reads pingPong0, writes pingPong1)
+            const bg_H_loop = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: pingPong0.createView() },
+                    { binding: 1, resource: pingPong1.createView() },
+                    { binding: 2, resource: { buffer: uboH } }
+                ]
+            });
+
+            // Bind Group for Vertical step (reads pingPong1, writes pingPong0)
+            const bg_V = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: pingPong1.createView() },
+                    { binding: 1, resource: pingPong0.createView() },
+                    { binding: 2, resource: { buffer: uboV } }
+                ]
+            });
+
+            // Render Bind Groups
+            const bg_RenderBlur = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: renderSampler },
+                    { binding: 1, resource: pingPong0.createView() }
+                ]
+            });
+
+            const bg_RenderOriginal = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: renderSampler },
+                    { binding: 1, resource: originalTexture.createView() }
+                ]
+            });
+
+            // --- UI Setup & App state ---
+
+            let iterations = 100;
+            let blurEnabled = true;
+
+            const slider = document.getElementById('blur-iterations');
+            const sliderVal = document.getElementById('iterations-val');
+            const checkbox = document.getElementById('toggle-blur');
+
+            slider.addEventListener('input', (e) => {
+                iterations = parseInt(e.target.value);
+                sliderVal.textContent = iterations;
+                scheduleRender();
+            });
+
+            checkbox.addEventListener('change', (e) => {
+                blurEnabled = e.target.checked;
+                scheduleRender();
+            });
+
+            let renderRequested = false;
+
+            function scheduleRender() {
+                if (!renderRequested) {
+                    renderRequested = true;
+                    requestAnimationFrame(render);
+                }
+            }
+
+            function render() {
+                renderRequested = false;
+
+                const commandEncoder = device.createCommandEncoder();
+
+                if (blurEnabled && iterations > 0) {
+                    // Step 1: Initialize pingPong0 with original image by copying
+                    commandEncoder.copyTextureToTexture(
+                        { texture: originalTexture },
+                        { texture: pingPong0 },
+                        [IMAGE_WIDTH, IMAGE_HEIGHT]
+                    );
+
+                    // Step 2: Dispatch Separable Blur passes in loop
+                    const computePass = commandEncoder.beginComputePass();
+                    computePass.setPipeline(computePipeline);
+                    const workgroupsX = Math.ceil(IMAGE_WIDTH / 8);
+                    const workgroupsY = Math.ceil(IMAGE_HEIGHT / 8);
+
+                    for (let i = 0; i < iterations; i++) {
+                        // Horizontal Blur Pass
+                        if (i === 0) {
+                            computePass.setBindGroup(0, bg_H_first);
+                        } else {
+                            computePass.setBindGroup(0, bg_H_loop);
+                        }
+                        computePass.dispatchWorkgroups(workgroupsX, workgroupsY);
+
+                        // Vertical Blur Pass
+                        computePass.setBindGroup(0, bg_V);
+                        computePass.dispatchWorkgroups(workgroupsX, workgroupsY);
+                    }
+                    computePass.end();
+                }
+
+                // Step 3: Draw final computed texture to canvas
+                const renderPass = commandEncoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }]
+                });
+                renderPass.setPipeline(renderPipeline);
+
+                if (blurEnabled && iterations > 0) {
+                    renderPass.setBindGroup(0, bg_RenderBlur);
+                } else {
+                    renderPass.setBindGroup(0, bg_RenderOriginal);
+                }
+
+                renderPass.draw(4);
+                renderPass.end();
+
+                device.queue.submit([commandEncoder.finish()]);
+            }
+
+            // Initial render
+            scheduleRender();
+        }
+
+        init();
+    </script>
+</body>
+</html>

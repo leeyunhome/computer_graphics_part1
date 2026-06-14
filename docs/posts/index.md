@@ -6,6 +6,15 @@
 ---
 
 
+## [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](2026-06-14-피드백-separable-5-tap-gaussian-blur-구현-분석-및-최적화-제안.md)
+
+
+📅 2026-06-14
+
+
+---
+
+
 ## [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](2026-06-14-코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-decay와-이미지-프로세싱-파이프라인-구현.md)
 
 
