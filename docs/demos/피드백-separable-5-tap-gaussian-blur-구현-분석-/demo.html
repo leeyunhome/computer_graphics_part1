@@ -440,7 +440,7 @@
             const originalTexture = device.createTexture({
                 size: [IMAGE_WIDTH, IMAGE_HEIGHT],
                 format: 'rgba8unorm',
-                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
             });
             device.queue.writeTexture(
                 { texture: originalTexture },
