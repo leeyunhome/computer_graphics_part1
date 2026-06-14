@@ -229,18 +229,20 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
     let uv = (pixelCoord - vec2f(size) * 0.5) / (f32(size.y) * 0.125); // 1단위 = 50px 크기 타일
 
     // 기본 배경 (그리드)
-    let gridFreq = 1.0;
-    let gridLines = abs(fract(uv - 0.5) - 0.5) / fwidth(uv);
+    // fwidth() is fragment-only; approximate with fixed UV-per-pixel derivative
+    let uvPerPx = 1.0 / (f32(size.y) * 0.125);
+    let fw = vec2f(uvPerPx);
+    let gridLines = abs(fract(uv - 0.5) - 0.5) / fw;
     let gridColor = min(gridLines.x, gridLines.y);
     var color = vec3f(0.08, 0.08, 0.12);
-    
+
     // 격자선 그리기
     if (gridColor < 1.0) {
         color = mix(vec3f(0.18, 0.18, 0.25), color, smoothstep(0.0, 1.0, gridColor));
     }
-    
+
     // 축 그리기 (x, y축)
-    let axes = abs(uv) / fwidth(uv);
+    let axes = abs(uv) / fw;
     if (axes.x < 1.5) { color = mix(vec3f(0.3, 0.3, 0.4), color, smoothstep(0.0, 1.5, axes.x)); }
     if (axes.y < 1.5) { color = mix(vec3f(0.3, 0.3, 0.4), color, smoothstep(0.0, 1.5, axes.y)); }
 
