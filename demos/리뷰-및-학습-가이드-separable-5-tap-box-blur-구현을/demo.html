@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Complete separable 5-tap box blur</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #16213e;
+            --panel-border: #4e5d6c;
+            --accent-color: #007acc;
+            --accent-hover: #0098ff;
+            --text-color: #e0e0e0;
+            --text-dim: #888888;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: var(--text-color);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--panel-border);
+            background-color: #000;
+        }
+
+        /* ImGui Style Panel */
+        #imgui-panel {
+            width: 350px;
+            background-color: var(--panel-bg);
+            border-left: 2px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .imgui-header {
+            background-color: var(--accent-color);
+            padding: 8px 12px;
+            font-weight: bold;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .imgui-content {
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .imgui-section {
+            margin-bottom: 20px;
+            border: 1px solid var(--panel-border);
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .imgui-section-title {
+            font-weight: bold;
+            color: var(--accent-hover);
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 3px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            color: var(--text-color);
+        }
+
+        .control-value {
+            color: var(--accent-hover);
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            background: #2d3748;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+
+        /* Status & Stats */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-family: monospace;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+        }
+
+        /* Error modal */
+        #error-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(10, 10, 20, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: #ff4a4a;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #error-overlay h2 { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Canvas Viewer Area -->
+        <div id="canvas-container">
+            <canvas id="gpu-canvas"></canvas>
+        </div>
+
+        <!-- DX11/ImGui Styled Control Panel -->
+        <div id="imgui-panel">
+            <div class="imgui-header">
+                <span>DirectX 11 — Separable 5-Tap Box Blur</span>
+                <span style="font-size: 10px; opacity: 0.7;">● Active</span>
+            </div>
+            
+            <div class="imgui-content">
+                <div class="imgui-section">
+                    <div class="imgui-section-title">연산 방식 (Separable 2D Convolution)</div>
+                    <p style="margin: 0 0 10px 0; line-height: 1.4; color: var(--text-dim);">
+                        가로(Horizontal) 1D 패스와 세로(Vertical) 1D 패스를 순차적으로 적용하여 5x5 필터 연산을 효율적으로 수행합니다.
+                    </p>
+                    <div class="stat-row">
+                        <span class="stat-label">시간 복잡도:</span>
+                        <span style="color: #4caf50;">O(2 * K) [대폭 감소]</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">기존 2D 복잡도:</span>
+                        <span style="color: #f44336;">O(K²)</span>
+                    </div>
+                </div>
+
+                <div class="imgui-section">
+                    <div class="imgui-section-title">컨트롤 파라미터</div>
+                    
+                    <!-- Iterations Slider -->
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>반복 횟수 (Iterations)</span>
+                            <span class="control-value" id="val-iterations">100</span>
+                        </div>
+                        <input type="range" id="slide-iterations" min="1" max="150" value="100">
+                    </div>
+
+                    <!-- Kernel Size Selector (Odd values) -->
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>커널 크기 (Kernel Size)</span>
+                            <span class="control-value" id="val-kernel">5</span>
+                        </div>
+                        <input type="range" id="slide-kernel" min="3" max="15" step="2" value="5">
+                    </div>
+
+                    <!-- Separable Toggle -->
+                    <div class="control-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="check-blur-active" checked>
+                            <span>블러 효과 활성화 (Box Blur)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="imgui-section">
+                    <div class="imgui-section-title">디바이스 정보 & 통계</div>
+                    <div class="stat-row">
+                        <span class="stat-label">API:</span>
+                        <span style="color: #00bcd4;">WebGPU (WGSL)</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">이미지 규격:</span>
+                        <span id="stat-resolution">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">총 디스패치 수:</span>
+                        <span id="stat-dispatches" style="color: #ffeb3b;">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">프레임 렌더 타임:</span>
+                        <span id="stat-ms">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-overlay" id="error-box">
+        <h2>WebGPU 호환성 오류</h2>
+        <p id="error-msg">이 브라우저는 WebGPU를 지원하지 않거나 활성화되지 않았습니다 Chrome, Edge 최신 버전을 사용해주세요.</p>
+    </div>
+
+    <script type="module">
+        // --- WGSL Shaders ---
+
+        const COMPUTE_SHADER_SOURCE = `
+            struct Params {
+                direction : u32,   // 0: Horizontal, 1: Vertical
+                kernel_size : u32, // Odd number (e.g., 5)
+            }
+
+            @group(0) @binding(0) var<uniform> params : Params;
+            @group(0) @binding(1) var img_in : texture_2d<f32>;
+            @group(0) @binding(2) var img_out : texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(16, 16)
+            fn main(@builtin(global_invocation_id) id : vec3u) {
+                let size = textureDimensions(img_in);
+                if (id.x >= size.x || id.y >= size.y) {
+                    return;
+                }
+
+                let coord = vec2i(id.xy);
+                let k_half = i32(params.kernel_size) / 2;
+                var color_sum = vec4f(0.0);
+
+                if (params.direction == 0u) {
+                    // Horizontal Pass (X-axis neighbors)
+                    for (var i = -k_half; i <= k_half; i = i + 1) {
+                        let sample_coord = clamp(coord + vec2i(i, 0), vec2i(0), vec2i(size) - vec2i(1));
+                        color_sum += textureLoad(img_in, sample_coord, 0);
+                    }
+                } else {
+                    // Vertical Pass (Y-axis neighbors)
+                    for (var i = -k_half; i <= k_half; i = i + 1) {
+                        let sample_coord = clamp(coord + vec2i(0, i), vec2i(0), vec2i(size) - vec2i(1));
+                        color_sum += textureLoad(img_in, sample_coord, 0);
+                    }
+                }
+
+                // Standard uniform weight (Box Blur)
+                let final_color = color_sum / f32(params.kernel_size);
+                
+                // Write output back (preserve alpha as 1.0)
+                textureStore(img_out, id.xy, vec4f(final_color.rgb, 1.0));
+            }
+        `;
+
+        const RENDER_VS_SOURCE = `
+            struct VertexOutput {
+                @builtin(position) position : vec4f,
+                @location(0) uv : vec2f,
+            }
+
+            @vertex
+            fn main(@builtin(vertex_index) vertex_id : u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+                var out : VertexOutput;
+                out.position = vec4f(pos[vertex_id], 0.0, 1.0);
+                out.uv = uv[vertex_id];
+                return out;
+            }
+        `;
+
+        const RENDER_FS_SOURCE = `
+            @group(0) @binding(0) var s : sampler;
+            @group(0) @binding(1) var t : texture_2d<f32>;
+
+            @fragment
+            fn main(@location(0) uv : vec2f) -> @location(0) vec4f {
+                return textureSample(t, s, uv);
+            }
+        `;
+
+        // --- Application State ---
+        let device, context;
+        let tOrig, t1, t2;
+        let ub_h, ub_v;
+        let computePipeline, renderPipeline;
+        let bg_h, bg_v, renderBindGroup;
+        let imgWidth, imgHeight;
+
+        // Settings (Default matching criteria)
+        let iterations = 100;
+        let kernelSize = 5;
+        let blurEnabled = true;
+
+        // UI Selectors
+        const slideIterations = document.getElementById('slide-iterations');
+        const valIterations = document.getElementById('val-iterations');
+        const slideKernel = document.getElementById('slide-kernel');
+        const valKernel = document.getElementById('val-kernel');
+        const checkBlurActive = document.getElementById('check-blur-active');
+        const statResolution = document.getElementById('stat-resolution');
+        const statDispatches = document.getElementById('stat-dispatches');
+        const statMs = document.getElementById('stat-ms');
+
+        // Prevent double RAF scheduling
+        let isRenderPending = false;
+
+        async function loadImage(url) {
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+                img.src = url;
+            });
+            const w = img.naturalWidth || 800;
+            const h = img.naturalHeight || 600;
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            return { canvas: c, width: w, height: h };
+        }
+
+        function showError(message) {
+            const overlay = document.getElementById('error-overlay');
+            document.getElementById('error-msg').innerText = message;
+            overlay.style.display = 'flex';
+        }
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                showError("WebGPU가 지원되지 않는 브라우저입니다. Chrome/Edge 등을 이용하세요.");
+                return false;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                showError("적절한 GPU 어댑터를 확보하지 못했습니다.");
+                return false;
+            }
+
+            device = await adapter.requestDevice();
+            if (!device) {
+                showError("GPU 디바이스 생성을 실패했습니다.");
+                return false;
+            }
+
+            const canvas = document.getElementById('gpu-canvas');
+            context = canvas.getContext('webgpu');
+            const format = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device,
+                format,
+                alphaMode: 'opaque'
+            });
+
+            return true;
+        }
+
+        async function initResources() {
+            // Load input image (Colosseum.jpg path specified precisely as requested)
+            let srcData;
+            try {
+                srcData = await loadImage('../../images/colosseum.jpg');
+            } catch (e) {
+                console.warn("로컬 디버그 대체 경로 시도...");
+                try {
+                    srcData = await loadImage('colosseum.jpg');
+                } catch(err) {
+                    showError("이미지 파일 로드를 할 수 없습니다. (../../images/colosseum.jpg)");
+                    return;
+                }
+            }
+
+            imgWidth = srcData.width;
+            imgHeight = srcData.height;
+
+            // Set canvas dynamic resolution matching image
+            const canvas = document.getElementById('gpu-canvas');
+            canvas.width = imgWidth;
+            canvas.height = imgHeight;
+
+            statResolution.textContent = `${imgWidth} x ${imgHeight}`;
+
+            // Create Textures
+            // T_orig: Immutable copy of original source
+            tOrig = device.createTexture({
+                size: [imgWidth, imgHeight, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            // T1 & T2: Dynamic Ping-Pong buffers
+            const textureDesc = {
+                size: [imgWidth, imgHeight, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+            };
+            t1 = device.createTexture(textureDesc);
+            t2 = device.createTexture(textureDesc);
+
+            // Write image pixels to original texture
+            const ctx2d = srcData.canvas.getContext('2d');
+            const imgPixels = ctx2d.getImageData(0, 0, imgWidth, imgHeight);
+            device.queue.writeTexture(
+                { texture: tOrig },
+                imgPixels.data,
+                { bytesPerRow: imgWidth * 4 },
+                { width: imgWidth, height: imgHeight }
+            );
+
+            // Create Uniform buffers for H and V dispatches
+            const ubDesc = {
+                size: 8, // 2 x u32 (direction, kernel_size)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            };
+            ub_h = device.createBuffer(ubDesc);
+            ub_v = device.createBuffer(ubDesc);
+
+            updateUniformBuffers();
+
+            // Compile shaders
+            const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_SOURCE });
+            const renderVsModule = device.createShaderModule({ code: RENDER_VS_SOURCE });
+            const renderFsModule = device.createShaderModule({ code: RENDER_FS_SOURCE });
+
+            // Create Pipelines
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: { module: computeModule, entryPoint: 'main' }
+            });
+
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: { module: renderVsModule, entryPoint: 'main' },
+                fragment: {
+                    module: renderFsModule,
+                    entryPoint: 'main',
+                    targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+                },
+                primitive: { topology: 'triangle-list' }
+            });
+
+            // Create Sampler for Rendering Pass
+            const sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            // Create Ping-Pong BindGroups for Compute Pipeline
+            // bg_h reads from t1, writes to t2
+            bg_h = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: ub_h } },
+                    { binding: 1, resource: t1.createView() },
+                    { binding: 2, resource: t2.createView() }
+                ]
+            });
+
+            // bg_v reads from t2, writes to t1
+            bg_v = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: ub_v } },
+                    { binding: 1, resource: t2.createView() },
+                    { binding: 2, resource: t1.createView() }
+                ]
+            });
+
+            // BindGroup for Rendering (Outputs final state of T1 to screen)
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: sampler },
+                    { binding: 1, resource: t1.createView() }
+                ]
+            });
+        }
+
+        function updateUniformBuffers() {
+            // Horizontal buffer configuration
+            device.queue.writeBuffer(ub_h, 0, new Uint32Array([0, kernelSize]));
+            // Vertical buffer configuration
+            device.queue.writeBuffer(ub_v, 0, new Uint32Array([1, kernelSize]));
+        }
+
+        function scheduleRender() {
+            if (isRenderPending) return;
+            isRenderPending = true;
+            requestAnimationFrame(render);
+        }
+
+        function render() {
+            isRenderPending = false;
+            const startTime = performance.now();
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // Step 1: Initialize T1 with the original source image
+            commandEncoder.copyTextureToTexture(
+                { texture: tOrig },
+                { texture: t1 },
+                [imgWidth, imgHeight, 1]
+            );
+
+            let dispatchCount = 0;
+
+            // Step 2: Run Separable Box Blur ping-pong loops
+            if (blurEnabled && iterations > 0) {
+                const workgroupCountX = Math.ceil(imgWidth / 16);
+                const workgroupCountY = Math.ceil(imgHeight / 16);
+
+                for (let i = 0; i < iterations; i++) {
+                    // Pass H (Horizontal): T1 -> T2
+                    {
+                        const pass = commandEncoder.beginComputePass();
+                        pass.setPipeline(computePipeline);
+                        pass.setBindGroup(0, bg_h);
+                        pass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+                        pass.end();
+                        dispatchCount++;
+                    }
+
+                    // Pass V (Vertical): T2 -> T1
+                    {
+                        const pass = commandEncoder.beginComputePass();
+                        pass.setPipeline(computePipeline);
+                        pass.setBindGroup(0, bg_v);
+                        pass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+                        pass.end();
+                        dispatchCount++;
+                    }
+                }
+            }
+
+            // Step 3: Draw resulting texture to Canvas output
+            const renderPassDesc = {
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            };
+
+            const renderPass = commandEncoder.beginRenderPass(renderPassDesc);
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            // Update execution statistics
+            const elapsed = performance.now() - startTime;
+            statDispatches.textContent = `${dispatchCount} passes`;
+            statMs.textContent = `${elapsed.toFixed(2)} ms`;
+        }
+
+        // --- Event Listeners & UI Binding ---
+
+        slideIterations.addEventListener('input', (e) => {
+            iterations = parseInt(e.target.value);
+            valIterations.textContent = iterations;
+            scheduleRender();
+        });
+
+        slideKernel.addEventListener('input', (e) => {
+            kernelSize = parseInt(e.target.value);
+            valKernel.textContent = kernelSize;
+            updateUniformBuffers();
+            scheduleRender();
+        });
+
+        checkBlurActive.addEventListener('change', (e) => {
+            blurEnabled = e.target.checked;
+            scheduleRender();
+        });
+
+        // Initialize application
+        async function run() {
+            const ok = await initWebGPU();
+            if (ok) {
+                await initResources();
+                scheduleRender();
+            }
+        }
+
+        run();
+    </script>
+</body>
+</html>
