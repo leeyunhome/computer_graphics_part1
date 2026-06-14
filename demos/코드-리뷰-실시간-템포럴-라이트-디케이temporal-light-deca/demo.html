@@ -279,16 +279,16 @@
             <div class="imgui-header">Bloom Shader Parameters</div>
             <div class="imgui-section">
                 <div class="imgui-row">
-                    <label>임계값 (Bloom Threshold) <span id="val-threshold">0.50</span></label>
-                    <input type="range" id="slider-threshold" min="0.0" max="1.0" step="0.01" value="0.50">
+                    <label>임계값 (Bloom Threshold) <span id="val-threshold">0.75</span></label>
+                    <input type="range" id="slider-threshold" min="0.0" max="1.0" step="0.01" value="0.75">
                 </div>
                 <div class="imgui-row">
-                    <label>강도 (Bloom Intensity) <span id="val-intensity">1.50</span></label>
-                    <input type="range" id="slider-intensity" min="0.0" max="5.0" step="0.1" value="1.50">
+                    <label>강도 (Bloom Intensity) <span id="val-intensity">0.50</span></label>
+                    <input type="range" id="slider-intensity" min="0.0" max="5.0" step="0.1" value="0.50">
                 </div>
                 <div class="imgui-row">
-                    <label>블러 가중 반경 (Radius) <span id="val-radius">4.0</span></label>
-                    <input type="range" id="slider-radius" min="1.0" max="8.0" step="1.0" value="4.0">
+                    <label>블러 가중 반경 (Radius) <span id="val-radius">3.0</span></label>
+                    <input type="range" id="slider-radius" min="1.0" max="8.0" step="1.0" value="3.0">
                 </div>
             </div>
 
@@ -330,6 +330,11 @@
     const valThreshold = document.getElementById('val-threshold');
     const valIntensity = document.getElementById('val-intensity');
     const valRadius = document.getElementById('val-radius');
+
+    // 초기 라벨 값을 슬라이더 기본값과 동기화
+    valThreshold.textContent = '0.75';
+    valIntensity.textContent = '0.50';
+    valRadius.textContent = '3.0';
     const txtFps = document.getElementById('txt-fps');
 
     let isPlaying = true;
@@ -447,7 +452,7 @@
         const simTextureB = device.createTexture({
             size: [imageWidth, imageHeight],
             format: 'rgba8unorm',
-            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
 
         // Push initial pixel state to textures
@@ -481,14 +486,14 @@
         // 4. Compute Pipeline State
         const computeWGSL = `
             struct Params {
-                width: u32,
-                height: u32,
+                width: f32,
+                height: f32,
                 leftFactor: f32,
                 rightFactor: f32,
                 bloomThreshold: f32,
                 bloomIntensity: f32,
                 bloomRadius: f32,
-                resetFlag: u32,
+                resetFlag: f32,
             };
 
             @group(0) @binding(0) var<uniform> params: Params;
@@ -499,20 +504,19 @@
             @compute @workgroup_size(8, 8)
             fn main(@builtin(global_invocation_id) id: vec3u) {
                 let coords = vec2i(id.xy);
-                if (coords.x >= i32(params.width) || coords.y >= i32(params.height)) {
+                if (f32(coords.x) >= params.width || f32(coords.y) >= params.height) {
                     return;
                 }
 
                 var color: vec4f;
-                if (params.resetFlag == 1u) {
-                    // GPU Initial Reset (With subtle 1e-2 DX11 pixel boost logic)
-                    color = textureLoad(texOriginal, coords, 0) + vec4f(1e-2, 1e-2, 1e-2, 0.0);
+                if (params.resetFlag >= 0.5) {
+                    color = textureLoad(texOriginal, coords, 0);
                 } else {
                     color = textureLoad(texIn, coords, 0);
-                    
-                    // Temporal gradual darkening logic based on DX11 code update loops
-                    let halfWidth = i32(params.width) / 2;
-                    if (coords.x < halfWidth) {
+
+                    // 좌/우 분할: 좌측은 점진적 감쇠, 우측은 점진적 증폭
+                    let halfWidth = params.width / 2.0;
+                    if (f32(coords.x) < halfWidth) {
                         color = color * params.leftFactor;
                     } else {
                         color = color * params.rightFactor;
@@ -646,18 +650,16 @@
         function frame() {
             const start = performance.now();
 
-            // Construct host uniform buffer parameters
+            // Construct host uniform buffer parameters (all f32)
             const paramsData = new Float32Array(8);
             paramsData[0] = imageWidth;
             paramsData[1] = imageHeight;
-            paramsData[2] = isPlaying ? parseFloat(sliderDecay.value) : 1.0;  // Pause decay when paused
-            paramsData[3] = isPlaying ? parseFloat(sliderBoost.value) : 1.0;  // Pause boost when paused
+            paramsData[2] = isPlaying ? parseFloat(sliderDecay.value) : 1.0;
+            paramsData[3] = isPlaying ? parseFloat(sliderBoost.value) : 1.0;
             paramsData[4] = parseFloat(sliderThreshold.value);
             paramsData[5] = parseFloat(sliderIntensity.value);
             paramsData[6] = parseFloat(sliderRadius.value);
-            
-            const viewU32 = new Uint32Array(paramsData.buffer);
-            viewU32[7] = requestReset ? 1 : 0;
+            paramsData[7] = requestReset ? 1.0 : 0.0;
 
             device.queue.writeBuffer(uniformBuffer, 0, paramsData);
 
