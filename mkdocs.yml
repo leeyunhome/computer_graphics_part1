@@ -91,3 +91,4 @@ nav:
     - GLM 실험적 확장 활성화를 통한 C++ 그래픽스 디버깅 환경 구축: demos/glm-실험적-확장-활성화를-통한-c-그래픽스-디버깅-환경-구축.md
     - "[DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초": demos/directx-11-c-그래픽스-환경에서의-glm-실험적-확장-활성화-및.md
     - GLM을 활용한 벡터 연산의 수학적 이해 및 DirectXMath와의 비교 분석: demos/glm을-활용한-벡터-연산의-수학적-이해-및-directxmath와의-비.md
+    - "GLM을 활용한 3차원 벡터 연산의 기초: 내적, 외적, 그리고 DirectXMath와의 비교": demos/glm을-활용한-3차원-벡터-연산의-기초-내적-외적-그리고-directx.md

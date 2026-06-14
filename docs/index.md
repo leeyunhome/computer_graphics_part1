@@ -232,6 +232,11 @@ graph LR
 <a href="demos/glm을-활용한-벡터-연산의-수학적-이해-및-directxmath와의-비/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>GLM을 활용한 3차원 벡터 연산의 기초: 내적, 외적, 그리고 DirectXMath와의 비교</strong><br><br>
+<a href="demos/glm을-활용한-3차원-벡터-연산의-기초-내적-외적-그리고-directx/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
