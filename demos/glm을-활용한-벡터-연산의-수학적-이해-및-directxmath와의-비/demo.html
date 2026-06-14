@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>DirectX 11 — Dot Product and Cross Product Demonstration</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #1a1a2e;
+        color: #e0e0e0;
+        font-family: 'Consolas', 'Courier New', monospace;
+        overflow: hidden;
+        user-select: none;
+    }
+    #app-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    canvas {
+        background-color: #000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: block;
+    }
+    /* DirectX 11 스타일의 ImGui UI 패널 */
+    .imgui-panel {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 380px;
+        background: rgba(15, 15, 25, 0.85);
+        border: 1px solid #4f5d75;
+        border-radius: 4px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        padding: 0;
+        z-index: 10;
+    }
+    .imgui-header {
+        background: #2d3748;
+        color: #00d2ff;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: bold;
+        border-bottom: 1px solid #4f5d75;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .imgui-content {
+        padding: 15px;
+        font-size: 12px;
+    }
+    .imgui-section {
+        margin-bottom: 15px;
+        border-bottom: 1px dashed #3a4f7c;
+        padding-bottom: 12px;
+    }
+    .imgui-section:last-child {
+        margin-bottom: 0;
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    .imgui-title {
+        color: #ffaa00;
+        font-size: 13px;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+    .control-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+    .control-label {
+        width: 90px;
+        color: #a0aec0;
+    }
+    .control-slider {
+        flex: 1;
+        accent-color: #00d2ff;
+        cursor: pointer;
+    }
+    .control-value {
+        width: 50px;
+        text-align: right;
+        color: #fff;
+    }
+    /* 결과 출력창 */
+    .result-box {
+        background: rgba(0,0,0,0.5);
+        border: 1px solid #2d3748;
+        padding: 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #a3e635;
+    }
+    .important-val {
+        color: #ff7b72;
+        font-weight: bold;
+    }
+    .blue-val {
+        color: #58a6ff;
+    }
+    #error-message {
+        position: absolute;
+        color: #ff4d4d;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        width: 100%;
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="error-message">WebGPU가 이 브라우저 또는 시스템에서 지원되지 않습니다.</div>
+    <canvas id="webgpu-canvas" width="800" height="800"></canvas>
+
+    <!-- ImGui 스타일 컨트롤 패널 -->
+    <div class="imgui-panel">
+        <div class="imgui-header">
+            <span>DirectX 11 — Vector Math Lab</span>
+            <span style="color:#a0aec0; font-size:10px;">WGSL Compute</span>
+        </div>
+        <div class="imgui-content">
+            <!-- Vector A -->
+            <div class="imgui-section">
+                <div class="imgui-title">Vector A (빨간색)</div>
+                <div class="control-group">
+                    <span class="control-label">A.x (가로)</span>
+                    <input type="range" id="ax" class="control-slider" min="-3.0" max="3.0" step="0.1" value="1.5">
+                    <span class="control-value" id="ax-val">1.5</span>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">A.y (세로)</span>
+                    <input type="range" id="ay" class="control-slider" min="-3.0" max="3.0" step="0.1" value="0.0">
+                    <span class="control-value" id="ay-val">0.0</span>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">A.z (깊이)</span>
+                    <input type="range" id="az" class="control-slider" min="-3.0" max="3.0" step="0.1" value="0.0">
+                    <span class="control-value" id="az-val">0.0</span>
+                </div>
+            </div>
+
+            <!-- Vector B -->
+            <div class="imgui-section">
+                <div class="imgui-title">Vector B (초록색)</div>
+                <div class="control-group">
+                    <span class="control-label">B.x (가로)</span>
+                    <input type="range" id="bx" class="control-slider" min="-3.0" max="3.0" step="0.1" value="0.0">
+                    <span class="control-value" id="bx-val">0.0</span>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">B.y (세로)</span>
+                    <input type="range" id="by" class="control-slider" min="-3.0" max="3.0" step="0.1" value="2.0">
+                    <span class="control-value" id="by-val">2.0</span>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">B.z (깊이)</span>
+                    <input type="range" id="bz" class="control-slider" min="-3.0" max="3.0" step="0.1" value="0.0">
+                    <span class="control-value" id="bz-val">0.0</span>
+                </div>
+            </div>
+
+            <!-- 수학적 연산 결과 피드백 -->
+            <div class="imgui-section">
+                <div class="imgui-title">GLM 연산 시뮬레이션 결과</div>
+                <div class="result-box">
+                    <div>• a = (<span id="vec-a-str">1.50, 0.00, 0.00</span>)</div>
+                    <div>• b = (<span id="vec-b-str">0.00, 2.00, 0.00</span>)</div>
+                    <div style="margin-top:4px;">• 내적 <span class="blue-val">dot(a, b)</span> = <span id="dot-res" class="important-val">0.00</span></div>
+                    <div>• 외적 <span class="blue-val">cross(a, b)</span> = (<span id="cross-res" class="important-val">0.00, 0.00, 3.00</span>)</div>
+                    <div style="margin-top:4px; border-top:1px solid #2d3748; padding-top:4px;">
+                        • 평행사변형 넓이 |a×b| = <span id="para-area" class="important-val" style="color:#ffaa00;">3.00</span>
+                    </div>
+                    <div>
+                        • 삼각형 넓이 |a×b|/2 = <span id="tri-area" class="important-val" style="color:#00ffff;">1.50</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="font-size:10px; color:#718096; text-align:right;">
+                * 외적의 크기는 두 벡터가 만드는 평행사변형의 넓이입니다.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- WGSL Compute Shader ---
+// 픽셀 연산 및 내적/외적 기하학적 형상 시각화를 고속으로 처리
+const COMPUTE_SHADER_SOURCE = `
+struct Params {
+    vA: vec3f,
+    pad1: f32,
+    vB: vec3f,
+    pad2: f32,
+    resolution: vec2f,
+    pad3: vec2f,
+};
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var outTex: texture_storage_2d<rgba8unorm, write>;
+
+// 선분과 점 사이의 거리 공식 (선 굵기 그리기용)
+fn distToSegment(p: vec2f, a: vec2f, b: vec2f) -> f32 {
+    let ba = b - a;
+    let pa = p - a;
+    let h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h);
+}
+
+@compute @workgroup_size(16, 16)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+    let size = textureDimensions(outTex);
+    if (id.x >= size.x || id.y >= size.y) { return; }
+
+    let pixelCoord = vec2f(id.xy);
+    // 중심이 (0,0)이고 축 범위가 대략 [-4.0, 4.0]인 정규화된 좌표계로 변환
+    let uv = (pixelCoord - vec2f(size) * 0.5) / (f32(size.y) * 0.125); // 1단위 = 50px 크기 타일
+
+    // 기본 배경 (그리드)
+    let gridFreq = 1.0;
+    let gridLines = abs(fract(uv - 0.5) - 0.5) / fwidth(uv);
+    let gridColor = min(gridLines.x, gridLines.y);
+    var color = vec3f(0.08, 0.08, 0.12);
+    
+    // 격자선 그리기
+    if (gridColor < 1.0) {
+        color = mix(vec3f(0.18, 0.18, 0.25), color, smoothstep(0.0, 1.0, gridColor));
+    }
+    
+    // 축 그리기 (x, y축)
+    let axes = abs(uv) / fwidth(uv);
+    if (axes.x < 1.5) { color = mix(vec3f(0.3, 0.3, 0.4), color, smoothstep(0.0, 1.5, axes.x)); }
+    if (axes.y < 1.5) { color = mix(vec3f(0.3, 0.3, 0.4), color, smoothstep(0.0, 1.5, axes.y)); }
+
+    // 벡터 2D 좌표화 (Z 성분은 평면 투영 및 외적 크기에 간접 기여)
+    let pA = params.vA.xy;
+    let pB = params.vB.xy;
+    
+    // 평행사변형 면적 내에 있는지 판별
+    // 임의의 점 p = u * a + v * b
+    // 디터미넌트 계산 (외적의 Z성분과 같음)
+    let det = pA.x * pB.y - pA.y * pB.x;
+    var insideParallelogram = false;
+    var insideTriangle = false;
+    
+    if (abs(det) > 0.001) {
+        let u = (uv.x * pB.y - uv.y * pB.x) / det;
+        let v = (pA.x * uv.y - pA.y * uv.x) / det;
+        
+        if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0) {
+            insideParallelogram = true;
+            if (u + v <= 1.0) {
+                insideTriangle = true;
+            }
+        }
+    }
+
+    // 영역 색칠 (평행사변형: 노랑/주황 반투명, 삼각형: 하늘색 반투명 강조)
+    if (insideParallelogram) {
+        if (insideTriangle) {
+            color = mix(color, vec3f(0.0, 0.4, 0.5), 0.35); // 삼각형 구역
+        } else {
+            color = mix(color, vec3f(0.5, 0.35, 0.0), 0.25); // 평행사변형 추가 구역
+        }
+    }
+
+    // 벡터 A 그리기 (적색 화살표)
+    let distA = distToSegment(uv, vec2f(0.0), pA);
+    let lineThickness = 0.04;
+    if (distA < lineThickness) {
+        color = mix(vec3f(1.0, 0.2, 0.2), color, smoothstep(lineThickness - 0.015, lineThickness, distA));
+    }
+    // 벡터 A 종점 표시
+    if (length(uv - pA) < 0.1) {
+        color = vec3f(1.0, 0.4, 0.4);
+    }
+
+    // 벡터 B 그리기 (녹색 화살표)
+    let distB = distToSegment(uv, vec2f(0.0), pB);
+    if (distB < lineThickness) {
+        color = mix(vec3f(0.2, 1.0, 0.2), color, smoothstep(lineThickness - 0.015, lineThickness, distB));
+    }
+    // 벡터 B 종점 표시
+    if (length(uv - pB) < 0.1) {
+        color = vec3f(0.4, 1.0, 0.4);
+    }
+    
+    // 원점 표시
+    if (length(uv) < 0.08) {
+        color = vec3f(1.0, 1.0, 1.0);
+    }
+
+    // 외적 결과 시각화 (중앙에서 시작하는 원의 반경으로 외적 크기를 표시하거나, 외적 벡터의 깊이 방향을 표현)
+    let crossVal = cross(params.vA, params.vB);
+    let crossLen = length(crossVal);
+    
+    // 외적 크기 서클 (점선 스타일 가이드)
+    let distToCircle = abs(length(uv) - crossLen);
+    if (distToCircle < 0.03 && crossLen > 0.01) {
+        color = mix(vec3f(1.0, 0.8, 0.0), color, smoothstep(0.01, 0.03, distToCircle) * 0.5);
+    }
+
+    // 텍스처에 쓰기 (WebGPU 화면 출력용)
+    // DirectX 11의 RWTexture2D<float4>에 매핑됨
+    // Y축 위아래를 Direct3D 표준과 일치시키기 위해 플립 처리
+    let writeId = vec2u(id.x, size.y - 1u - id.y);
+    textureStore(outTex, writeId, vec4f(color, 1.0));
+}
+`;
+
+// --- WGSL Render Shader ---
+// Compute shader의 출력을 Screen Quad에 단순 그리기용
+const RENDER_SHADER_SOURCE = `
+@vertex
+fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
+    var pos = array<vec2f, 6>(
+        vec2f(-1.0, -1.0), vec2f( 1.0, -1.0), vec2f(-1.0,  1.0),
+        vec2f(-1.0,  1.0), vec2f( 1.0, -1.0), vec2f( 1.0,  1.0)
+    );
+    return vec4f(pos[VertexIndex], 0.0, 1.0);
+}
+
+@group(0) @binding(0) var texSampler: sampler;
+@group(0) @binding(1) var tex: texture_2d<f32>;
+
+@fragment
+fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    let size = textureDimensions(tex);
+    let uv = pos.xy / vec2f(size);
+    return textureSample(tex, texSampler, uv);
+}
+`;
+
+async function initWebGPU() {
+    if (!navigator.gpu) {
+        document.getElementById('error-message').style.display = 'block';
+        return;
+    }
+
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+        document.getElementById('error-message').style.display = 'block';
+        return;
+    }
+
+    const device = await adapter.requestDevice();
+    const canvas = document.getElementById('webgpu-canvas');
+    const context = canvas.getContext('webgpu');
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    context.configure({
+        device: device,
+        format: format,
+        alphaMode: 'opaque'
+    });
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // 1. Storage Texture 생성 (DX11 UAV)
+    const storageTexture = device.createTexture({
+        size: [width, height],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BIND_GROUP | GPUTextureUsage.TEXTURE_BINDING
+    });
+
+    // 2. Uniform Buffer 생성 (DX11 Constant Buffer)
+    // 구조체 정렬 규칙: vec3f(12) + pad(4) + vec3f(12) + pad(4) + vec2f(8) + pad(8) = 총 48 bytes
+    const uniformBufferSize = 48;
+    const uniformBuffer = device.createBuffer({
+        size: uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+
+    // 3. Compute Pipeline 구축
+    const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_SOURCE });
+    const computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+            module: computeModule,
+            entryPoint: 'main'
+        }
+    });
+
+    const computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: { buffer: uniformBuffer } },
+            { binding: 1, resource: storageTexture.createView() }
+        ]
+    });
+
+    // 4. Render Pipeline 구축 (Fullscreen Render Pass)
+    const renderModule = device.createShaderModule({ code: RENDER_SHADER_SOURCE });
+    const renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+            module: renderModule,
+            entryPoint: 'vs_main'
+        },
+        fragment: {
+            module: renderModule,
+            entryPoint: 'fs_main',
+            targets: [{ format: format }]
+        }
+    });
+
+    const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+    });
+
+    const renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: sampler },
+            { binding: 1, resource: storageTexture.createView() }
+        ]
+    });
+
+    // UI 동기화 및 렌더 가속 컨트롤러 정의
+    const inputs = {
+        ax: document.getElementById('ax'),
+        ay: document.getElementById('ay'),
+        az: document.getElementById('az'),
+        bx: document.getElementById('bx'),
+        by: document.getElementById('by'),
+        bz: document.getElementById('bz'),
+    };
+
+    const valDisplays = {
+        ax: document.getElementById('ax-val'),
+        ay: document.getElementById('ay-val'),
+        az: document.getElementById('az-val'),
+        bx: document.getElementById('bx-val'),
+        by: document.getElementById('by-val'),
+        bz: document.getElementById('bz-val'),
+    };
+
+    const dotRes = document.getElementById('dot-res');
+    const crossRes = document.getElementById('cross-res');
+    const paraArea = document.getElementById('para-area');
+    const triArea = document.getElementById('tri-area');
+    const vecAStr = document.getElementById('vec-a-str');
+    const vecBStr = document.getElementById('vec-b-str');
+
+    let renderRequested = false;
+
+    function updateSimulationAndRender() {
+        // UI 입력값 파싱
+        const ax = parseFloat(inputs.ax.value);
+        const ay = parseFloat(inputs.ay.value);
+        const az = parseFloat(inputs.az.value);
+        const bx = parseFloat(inputs.bx.value);
+        const by = parseFloat(inputs.by.value);
+        const bz = parseFloat(inputs.bz.value);
+
+        // 레이블 수치 동기화
+        valDisplays.ax.innerText = ax.toFixed(1);
+        valDisplays.ay.innerText = ay.toFixed(1);
+        valDisplays.az.innerText = az.toFixed(1);
+        valDisplays.bx.innerText = bx.toFixed(1);
+        valDisplays.by.innerText = by.toFixed(1);
+        valDisplays.bz.innerText = bz.toFixed(1);
+
+        // GLM 수학적 공식 적용
+        // 내적
+        const dotProduct = ax*bx + ay*by + az*bz;
+        // 외적
+        const cx = ay*bz - az*by;
+        const cy = az*bx - ax*bz;
+        const cz = ax*by - ay*bx;
+        const crossLength = Math.sqrt(cx*cx + cy*cy + cz*cz);
+        const triangleArea = crossLength * 0.5;
+
+        // UI 결과창 출력 업데이트
+        vecAStr.innerText = `${ax.toFixed(2)}, ${ay.toFixed(2)}, ${az.toFixed(2)}`;
+        vecBStr.innerText = `${bx.toFixed(2)}, ${by.toFixed(2)}, ${bz.toFixed(2)}`;
+        dotRes.innerText = dotProduct.toFixed(2);
+        crossRes.innerText = `${cx.toFixed(2)}, ${cy.toFixed(2)}, ${cz.toFixed(2)}`;
+        paraArea.innerText = crossLength.toFixed(2);
+        triArea.innerText = triangleArea.toFixed(2);
+
+        // GPU Buffer 데이터 쓰기 (Uniform Buffer)
+        const arrayBuffer = new ArrayBuffer(uniformBufferSize);
+        const view = new DataView(arrayBuffer);
+        
+        // struct Params 맵핑대로 작성
+        view.setFloat32(0, ax, true);
+        view.setFloat32(4, ay, true);
+        view.setFloat32(8, az, true);
+        view.setFloat32(12, 0.0, true); // padding
+
+        view.setFloat32(16, bx, true);
+        view.setFloat32(20, by, true);
+        view.setFloat32(24, bz, true);
+        view.setFloat32(28, 0.0, true); // padding
+
+        view.setFloat32(32, width, true);
+        view.setFloat32(36, height, true);
+        view.setFloat32(40, 0.0, true); // padding
+        view.setFloat32(44, 0.0, true); // padding
+
+        device.queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+
+        // 커맨드 버퍼 레코딩 및 제출
+        const commandEncoder = device.createCommandEncoder();
+
+        // Pass 1: Compute Pass
+        const computePass = commandEncoder.beginComputePass();
+        computePass.setPipeline(computePipeline);
+        computePass.setBindGroup(0, computeBindGroup);
+        computePass.dispatchWorkgroups(Math.ceil(width / 16), Math.ceil(height / 16));
+        computePass.end();
+
+        // Pass 2: Render Pass (Compute에서 작성한 storageTexture를 캔버스에 맵핑)
+        const renderPass = commandEncoder.beginRenderPass({
+            colorAttachments: [{
+                view: context.getCurrentTexture().createView(),
+                clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            }]
+        });
+        renderPass.setPipeline(renderPipeline);
+        renderPass.setBindGroup(0, renderBindGroup);
+        renderPass.draw(6); // 2개의 삼각형으로 이뤄진 사각형 그리기
+        renderPass.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+
+        renderRequested = false;
+    }
+
+    function scheduleRender() {
+        if (!renderRequested) {
+            renderRequested = true;
+            requestAnimationFrame(updateSimulationAndRender);
+        }
+    }
+
+    // 모든 슬라이더 입력을 이벤트 리스너에 바인딩
+    Object.values(inputs).forEach(input => {
+        input.addEventListener('input', scheduleRender);
+    });
+
+    // 드래그 가능한 ImGui UI 패널 로직
+    const header = document.querySelector('.imgui-header');
+    const panel = document.querySelector('.imgui-panel');
+    let isDragging = false;
+    let offset = [0, 0];
+
+    header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offset = [
+            panel.offsetLeft - e.clientX,
+            panel.offsetTop - e.clientY
+        ];
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            panel.style.left = (e.clientX + offset[0]) + 'px';
+            panel.style.top = (e.clientY + offset[1]) + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    // 최초 프레임 실행
+    updateSimulationAndRender();
+}
+
+// 초기화
+window.addEventListener('DOMContentLoaded', initWebGPU);
+</script>
+
+</body>
+</html>
