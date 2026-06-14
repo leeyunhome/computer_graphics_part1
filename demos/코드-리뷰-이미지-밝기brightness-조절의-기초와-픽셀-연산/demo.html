@@ -166,6 +166,21 @@
         <span class="imgui-label" style="color: #007acc;">GPU Compute Pipeline Mode</span>
       </div>
     </div>
+    <div style="padding: 4px 10px; background-color: #252526; border-bottom: 1px solid #3f3f46;">
+      <div class="collapsing-header" style="margin-top:15px;">IMAGE SOURCE</div>
+      <div class="control-group">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+          <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+          <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+          <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+          <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+          <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+          <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+        </label>
+      </div>
+    </div>
 
     <!-- Canvas Viewport -->
     <div class="viewport-container">
@@ -175,6 +190,13 @@
   </div>
 
   <script>
+    let currentImageSrc = "../../images/colosseum.jpg";
+    async function _setImage(src) {
+        currentImageSrc = src;
+        if (typeof init === "function") { await init(); }
+        else if (typeof main === "function") { await main(); }
+    }
+
     // 이미지 로드 유틸리티 (자연 크기 사용)
     async function loadImageNaturalSize(url, maxW, maxH) {
       const img = new Image();
@@ -240,7 +262,7 @@
       });
 
       // 1. 소스 이미지 로드 및 텍스처 초기화
-      const srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 800, 600);
+      const srcCanvas = await loadImageNaturalSize(currentImageSrc, 800, 600);
       let width = srcCanvas.width;
       let height = srcCanvas.height;
       canvas.width = width;
@@ -440,11 +462,15 @@
       }
 
       // UI 입력 이벤트 리스너 바인딩
-      brightnessSlider.addEventListener('input', (e) => {
-        currentBrightness = parseFloat(e.target.value);
-        brightnessValText.textContent = currentBrightness.toFixed(2);
-        scheduleRender();
-      });
+      if (!window._uiSetup_____________brightness______________) {
+        window._uiSetup_____________brightness______________ = true;
+        brightnessSlider.addEventListener('input', (e) => {
+          currentBrightness = parseFloat(e.target.value);
+          brightnessValText.textContent = currentBrightness.toFixed(2);
+          scheduleRender();
+        });
+        _setupImagePicker();
+      }
 
       // 최초 드로우 프레임 요청
       scheduleRender();
@@ -452,6 +478,31 @@
 
     // 초기화 시작
     main();
+
+    function _setupImagePicker() {
+        document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+            thumb.addEventListener("click", async function() {
+                document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                    t.style.borderColor = "transparent";
+                    t.style.opacity = "0.7";
+                });
+                thumb.style.borderColor = "#007acc";
+                thumb.style.opacity = "1";
+                await _setImage(thumb.getAttribute("data-src"));
+            });
+        });
+        var fileInput = document.getElementById("img-file-upload");
+        if (fileInput) {
+            fileInput.addEventListener("change", async function(e) {
+                if (!e.target.files[0]) return;
+                var url = URL.createObjectURL(e.target.files[0]);
+                document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                    t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                });
+                await _setImage(url);
+            });
+        }
+    }
   </script>
 </body>
 </html>

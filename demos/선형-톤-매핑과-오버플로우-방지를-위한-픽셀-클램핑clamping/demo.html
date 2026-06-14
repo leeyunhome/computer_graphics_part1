@@ -226,6 +226,20 @@
             </div>
 
             <button class="imgui-btn" id="resetBtn">기본값으로 초기화 (1.5)</button>
+
+            <div class="collapsing-header" style="margin-top:15px;">IMAGE SOURCE</div>
+            <div class="control-group">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+                <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+                <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+                <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+                <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+              </div>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+                <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+                <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+              </label>
+            </div>
         </div>
     </div>
 
@@ -234,6 +248,13 @@
     </div>
 
     <script type="module">
+        let currentImageSrc = "../../images/colosseum.jpg";
+        async function _setImage(src) {
+            currentImageSrc = src;
+            if (typeof init === "function") { await init(); }
+            else if (typeof initWebGPU === "function") { await initWebGPU(); }
+        }
+
         // --- WebGPU / WGSL Shaders ---
         
         const computeShaderCode = `
@@ -348,7 +369,7 @@
             // 이미지를 먼저 로드해서 원본 비율로 캔버스 크기 결정
             let imgData;
             try {
-                const srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 800, 600);
+                const srcCanvas = await loadImageNaturalSize(currentImageSrc, 800, 600);
                 IMG_WIDTH = srcCanvas.width;
                 IMG_HEIGHT = srcCanvas.height;
                 imgData = srcCanvas.getContext('2d').getImageData(0, 0, IMG_WIDTH, IMG_HEIGHT);
@@ -493,46 +514,77 @@
 
         // --- UI Events Setup ---
         function setupUI() {
-            const bSlider = document.getElementById('brightnessSlider');
-            const bVal = document.getElementById('brightnessVal');
-            const resetBtn = document.getElementById('resetBtn');
+            if (!window._uiSetup_____________________________clamping) {
+                window._uiSetup_____________________________clamping = true;
 
-            bSlider.addEventListener('input', (e) => {
-                brightnessFactor = parseFloat(e.target.value);
-                bVal.innerText = brightnessFactor.toFixed(2);
-                scheduleRender();
+                const bSlider = document.getElementById('brightnessSlider');
+                const bVal = document.getElementById('brightnessVal');
+                const resetBtn = document.getElementById('resetBtn');
+
+                bSlider.addEventListener('input', (e) => {
+                    brightnessFactor = parseFloat(e.target.value);
+                    bVal.innerText = brightnessFactor.toFixed(2);
+                    scheduleRender();
+                });
+
+                resetBtn.addEventListener('click', () => {
+                    brightnessFactor = 1.5;
+                    bSlider.value = 1.5;
+                    bVal.innerText = "1.50";
+                    scheduleRender();
+                });
+
+                // Make ImGui Window Dragable
+                const win = document.getElementById('controlPanel');
+                const titlebar = win.querySelector('.imgui-titlebar');
+                let isDragging = false;
+                let offset = [0, 0];
+
+                titlebar.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    offset = [
+                        win.offsetLeft - e.clientX,
+                        win.offsetTop - e.clientY
+                    ];
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    win.style.left = (e.clientX + offset[0]) + 'px';
+                    win.style.top = (e.clientY + offset[1]) + 'px';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+
+                _setupImagePicker();
+            }
+        }
+
+        function _setupImagePicker() {
+            document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+                thumb.addEventListener("click", async function() {
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent";
+                        t.style.opacity = "0.7";
+                    });
+                    thumb.style.borderColor = "#007acc";
+                    thumb.style.opacity = "1";
+                    await _setImage(thumb.getAttribute("data-src"));
+                });
             });
-
-            resetBtn.addEventListener('click', () => {
-                brightnessFactor = 1.5;
-                bSlider.value = 1.5;
-                bVal.innerText = "1.50";
-                scheduleRender();
-            });
-
-            // Make ImGui Window Dragable
-            const win = document.getElementById('controlPanel');
-            const titlebar = win.querySelector('.imgui-titlebar');
-            let isDragging = false;
-            let offset = [0, 0];
-
-            titlebar.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                offset = [
-                    win.offsetLeft - e.clientX,
-                    win.offsetTop - e.clientY
-                ];
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                win.style.left = (e.clientX + offset[0]) + 'px';
-                win.style.top = (e.clientY + offset[1]) + 'px';
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+            var fileInput = document.getElementById("img-file-upload");
+            if (fileInput) {
+                fileInput.addEventListener("change", async function(e) {
+                    if (!e.target.files[0]) return;
+                    var url = URL.createObjectURL(e.target.files[0]);
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                    });
+                    await _setImage(url);
+                });
+            }
         }
 
         // --- Init & Start ---

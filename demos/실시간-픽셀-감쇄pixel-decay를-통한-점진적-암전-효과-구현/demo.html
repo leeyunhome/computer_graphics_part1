@@ -322,7 +322,23 @@
                     <span>800 x 600 px</span>
                 </div>
             </div>
-            
+
+            <div class="panel-section">
+<div class="collapsing-header" style="margin-top:15px;">IMAGE SOURCE</div>
+<div class="control-group">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+    <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+    <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+  </div>
+  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+    <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+    <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+  </label>
+</div>
+            </div>
+
         </div>
 
         <!-- Render Window -->
@@ -337,6 +353,13 @@
     </div>
 
     <script type="module">
+        let currentImageSrc = "../../images/colosseum.jpg";
+        async function _setImage(src) {
+            currentImageSrc = src;
+            if (typeof init === "function") { await init(); }
+            else if (typeof initWebGPU === "function") { await initWebGPU(); }
+        }
+
         // Helper function to load image at its natural size, capped to maxW x maxH
         async function loadImageNaturalSize(url, maxW, maxH) {
             const img = new Image();
@@ -379,37 +402,42 @@
         const fallbackMsg = document.getElementById('fallback-msg');
 
         // Update UI states
-        decaySlider.addEventListener('input', (e) => {
-            decayFactor = parseFloat(e.target.value);
-            decayVal.textContent = decayFactor.toFixed(3);
-        });
+        if (!window._uiSetup__________pixel_decay_________________) {
+            window._uiSetup__________pixel_decay_________________ = true;
+            decaySlider.addEventListener('input', (e) => {
+                decayFactor = parseFloat(e.target.value);
+                decayVal.textContent = decayFactor.toFixed(3);
+            });
 
-        btnToggle.addEventListener('click', () => {
-            if (isPlaying) {
-                isPlaying = false;
-                btnToggle.textContent = "Resume Simulation";
-                btnToggle.classList.remove('btn-primary');
-                statusEngine.textContent = "PAUSED";
-                statusEngine.style.color = "#eab308";
-            } else {
-                isPlaying = true;
-                btnToggle.textContent = "Pause Simulation";
-                btnToggle.classList.add('btn-primary');
-                statusEngine.textContent = "RUNNING";
-                statusEngine.style.color = "#22c55e";
-                scheduleRender();
-            }
-        });
+            btnToggle.addEventListener('click', () => {
+                if (isPlaying) {
+                    isPlaying = false;
+                    btnToggle.textContent = "Resume Simulation";
+                    btnToggle.classList.remove('btn-primary');
+                    statusEngine.textContent = "PAUSED";
+                    statusEngine.style.color = "#eab308";
+                } else {
+                    isPlaying = true;
+                    btnToggle.textContent = "Pause Simulation";
+                    btnToggle.classList.add('btn-primary');
+                    statusEngine.textContent = "RUNNING";
+                    statusEngine.style.color = "#22c55e";
+                    scheduleRender();
+                }
+            });
 
-        btnStep.addEventListener('click', () => {
-            if (!isPlaying) {
-                stepSimulation();
-            }
-        });
+            btnStep.addEventListener('click', () => {
+                if (!isPlaying) {
+                    stepSimulation();
+                }
+            });
 
-        btnReset.addEventListener('click', () => {
-            resetToOriginal();
-        });
+            btnReset.addEventListener('click', () => {
+                resetToOriginal();
+            });
+
+            _setupImagePicker();
+        }
 
         async function init() {
             if (!navigator.gpu) {
@@ -436,7 +464,7 @@
             // Load Colosseum image at its natural size (required path)
             let srcCanvas;
             try {
-                srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
+                srcCanvas = await loadImageNaturalSize(currentImageSrc, 1920, 1080);
             } catch (err) {
                 console.error(err);
                 fallbackMsg.innerHTML = `<h3>Resource Error</h3><p>Could not load standard input image <i>colosseum.jpg</i>. Ensure it resides in the expected location.</p>`;
@@ -716,6 +744,31 @@
 
         // Boot system
         window.addEventListener('load', init);
+
+        function _setupImagePicker() {
+            document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+                thumb.addEventListener("click", async function() {
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent";
+                        t.style.opacity = "0.7";
+                    });
+                    thumb.style.borderColor = "#007acc";
+                    thumb.style.opacity = "1";
+                    await _setImage(thumb.getAttribute("data-src"));
+                });
+            });
+            var fileInput = document.getElementById("img-file-upload");
+            if (fileInput) {
+                fileInput.addEventListener("change", async function(e) {
+                    if (!e.target.files[0]) return;
+                    var url = URL.createObjectURL(e.target.files[0]);
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                    });
+                    await _setImage(url);
+                });
+            }
+        }
     </script>
 </body>
 </html>

@@ -105,10 +105,29 @@ input[type=range]::-webkit-slider-thumb {
     <label>B 채널 <span id="valB">1.50</span></label>
     <input type="range" id="slB" min="0" max="3" step="0.05" value="1.5">
   </div>
+<div class="collapsing-header" style="margin-top:15px;">IMAGE SOURCE</div>
+<div class="control-group">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+    <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+    <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+    <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+  </div>
+  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+    <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+    <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+  </label>
+</div>
 </div>
 <div id="status">WebGPU 초기화 중...</div>
 
 <script>
+        let currentImageSrc = "../../images/colosseum.jpg";
+        async function _setImage(src) {
+            currentImageSrc = src;
+            if (typeof init === "function") { await init(); }
+            else if (typeof initWebGPU === "function") { await initWebGPU(); }
+        }
 // --- Load source image at natural size (capped to maxW x maxH) ---
 async function loadImageNaturalSize(url, maxW, maxH) {
   const img = new Image();
@@ -182,7 +201,7 @@ async function init() {
   device = await adapter.requestDevice();
 
   const srcCanvas = document.getElementById('srcCanvas');
-  const loaded = await loadImageNaturalSize('../../images/colosseum.jpg', 540, 400);
+  const loaded = await loadImageNaturalSize(currentImageSrc, 540, 400);
   W = loaded.width; H = loaded.height;
   srcCanvas.width = W; srcCanvas.height = H;
   const dstCanvasEl = document.getElementById('dstCanvas');
@@ -275,28 +294,32 @@ function doRender() {
 }
 
 function setupUI() {
-  function bind(id, valId, setter) {
-    const sl = document.getElementById(id);
-    const vl = document.getElementById(valId);
-    sl.addEventListener('input', () => {
-      const v = parseFloat(sl.value);
-      vl.textContent = v.toFixed(2);
-      setter(v);
-      scheduleRender();
+  if (!window._uiSetup_____________________________) {
+    window._uiSetup_____________________________ = true;
+    function bind(id, valId, setter) {
+      const sl = document.getElementById(id);
+      const vl = document.getElementById(valId);
+      sl.addEventListener('input', () => {
+        const v = parseFloat(sl.value);
+        vl.textContent = v.toFixed(2);
+        setter(v);
+        scheduleRender();
+      });
+    }
+    bind('slAll', 'valAll', v => {
+      mulR = mulG = mulB = v;
+      document.getElementById('slR').value = v;
+      document.getElementById('slG').value = v;
+      document.getElementById('slB').value = v;
+      document.getElementById('valR').textContent = v.toFixed(2);
+      document.getElementById('valG').textContent = v.toFixed(2);
+      document.getElementById('valB').textContent = v.toFixed(2);
     });
+    bind('slR', 'valR', v => { mulR = v; });
+    bind('slG', 'valG', v => { mulG = v; });
+    bind('slB', 'valB', v => { mulB = v; });
+    _setupImagePicker();
   }
-  bind('slAll', 'valAll', v => {
-    mulR = mulG = mulB = v;
-    document.getElementById('slR').value = v;
-    document.getElementById('slG').value = v;
-    document.getElementById('slB').value = v;
-    document.getElementById('valR').textContent = v.toFixed(2);
-    document.getElementById('valG').textContent = v.toFixed(2);
-    document.getElementById('valB').textContent = v.toFixed(2);
-  });
-  bind('slR', 'valR', v => { mulR = v; });
-  bind('slG', 'valG', v => { mulG = v; });
-  bind('slB', 'valB', v => { mulB = v; });
 }
 
 function showError(msg) {
@@ -307,6 +330,31 @@ function showError(msg) {
 }
 
 init().catch(e => showError('오류: ' + e.message));
+
+        function _setupImagePicker() {
+            document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+                thumb.addEventListener("click", async function() {
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent";
+                        t.style.opacity = "0.7";
+                    });
+                    thumb.style.borderColor = "#007acc";
+                    thumb.style.opacity = "1";
+                    await _setImage(thumb.getAttribute("data-src"));
+                });
+            });
+            var fileInput = document.getElementById("img-file-upload");
+            if (fileInput) {
+                fileInput.addEventListener("change", async function(e) {
+                    if (!e.target.files[0]) return;
+                    var url = URL.createObjectURL(e.target.files[0]);
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                    });
+                    await _setImage(url);
+                });
+            }
+        }
 </script>
 </body>
 </html>

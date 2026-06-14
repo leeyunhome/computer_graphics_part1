@@ -254,6 +254,22 @@
                         <span id="stat-ms">-</span>
                     </div>
                 </div>
+
+                <div class="imgui-section">
+                    <div class="imgui-section-title">IMAGE SOURCE</div>
+                    <div class="control-group">
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+                            <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+                            <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+                            <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+                            <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+                        </div>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+                            <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+                            <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -265,6 +281,16 @@
     </div>
 
     <script type="module">
+        let currentImageSrc = "../../images/colosseum.jpg";
+        async function _setImage(src) {
+            currentImageSrc = src;
+            if (typeof initResources === "function") {
+                await initResources();
+                if (typeof scheduleRender === "function") scheduleRender();
+            } else if (typeof init === "function") { await init(); }
+            else if (typeof initWebGPU === "function") { await initWebGPU(); }
+        }
+
         // --- WGSL Shaders ---
 
         const COMPUTE_SHADER_SOURCE = `
@@ -424,7 +450,7 @@
             // Load input image (Colosseum.jpg path specified precisely as requested)
             let srcData;
             try {
-                srcData = await loadImage('../../images/colosseum.jpg');
+                srcData = await loadImage(currentImageSrc);
             } catch (e) {
                 console.warn("로컬 디버그 대체 경로 시도...");
                 try {
@@ -623,23 +649,29 @@
 
         // --- Event Listeners & UI Binding ---
 
-        slideIterations.addEventListener('input', (e) => {
-            iterations = parseInt(e.target.value);
-            valIterations.textContent = iterations;
-            scheduleRender();
-        });
+        if (!window._uiSetup_____________separable_5_tap_box_blur____) {
+            window._uiSetup_____________separable_5_tap_box_blur____ = true;
 
-        slideKernel.addEventListener('input', (e) => {
-            kernelSize = parseInt(e.target.value);
-            valKernel.textContent = kernelSize;
-            updateUniformBuffers();
-            scheduleRender();
-        });
+            slideIterations.addEventListener('input', (e) => {
+                iterations = parseInt(e.target.value);
+                valIterations.textContent = iterations;
+                scheduleRender();
+            });
 
-        checkBlurActive.addEventListener('change', (e) => {
-            blurEnabled = e.target.checked;
-            scheduleRender();
-        });
+            slideKernel.addEventListener('input', (e) => {
+                kernelSize = parseInt(e.target.value);
+                valKernel.textContent = kernelSize;
+                updateUniformBuffers();
+                scheduleRender();
+            });
+
+            checkBlurActive.addEventListener('change', (e) => {
+                blurEnabled = e.target.checked;
+                scheduleRender();
+            });
+
+            _setupImagePicker();
+        }
 
         // Initialize application
         async function run() {
@@ -651,6 +683,31 @@
         }
 
         run();
+
+        function _setupImagePicker() {
+            document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+                thumb.addEventListener("click", async function() {
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent";
+                        t.style.opacity = "0.7";
+                    });
+                    thumb.style.borderColor = "#007acc";
+                    thumb.style.opacity = "1";
+                    await _setImage(thumb.getAttribute("data-src"));
+                });
+            });
+            var fileInput = document.getElementById("img-file-upload");
+            if (fileInput) {
+                fileInput.addEventListener("change", async function(e) {
+                    if (!e.target.files[0]) return;
+                    var url = URL.createObjectURL(e.target.files[0]);
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                    });
+                    await _setImage(url);
+                });
+            }
+        }
     </script>
 </body>
 </html>
