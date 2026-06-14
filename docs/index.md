@@ -187,6 +187,11 @@ graph LR
 <a href="demos/bloom-효과-파이프라인-설계-및-2차원-공간-필터링-구조화/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현</strong><br><br>
+<a href="demos/코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-deca/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
@@ -195,10 +200,10 @@ graph LR
 
 ## 최근 학습 포스트
 
+- [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](posts/2026-06-14-코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-decay와-이미지-프로세싱-파이프라인-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화](posts/2026-06-14-bloom-효과-파이프라인-설계-및-2차원-공간-필터링-구조화.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [학습자 커밋 분석: add source code](posts/2026-06-13-학습자-커밋-분석-add-source-code.md) <small style='color:#64748b'>(2026-06-13)</small>
 - [픽셀 조작을 통한 캔버스 초기화 이해: (2,0) 위치에 파란색 픽셀 추가](posts/2026-06-13-픽셀-조작을-통한-캔버스-초기화-이해-20-위치에-파란색-픽셀-추가.md) <small style='color:#64748b'>(2026-06-13)</small>
 - [픽셀 애니메이션 및 프레임 제어 구현](posts/2026-06-13-픽셀-애니메이션-및-프레임-제어-구현.md) <small style='color:#64748b'>(2026-06-13)</small>
-- [픽셀 애니메이션 구현과 프레임 기반 갱신 원리](posts/2026-06-13-픽셀-애니메이션-구현과-프레임-기반-갱신-원리.md) <small style='color:#64748b'>(2026-06-13)</small>
 
 [모든 포스트 보기 →](posts/index.md)

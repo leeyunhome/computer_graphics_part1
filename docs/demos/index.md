@@ -215,6 +215,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-deca.md)
+
+
+[→ 데모 열기](코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-deca.md){.md-button}
+
+
+---
+
+
 ## [[코드 리뷰] 이미지 밝기(Brightness) 조절의 기초와 픽셀 연산](코드-리뷰-이미지-밝기brightness-조절의-기초와-픽셀-연산.md)
 
 

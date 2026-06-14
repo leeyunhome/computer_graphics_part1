@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Bloom Effect Pipeline (WebGPU)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0e0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #app-container {
+            position: relative;
+            width: 1024px;
+            height: 768px;
+            background-color: #0f0f1a;
+            border: 2px solid #3b3b4f;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* DirectX 11 Style Titlebar */
+        #titlebar {
+            height: 30px;
+            background: linear-gradient(90deg, #005a9e, #007acc);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #005a9e;
+            user-select: none;
+        }
+
+        #titlebar .window-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        #titlebar .control-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #3b3b4f;
+            display: inline-block;
+        }
+
+        #main-viewport {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            background-color: #000;
+            width: 70%;
+            height: 100%;
+            display: block;
+        }
+
+        /* DX11 ImGui-style Control Panel */
+        #imgui-panel {
+            width: 30%;
+            background-color: #1c1c28;
+            border-left: 2px solid #3b3b4f;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            font-size: 13px;
+            overflow-y: auto;
+        }
+
+        .imgui-header {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00bcff;
+            border-bottom: 1px solid #3b3b4f;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .imgui-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #151520;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #2a2a3f;
+        }
+
+        .imgui-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .imgui-row label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #b0b0d0;
+        }
+
+        .imgui-row label span {
+            color: #00ffcc;
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2a2a3f;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+            border: 1px solid #00bcff;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #00bcff;
+        }
+
+        .btn {
+            background-color: #007acc;
+            border: 1px solid #00bcff;
+            color: white;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.15s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #0098ff;
+        }
+
+        .btn:active {
+            background-color: #005a9e;
+        }
+
+        .btn-secondary {
+            background-color: #3b3b4f;
+            border-color: #4f4f6f;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4f4f6f;
+        }
+
+        /* Diagnostic Info */
+        #diagnostic {
+            margin-top: auto;
+            font-family: monospace;
+            font-size: 11px;
+            color: #8f8fcf;
+            background-color: #0c0c14;
+            padding: 8px;
+            border-radius: 3px;
+            border-left: 3px solid #007acc;
+        }
+
+        #error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(20, 20, 35, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #ff4a4a;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #error-overlay h2 {
+            margin-bottom: 10px;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #2a2a3f;
+            margin: 5px 0;
+        }
+
+        /* Layout for multi-buttons */
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- DirectX 11 Windows Style Frame -->
+    <div id="titlebar">
+        <span>DirectX 11 — Bloom Effect & Temporal Light Decay Simulation</span>
+        <div class="window-controls">
+            <span class="control-dot" style="background-color: #ff5f56;"></span>
+            <span class="control-dot" style="background-color: #ffbd2e;"></span>
+            <span class="control-dot" style="background-color: #27c93f;"></span>
+        </div>
+    </div>
+
+    <div id="main-viewport">
+        <!-- Error Overlay -->
+        <div id="error-overlay" style="display: none;">
+            <h2>WebGPU 미지원 환경</h2>
+            <p id="error-message">이 브라우저는 WebGPU를 지원하지 않거나 설정이 비활성화되어 있습니다.</p>
+        </div>
+
+        <!-- Render Target View Canvas -->
+        <canvas id="gpu-canvas"></canvas>
+
+        <!-- ImGui Controls Panel -->
+        <div id="imgui-panel">
+            <div class="imgui-header">DirectX 11 Pipeline States</div>
+            
+            <div class="imgui-section">
+                <div class="imgui-row">
+                    <label>시뮬레이션 루프 제어</label>
+                    <div class="btn-group">
+                        <button id="btn-play-pause" class="btn">일시정지</button>
+                        <button id="btn-reset" class="btn btn-secondary">원래대로 (Reset)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="imgui-header">Temporal Light Decay (실시간 픽셀 감쇠)</div>
+            <div class="imgui-section">
+                <div class="imgui-row">
+                    <label>좌측 영역 감쇠 인자 (Left) <span id="val-decay">0.99</span></label>
+                    <input type="range" id="slider-decay" min="0.95" max="1.00" step="0.001" value="0.99">
+                </div>
+                <div class="imgui-row">
+                    <label>우측 영역 증폭 인자 (Right) <span id="val-boost">1.01</span></label>
+                    <input type="range" id="slider-boost" min="1.00" max="1.05" step="0.001" value="1.01">
+                </div>
+            </div>
+
+            <div class="imgui-header">Bloom Shader Parameters</div>
+            <div class="imgui-section">
+                <div class="imgui-row">
+                    <label>임계값 (Bloom Threshold) <span id="val-threshold">0.50</span></label>
+                    <input type="range" id="slider-threshold" min="0.0" max="1.0" step="0.01" value="0.50">
+                </div>
+                <div class="imgui-row">
+                    <label>강도 (Bloom Intensity) <span id="val-intensity">1.50</span></label>
+                    <input type="range" id="slider-intensity" min="0.0" max="5.0" step="0.1" value="1.50">
+                </div>
+                <div class="imgui-row">
+                    <label>블러 가중 반경 (Radius) <span id="val-radius">4.0</span></label>
+                    <input type="range" id="slider-radius" min="1.0" max="8.0" step="1.0" value="4.0">
+                </div>
+            </div>
+
+            <!-- Diagnostics -->
+            <div id="diagnostic">
+                <div>Device: WebGPU Compute Pipeline</div>
+                <div>Format: RGBA8UNORM (UAV Simulation)</div>
+                <div>Status: Active</div>
+                <div id="txt-fps">Frame Time: -- ms</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DX11 → WebGPU Mapping Table ---
+    // | DX11                      | WebGPU / WGSL                           |
+    // |---------------------------|-----------------------------------------|
+    // | RWTexture2D<float4> (UAV) | texture_storage_2d<rgba8unorm, write>   |
+    // | [numthreads(8,8,1)]       | @workgroup_size(8,8)                    |
+    // | SV_DispatchThreadID       | @builtin(global_invocation_id)          |
+    // | cbuffer                     | struct Params + var<uniform>            |
+    // | Dispatch(W/8, H/8, 1)     | dispatchWorkgroups(ceil(W/8), ceil(H/8))|
+
+    const imageWidth = 512;
+    const imageHeight = 512;
+
+    // UI elements
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const sliderDecay = document.getElementById('slider-decay');
+    const sliderBoost = document.getElementById('slider-boost');
+    const sliderThreshold = document.getElementById('slider-threshold');
+    const sliderIntensity = document.getElementById('slider-intensity');
+    const sliderRadius = document.getElementById('slider-radius');
+
+    const valDecay = document.getElementById('val-decay');
+    const valBoost = document.getElementById('val-boost');
+    const valThreshold = document.getElementById('val-threshold');
+    const valIntensity = document.getElementById('val-intensity');
+    const valRadius = document.getElementById('val-radius');
+    const txtFps = document.getElementById('txt-fps');
+
+    let isPlaying = true;
+    let requestReset = false;
+
+    // Sync UI Labels
+    function updateLabels() {
+        valDecay.textContent = parseFloat(sliderDecay.value).toFixed(3);
+        valBoost.textContent = parseFloat(sliderBoost.value).toFixed(3);
+        valThreshold.textContent = parseFloat(sliderThreshold.value).toFixed(2);
+        valIntensity.textContent = parseFloat(sliderIntensity.value).toFixed(2);
+        valRadius.textContent = parseFloat(sliderRadius.value).toFixed(1);
+    }
+
+    sliderDecay.addEventListener('input', updateLabels);
+    sliderBoost.addEventListener('input', updateLabels);
+    sliderThreshold.addEventListener('input', updateLabels);
+    sliderIntensity.addEventListener('input', updateLabels);
+    sliderRadius.addEventListener('input', updateLabels);
+
+    btnPlayPause.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        btnPlayPause.textContent = isPlaying ? "일시정지" : "계속";
+    });
+
+    btnReset.addEventListener('click', () => {
+        requestReset = true;
+    });
+
+    // Required Image Loader matching exactly the requested pattern
+    async function loadImage(url, w, h) {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+            img.src = url;
+        });
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        return c;
+    }
+
+    async function init() {
+        if (!navigator.gpu) {
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('error-message').textContent = "이 브라우저에서는 WebGPU를 지원하지 않습니다. Chrome/Edge/Firefox 최신 버전을 사용하십시오.";
+            return;
+        }
+
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('error-message').textContent = "지원되는 WebGPU 어댑터를 찾을 수 없습니다.";
+            return;
+        }
+
+        const device = await adapter.requestDevice();
+        const canvas = document.getElementById('gpu-canvas');
+        const context = canvas.getContext('webgpu');
+
+        // Set high DPI canvas bounds
+        canvas.width = imageWidth;
+        canvas.height = imageHeight;
+
+        const format = navigator.gpu.getPreferredCanvasFormat();
+        context.configure({
+            device: device,
+            format: format,
+            alphaMode: 'opaque'
+        });
+
+        // 1. Load Source Image (Colosseum)
+        let srcCanvas;
+        try {
+            srcCanvas = await loadImage('../../images/colosseum.jpg', imageWidth, imageHeight);
+        } catch (err) {
+            console.warn(err.message + ". 절차적 기본 그라디언트 맵을 대신 생성합니다.");
+            // Fallback gradient in case path structure differs locally
+            srcCanvas = document.createElement('canvas');
+            srcCanvas.width = imageWidth;
+            srcCanvas.height = imageHeight;
+            const ctx = srcCanvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, imageWidth, imageHeight);
+            grad.addColorStop(0, '#ff0055');
+            grad.addColorStop(0.5, '#00ffcc');
+            grad.addColorStop(1, '#0055ff');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, imageWidth, imageHeight);
+            // Draw a high-intensity bright sun to showcase bloom
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(imageWidth * 0.5, imageHeight * 0.4, 50, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const imageData = srcCanvas.getContext('2d').getImageData(0, 0, imageWidth, imageHeight);
+
+        // 2. Textures Creation
+        // Static Base reference to reset anytime on GPU
+        const texOriginal = device.createTexture({
+            size: [imageWidth, imageHeight],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        });
+
+        // Frame Ping-Pong buffers (Simulate temporal decay frame-by-frame)
+        const simTextureA = device.createTexture({
+            size: [imageWidth, imageHeight],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
+        });
+
+        const simTextureB = device.createTexture({
+            size: [imageWidth, imageHeight],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC
+        });
+
+        // Push initial pixel state to textures
+        device.queue.writeTexture(
+            { texture: texOriginal },
+            imageData.data,
+            { bytesPerRow: imageWidth * 4 },
+            { width: imageWidth, height: imageHeight }
+        );
+
+        device.queue.writeTexture(
+            { texture: simTextureA },
+            imageData.data,
+            { bytesPerRow: imageWidth * 4 },
+            { width: imageWidth, height: imageHeight }
+        );
+
+        // 3. Uniform Buffer creation
+        const uniformBufferSize = 32; // 8 floats/uints
+        const uniformBuffer = device.createBuffer({
+            size: uniformBufferSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        // Sampler for Presenting
+        const sampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear'
+        });
+
+        // 4. Compute Pipeline State
+        const computeWGSL = `
+            struct Params {
+                width: u32,
+                height: u32,
+                leftFactor: f32,
+                rightFactor: f32,
+                bloomThreshold: f32,
+                bloomIntensity: f32,
+                bloomRadius: f32,
+                resetFlag: u32,
+            };
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var texIn: texture_2d<f32>;
+            @group(0) @binding(2) var texOut: texture_storage_2d<rgba8unorm, write>;
+            @group(0) @binding(3) var texOriginal: texture_2d<f32>;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) id: vec3u) {
+                let coords = vec2i(id.xy);
+                if (coords.x >= i32(params.width) || coords.y >= i32(params.height)) {
+                    return;
+                }
+
+                var color: vec4f;
+                if (params.resetFlag == 1u) {
+                    // GPU Initial Reset (With subtle 1e-2 DX11 pixel boost logic)
+                    color = textureLoad(texOriginal, coords, 0) + vec4f(1e-2, 1e-2, 1e-2, 0.0);
+                } else {
+                    color = textureLoad(texIn, coords, 0);
+                    
+                    // Temporal gradual darkening logic based on DX11 code update loops
+                    let halfWidth = i32(params.width) / 2;
+                    if (coords.x < halfWidth) {
+                        color = color * params.leftFactor;
+                    } else {
+                        color = color * params.rightFactor;
+                    }
+                }
+
+                color = clamp(color, vec4f(0.0), vec4f(1.0));
+
+                // Separable-like dynamic Gaussian/Box Bloom Filter inside the compute shader
+                var blurSum = vec3f(0.0);
+                var weightSum = 0.0;
+                let r = i32(params.bloomRadius);
+
+                for (var dy = -r; dy <= r; dy++) {
+                    for (var dx = -r; dx <= r; dx++) {
+                        let sampleCoords = clamp(
+                            coords + vec2i(dx, dy), 
+                            vec2i(0, 0), 
+                            vec2i(i32(params.width) - 1, i32(params.height) - 1)
+                        );
+                        
+                        var sampleColor: vec4f;
+                        if (params.resetFlag == 1u) {
+                            sampleColor = textureLoad(texOriginal, sampleCoords, 0) + vec4f(1e-2, 1e-2, 1e-2, 0.0);
+                        } else {
+                            sampleColor = textureLoad(texIn, sampleCoords, 0);
+                        }
+
+                        // Luminance extraction for Bloom Target Filter
+                        let luma = dot(sampleColor.rgb, vec3f(0.2126, 0.7152, 0.0722));
+                        if (luma > params.bloomThreshold) {
+                            let dist = f32(dx * dx + dy * dy);
+                            let weight = exp(-dist / (f32(r * r) / 2.0 + 0.1));
+                            blurSum += sampleColor.rgb * weight;
+                            weightSum += weight;
+                        }
+                    }
+                }
+
+                var bloom = vec3f(0.0);
+                if (weightSum > 0.0) {
+                    bloom = (blurSum / weightSum) * params.bloomIntensity;
+                }
+
+                let finalColor = clamp(color.rgb + bloom, vec3f(0.0), vec3f(1.0));
+                textureStore(texOut, coords, vec4f(finalColor, 1.0));
+            }
+        `;
+
+        const computeModule = device.createShaderModule({ code: computeWGSL });
+        const computePipeline = device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module: computeModule,
+                entryPoint: 'main'
+            }
+        });
+
+        // Bind Group for Compute Pass
+        const computeBindGroup = device.createBindGroup({
+            layout: computePipeline.getBindGroupLayout(0),
+            entries: [
+                { binding: 0, resource: { buffer: uniformBuffer } },
+                { binding: 1, resource: simTextureA.createView() },
+                { binding: 2, resource: simTextureB.createView() },
+                { binding: 3, resource: texOriginal.createView() }
+            ]
+        });
+
+        // 5. Render Pipeline State (Vertex/Fragment presentation to viewport)
+        const renderWGSL = `
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+
+                var out: VertexOutput;
+                out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                out.uv = uv[vertexIndex];
+                return out;
+            }
+
+            @group(0) @binding(0) var mySampler: sampler;
+            @group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+            @fragment
+            fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(myTexture, mySampler, uv);
+            }
+        `;
+
+        const renderModule = device.createShaderModule({ code: renderWGSL });
+        const renderPipeline = device.createRenderPipeline({
+            layout: 'auto',
+            vertex: {
+                module: renderModule,
+                entryPoint: 'vs_main'
+            },
+            fragment: {
+                module: renderModule,
+                entryPoint: 'fs_main',
+                targets: [{ format: format }]
+            }
+        });
+
+        // Render Bind Group (reads from the resulting updated SimTextureA)
+        const renderBindGroup = device.createBindGroup({
+            layout: renderPipeline.getBindGroupLayout(0),
+            entries: [
+                { binding: 0, resource: sampler },
+                { binding: 1, resource: simTextureA.createView() }
+            ]
+        });
+
+        updateLabels();
+
+        // 6. Main Simulation Render Loop
+        let lastFrameTime = performance.now();
+
+        function frame() {
+            const start = performance.now();
+
+            // Construct host uniform buffer parameters
+            const paramsData = new Float32Array(8);
+            paramsData[0] = imageWidth;
+            paramsData[1] = imageHeight;
+            paramsData[2] = isPlaying ? parseFloat(sliderDecay.value) : 1.0;  // Pause decay when paused
+            paramsData[3] = isPlaying ? parseFloat(sliderBoost.value) : 1.0;  // Pause boost when paused
+            paramsData[4] = parseFloat(sliderThreshold.value);
+            paramsData[5] = parseFloat(sliderIntensity.value);
+            paramsData[6] = parseFloat(sliderRadius.value);
+            
+            const viewU32 = new Uint32Array(paramsData.buffer);
+            viewU32[7] = requestReset ? 1 : 0;
+
+            device.queue.writeBuffer(uniformBuffer, 0, paramsData);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // Compute pass for Bloom calculation & temporal simulation
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            computePass.dispatchWorkgroups(Math.ceil(imageWidth / 8), Math.ceil(imageHeight / 8), 1);
+            computePass.end();
+
+            // Swap output state back to simulation source
+            commandEncoder.copyTextureToTexture(
+                { texture: simTextureB },
+                { texture: simTextureA },
+                [imageWidth, imageHeight, 1]
+            );
+
+            // Render output texture to display Viewport
+            const renderPass = commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            // Clear dynamic request state
+            if (requestReset) {
+                requestReset = false;
+            }
+
+            const end = performance.now();
+            txtFps.textContent = `Frame Time: ${(end - start).toFixed(2)} ms`;
+
+            requestAnimationFrame(frame);
+        }
+
+        requestAnimationFrame(frame);
+    }
+
+    init();
+</script>
+</body>
+</html>
