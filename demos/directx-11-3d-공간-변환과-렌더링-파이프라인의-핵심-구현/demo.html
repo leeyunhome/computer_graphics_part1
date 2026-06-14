@@ -456,12 +456,6 @@
       const context = canvas.getContext('webgpu');
       const format = navigator.gpu.getPreferredCanvasFormat();
 
-      context.configure({
-        device: device,
-        format: format,
-        alphaMode: 'opaque'
-      });
-
       // 1. 소스 이미지 로드 및 GPU 리소스 바인딩
       let srcCanvas;
       try {
@@ -488,6 +482,12 @@
       H = srcCanvas.height;
       canvas.width = W;
       canvas.height = H;
+
+      context.configure({
+        device: device,
+        format: format,
+        alphaMode: 'opaque'
+      });
 
       const srcData = srcCanvas.getContext('2d').getImageData(0, 0, W, H).data;
 
