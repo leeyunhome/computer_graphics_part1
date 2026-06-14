@@ -575,8 +575,8 @@
         let ndc = vec4f(uv.x * 2.0 - 1.0, (1.0 - uv.y) * 2.0 - 1.0, 0.0, 1.0);
 
         // NDC to World Space Ray Direction
-        let target = u.inv_view_proj * ndc;
-        let ray_dir = normalize(target.xyz / target.w - u.camera_pos.xyz);
+        let ray_target = u.inv_view_proj * ndc;
+        let ray_dir = normalize(ray_target.xyz / ray_target.w - u.camera_pos.xyz);
         let ray_origin = u.camera_pos.xyz;
 
         // Raymarching Loop
