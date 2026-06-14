@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Vector Dot & Cross Product Demo</title>
+  <style>
+    /* Dark Theme, DirectX 11 App Vibe */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      color: #e2e2e2;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Main Render Viewport */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      height: 100%;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* DX11 / ImGui Style Control Panel */
+    #control-panel {
+      width: 380px;
+      background-color: rgba(22, 22, 37, 0.95);
+      border-left: 2px solid #3f3f5f;
+      box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      overflow-y: auto;
+    }
+
+    /* Title Bar */
+    .panel-header {
+      background: linear-gradient(90deg, #2b2b47, #1a1a2e);
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border-bottom: 2px solid #3f3f5f;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #00d2ff;
+    }
+
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid #2d2d44;
+    }
+
+    .panel-section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #8f8faf;
+      margin-bottom: 12px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    /* Input Controls */
+    .control-group {
+      margin-bottom: 14px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: #cfcfdf;
+    }
+
+    .control-label span.val {
+      color: #00ffcc;
+      font-family: monospace;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .axis-badge {
+      font-size: 10px;
+      font-weight: bold;
+      width: 16px;
+      text-align: center;
+      border-radius: 3px;
+      padding: 2px 0;
+    }
+    .axis-x { background-color: #ff3344; color: white; }
+    .axis-y { background-color: #33cc44; color: black; }
+    .axis-z { background-color: #3366ff; color: white; }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      background: #111122;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+      border: 1px solid #3f3f5f;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00d2ff;
+      cursor: pointer;
+      border: 1px solid #ffffff;
+      transition: background 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #00ffcc;
+    }
+
+    /* Output Diagnostics */
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: monospace;
+      font-size: 12px;
+      background-color: #111122;
+      border: 1px solid #2d2d44;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .diag-table th, .diag-table td {
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    .diag-table th {
+      background-color: #1e1e35;
+      color: #8f8faf;
+      font-size: 11px;
+      border-bottom: 1px solid #2d2d44;
+    }
+
+    .diag-table tr:not(:last-child) {
+      border-bottom: 1px solid #1a1a2e;
+    }
+
+    .diag-table td.val {
+      text-align: right;
+      color: #00ffcc;
+    }
+
+    .vector-val {
+      color: #ff9900 !important;
+    }
+
+    /* Utility Info Box */
+    .info-box {
+      background-color: #111122;
+      border-left: 3px solid #00ffcc;
+      padding: 10px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #a0a0c0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .info-box strong {
+      color: #ffffff;
+    }
+
+    /* Instruction overlay */
+    #instruction {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background-color: rgba(16, 16, 30, 0.85);
+      border: 1px solid #3f3f5f;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-size: 12px;
+      pointer-events: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    /* WebGPU Error screen */
+    #webgpu-error {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-color: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      color: #ff3344;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #webgpu-error h1 { margin-bottom: 10px; }
+    #webgpu-error p { color: #8f8faf; max-width: 600px; line-height: 1.6; }
+
+    /* Custom Switch style */
+    .switch-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .switch-group label {
+      font-size: 12px;
+      color: #cfcfdf;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 20px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #222;
+      border: 1px solid #3f3f5f;
+      transition: .2s;
+      border-radius: 10px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 12px; width: 12px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #00d2ff; }
+    input:checked + .slider:before { transform: translateX(14px); }
+  </style>
+</head>
+<body>
+
+  <div id="webgpu-error" style="display: none;">
+    <h1>WebGPU 미지원 브라우저</h1>
+    <p>이 기기 또는 브라우저는 WebGPU를 지원하지 않습니다. Chrome, Edge, 또는 Safari 최신 버전을 사용 중인지 확인하고, WebGPU 플래그가 활성화되어 있는지 점검하십시오.</p>
+  </div>
+
+  <div id="app-container">
+    <!-- Viewport Rendering Region -->
+    <div id="canvas-container">
+      <canvas id="webgpu-canvas"></canvas>
+      <div id="instruction">
+        🖱️ 마우스 드래그: 카메라 회전 | 휠: 줌 인/아웃
+      </div>
+    </div>
+
+    <!-- UI Panel -->
+    <div id="control-panel">
+      <div class="panel-header">
+        <span>DirectX 11 — Vector Math (GLM)</span>
+        <span style="font-size: 10px; background-color: #00d2ff22; padding: 2px 6px; border-radius:3px; border:1px solid #00d2ff;">WGSL COMPUTE</span>
+      </div>
+
+      <!-- Vector A Control -->
+      <div class="panel-section">
+        <div class="panel-section-title" style="color:#ff3344;">Vector A (빨간색)</div>
+        
+        <div class="control-group">
+          <div class="control-label"><span>성분 X</span><span class="val" id="val-ax">1.50</span></div>
+          <div class="slider-row">
+            <span class="axis-badge axis-x">X</span>
+            <input type="range" id="slider-ax" min="-3" max="3" step="0.1" value="1.5">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>성분 Y</span><span class="val" id="val-ay">0.00</span></div>
+          <div class="slider-row">
+            <span class="axis-badge axis-y">Y</span>
+            <input type="range" id="slider-ay" min="-3" max="3" step="0.1" value="0.0">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>성분 Z</span><span class="val" id="val-az">0.00</span></div>
+          <div class="slider-row">
+            <span class="axis-badge axis-z">Z</span>
+            <input type="range" id="slider-az" min="-3" max="3" step="0.1" value="0.0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Vector B Control -->
+      <div class="panel-section">
+        <div class="panel-section-title" style="color:#33cc44;">Vector B (초록색)</div>
+
+        <div class="control-group">
+          <div class="control-label"><span>성분 X</span><span class="val" id="val-bx">0.00</span></div>
+          <div class="slider-row">
+            <span class="axis-badge axis-x">X</span>
+            <input type="range" id="slider-bx" min="-3" max="3" step="0.1" value="0.0">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>성분 Y</span><span class="val" id="val-by">2.00</span></div>
+          <div class="slider-row">
+            <span class="axis-badge axis-y">Y</span>
+            <input type="range" id="slider-by" min="-3" max="3" step="0.1" value="2.0">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>성분 Z</span><span class="val" id="val-bz">0.00</span></div>
+          <div class="slider-row">
+            <span class="axis-badge axis-z">Z</span>
+            <input type="range" id="slider-bz" min="-3" max="3" step="0.1" value="0.0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Rendering Options -->
+      <div class="panel-section">
+        <div class="panel-section-title">시각화 필터</div>
+        <div class="switch-group">
+          <label for="switch-grid">그리드 격자 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="switch-grid" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-group">
+          <label for="switch-cross">외적 벡터 (Blue) 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="switch-cross" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-group">
+          <label for="switch-area">기하학적 면적 칠하기</label>
+          <label class="switch">
+            <input type="checkbox" id="switch-area" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Real-time CPU & GPU Diagnostics -->
+      <div class="panel-section" style="flex: 1; border-bottom: none;">
+        <div class="panel-section-title">연산 결과 모니터 (Math Diagnostic)</div>
+        
+        <table class="diag-table">
+          <thead>
+            <tr>
+              <th>기하 대수 항목</th>
+              <th style="text-align: right;">결과 수치</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>벡터 A의 길이 |a|</td>
+              <td class="val" id="diag-len-a">0.00</td>
+            </tr>
+            <tr>
+              <td>벡터 B의 길이 |b|</td>
+              <td class="val" id="diag-len-b">0.00</td>
+            </tr>
+            <tr>
+              <td>내적 (Dot Product) a · b</td>
+              <td class="val" id="diag-dot">0.00</td>
+            </tr>
+            <tr>
+              <td>외적 (Cross Product) a × b</td>
+              <td class="val vector-val" id="diag-cross">(0.00, 0.00, 0.00)</td>
+            </tr>
+            <tr>
+              <td>외적 크기 |a × b| (평행사변형 넓이)</td>
+              <td class="val" id="diag-area-p" style="font-weight: bold; color: #ffcc00;">0.00</td>
+            </tr>
+            <tr>
+              <td>삼각형 넓이 (0.5 * |a × b|)</td>
+              <td class="val" id="diag-area-t" style="font-weight: bold; color: #00ffcc;">0.00</td>
+            </tr>
+            <tr>
+              <td>두 벡터 사잇각 (θ)</td>
+              <td class="val" id="diag-angle">0.00°</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 12px;">
+          <div class="info-box">
+            <strong>외적의 물리적 기하 성질:</strong><br>
+            두 벡터의 외적 결과는 두 벡터가 이루는 평면의 법선(Normal) 벡터가 되며, 그 크기는 두 벡터로 생성된 평행사변형의 넓이입니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- WGSL SHADER SOURCE CODE ---
+    const COMPUTE_SHADER_WGSL = `
+      struct Uniforms {
+        vectorA: vec3f,
+        showGrid: f32,
+        vectorB: vec3f,
+        showCross: f32,
+        crossAB: vec3f,
+        showArea: f32,
+        cameraPos: vec3f,
+        padding1: f32,
+        cameraForward: vec3f,
+        padding2: f32,
+        cameraRight: vec3f,
+        padding3: f32,
+        cameraUp: vec3f,
+        padding4: f32,
+        screenSize: vec2f,
+      }
+
+      @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+      @group(0) @binding(1) var outTex: texture_storage_2d<rgba8unorm, write>;
+
+      // --- SDF 및 기하 연산 헬퍼 ---
+      fn sdSegment(p: vec3f, a: vec3f, b: vec3f) -> f32 {
+        let pa = p - a;
+        let ba = b - a;
+        let h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+        return length(pa - ba * h);
+      }
+
+      fn sdArrow(p: vec3f, a: vec3f, b: vec3f, r_shaft: f32, r_head: f32) -> f32 {
+        let ba = b - a;
+        let len = length(ba);
+        if (len < 1e-4) { return length(p - a); }
+        let dir = ba / len;
+        let pa = p - a;
+        let h = clamp(dot(pa, dir), 0.0, len);
+        
+        var r = r_shaft;
+        let head_len = min(0.3, len * 0.25);
+        if (h > len - head_len) {
+          let t = (len - h) / head_len; // 1 (머리시작) ~ 0 (끝점)
+          r = r_head * t;
+        }
+        let proj = a + dir * h;
+        return length(p - proj) - r;
+      }
+
+      struct Hit {
+        hit: bool,
+        t: f32,
+        color: vec3f,
+        alpha: f32,
+      }
+
+      // 평행사변형 및 삼각형 교차 테스트
+      fn intersectPlaneArea(ro: vec3f, rd: vec3f) -> Hit {
+        var res: Hit;
+        res.hit = false;
+        res.t = 1e10;
+        res.color = vec3f(0.0);
+        res.alpha = 0.0;
+
+        let va = uniforms.vectorA;
+        let vb = uniforms.vectorB;
+        let n = cross(va, vb);
+        let len_n = length(n);
+        if (len_n < 1e-4) { return res; }
+        let normal = n / len_n;
+
+        let denom = dot(rd, normal);
+        if (abs(denom) < 1e-5) { return res; }
+
+        let t = -dot(ro, normal) / denom;
+        if (t < 0.0) { return res; }
+
+        let p = ro + t * rd;
+
+        // 크라메르 공식을 이용하여 p = u * va + v * vb 에서 계수 u, v 구하기
+        let aa = dot(va, va);
+        let bb = dot(vb, vb);
+        let ab = dot(va, vb);
+        let pa = dot(p, va);
+        let pb = dot(p, vb);
+
+        let D = aa * bb - ab * ab;
+        if (D < 1e-5) { return res; }
+
+        let u = (pa * bb - pb * ab) / D;
+        let v = (pb * aa - pa * ab) / D;
+
+        // 평행사변형 내부 판정 (0 <= u, v <= 1)
+        if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0) {
+          res.hit = true;
+          res.t = t;
+          
+          if (u + v <= 1.0) {
+            // 삼각형 면적 영역 (따뜻한 노랑색으로 하이라이팅)
+            res.color = vec3f(1.0, 0.7, 0.1);
+            res.alpha = 0.35;
+          } else {
+            // 평행사변형의 나머지 부분 (연한 자주색)
+            res.color = vec3f(0.8, 0.2, 0.8);
+            res.alpha = 0.15;
+          }
+        }
+        return res;
+      }
+
+      // Raymarching을 통한 3D 격자 및 화살표 표현
+      struct SceneRes {
+        dist: f32,
+        color: vec3f,
+      }
+
+      fn mapScene(p: vec3f) -> SceneRes {
+        var res: SceneRes;
+        res.dist = 1e10;
+        res.color = vec3f(0.0);
+
+        // 기본 좌표축 (X: 빨강, Y: 초록, Z: 파랑)
+        let d_axis_x = sdSegment(p, vec3f(-5.0, 0.0, 0.0), vec3f(5.0, 0.0, 0.0)) - 0.01;
+        if (d_axis_x < res.dist) { res.dist = d_axis_x; res.color = vec3f(0.4, 0.1, 0.1); }
+        
+        let d_axis_y = sdSegment(p, vec3f(0.0, -5.0, 0.0), vec3f(0.0, 5.0, 0.0)) - 0.01;
+        if (d_axis_y < res.dist) { res.dist = d_axis_y; res.color = vec3f(0.1, 0.4, 0.1); }
+
+        let d_axis_z = sdSegment(p, vec3f(0.0, 0.0, -5.0), vec3f(0.0, 0.0, 5.0)) - 0.01;
+        if (d_axis_z < res.dist) { res.dist = d_axis_z; res.color = vec3f(0.1, 0.1, 0.4); }
+
+        // 벡터 a 화살표 (빨간색)
+        let d_a = sdArrow(p, vec3f(0.0), uniforms.vectorA, 0.04, 0.12);
+        if (d_a < res.dist) { res.dist = d_a; res.color = vec3f(1.0, 0.1, 0.1); }
+
+        // 벡터 b 화살표 (초록색)
+        let d_b = sdArrow(p, vec3f(0.0), uniforms.vectorB, 0.04, 0.12);
+        if (d_b < res.dist) { res.dist = d_b; res.color = vec3f(0.1, 0.9, 0.1); }
+
+        // 외적 벡터 c 화살표 (파란색) - 활성화 시
+        if (uniforms.showCross > 0.5) {
+          let d_c = sdArrow(p, vec3f(0.0), uniforms.crossAB, 0.04, 0.12);
+          if (d_c < res.dist) { res.dist = d_c; res.color = vec3f(0.1, 0.5, 1.0); }
+        }
+
+        // 내적 투영선 시각화 (점선 느낌으로 b 끝에서 a 평영선으로 내린 점선)
+        let len_a = length(uniforms.vectorA);
+        if (len_a > 1e-4) {
+          let dir_a = uniforms.vectorA / len_a;
+          let dot_proj = dot(uniforms.vectorB, dir_a);
+          let proj_p = dir_a * dot_proj;
+          let d_proj = sdSegment(p, uniforms.vectorB, proj_p);
+          if (d_proj < res.dist) {
+            // 점선 텍스처 패턴화
+            let wave = sin(length(p - uniforms.vectorB) * 20.0);
+            if (wave > 0.0) {
+              res.dist = d_proj - 0.01;
+              res.color = vec3f(1.0, 1.0, 0.3); // 연황색
+            }
+          }
+        }
+
+        return res;
+      }
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let size = vec2u(uniforms.screenSize);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        let ndc = vec2f(
+          (f32(id.x) + 0.5) / f32(size.x) * 2.0 - 1.0,
+          1.0 - (f32(id.y) + 0.5) / f32(size.y) * 2.0
+        );
+        let aspect = uniforms.screenSize.x / uniforms.screenSize.y;
+
+        let ro = uniforms.cameraPos;
+        // 정밀 카메라 레이 형성
+        let rd = normalize(
+          uniforms.cameraForward + 
+          ndc.x * aspect * uniforms.cameraRight * 0.55 + 
+          ndc.y * uniforms.cameraUp * 0.55
+        );
+
+        var pixelColor = vec3f(0.1, 0.1, 0.15); // DirectX 다크 블루/그레이 테마 배경
+
+        // 바닥 X-Z 무한 그리드 평면 빌드
+        var t_min = 1e10;
+        if (uniforms.showGrid > 0.5) {
+          let t_g = -ro.y / rd.y;
+          if (t_g > 0.0 && t_g < 25.0) {
+            let p_g = ro + rd * t_g;
+            if (length(p_g.xz) < 8.0) {
+              // 격자선 계산
+              let grid_pattern = smoothstep(0.96, 1.0, max(sin(p_g.x * 3.14159 * 2.0), sin(p_g.z * 3.14159 * 2.0)));
+              pixelColor = mix(pixelColor, vec3f(0.25, 0.25, 0.35), grid_pattern * 0.45);
+              t_min = t_g;
+            }
+          }
+        }
+
+        // 평행사변형 & 삼각형 투명 오버레이 렌더링
+        if (uniforms.showArea > 0.5) {
+          let area_hit = intersectPlaneArea(ro, rd);
+          if (area_hit.hit && area_hit.t < t_min) {
+            pixelColor = mix(pixelColor, area_hit.color, area_hit.alpha);
+            t_min = area_hit.t;
+          }
+        }
+
+        // 레이마칭 오브젝트(화살표 및 축) 그리기
+        var t_rm = 0.0;
+        var hit_rm = false;
+        var rm_col = vec3f(0.0);
+        for (var i = 0; i < 70; i = i + 1) {
+          let p = ro + rd * t_rm;
+          let scene = mapScene(p);
+          if (scene.dist < 0.003) {
+            hit_rm = true;
+            rm_col = scene.color;
+            break;
+          }
+          t_rm = t_rm + scene.dist;
+          if (t_rm > 25.0) { break; }
+        }
+
+        if (hit_rm && t_rm < t_min) {
+          // 아주 약한 라이팅 적용
+          let p_hit = ro + rd * t_rm;
+          let offset = 0.01;
+          let normal = normalize(vec3f(
+            mapScene(p_hit + vec3f(offset, 0.0, 0.0)).dist - mapScene(p_hit - vec3f(offset, 0.0, 0.0)).dist,
+            mapScene(p_hit + vec3f(0.0, offset, 0.0)).dist - mapScene(p_hit - vec3f(0.0, offset, 0.0)).dist,
+            mapScene(p_hit + vec3f(0.0, 0.0, offset)).dist - mapScene(p_hit - vec3f(0.0, 0.0, offset)).dist
+          ));
+          let l = normalize(vec3f(5.0, 10.0, 3.0) - p_hit);
+          let diff = max(dot(normal, l), 0.0) * 0.5 + 0.5;
+          pixelColor = rm_col * diff;
+        }
+
+        // 최종 톤맵핑 및 안전한 출력
+        let finalColor = saturate(pixelColor);
+        textureStore(outTex, id.xy, vec4f(finalColor, 1.0));
+      }
+    `;
+
+    const SCREEN_SHADER_WGSL = `
+      @vertex
+      fn vs_main(@builtin(vertex_index) id: u32) -> @builtin(position) vec4f {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0), vec2f( 1.0, -1.0), vec2f(-1.0,  1.0),
+          vec2f(-1.0,  1.0), vec2f( 1.0, -1.0), vec2f( 1.0,  1.0)
+        );
+        return vec4f(pos[id], 0.0, 1.0);
+      }
+
+      @group(0) @binding(0) var inTex: texture_2d<f32>;
+      @group(0) @binding(1) var s: sampler;
+
+      @fragment
+      fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
+        let size = textureDimensions(inTex);
+        let uv = coord.xy / vec2f(size);
+        return textureSample(inTex, s, uv);
+      }
+    `;
+
+    // --- JS VECTOR MATHEMATICS HELPERS ---
+    const vec3 = {
+      create: (x=0, y=0, z=0) => new Float32Array([x, y, z]),
+      length: (v) => Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]),
+      normalize: (v) => {
+        const len = vec3.length(v);
+        return len < 1e-6 ? vec3.create() : vec3.create(v[0]/len, v[1]/len, v[2]/len);
+      },
+      dot: (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2],
+      cross: (a, b) => vec3.create(
+        a[1]*b[2] - a[2]*b[1],
+        a[2]*b[0] - a[0]*b[2],
+        a[0]*b[1] - a[1]*b[0]
+      ),
+      add: (a, b) => vec3.create(a[0]+b[0], a[1]+b[1], a[2]+b[2]),
+      sub: (a, b) => vec3.create(a[0]-b[0], a[1]-b[1], a[2]-b[2]),
+      scale: (v, s) => vec3.create(v[0]*s, v[1]*s, v[2]*s)
+    };
+
+    // --- STATE MANAGEMENT ---
+    let device, context, computePipeline, renderPipeline;
+    let storageTexture, sampler, computeBindGroup, renderBindGroup;
+    let uniformBuffer;
+
+    const camera = {
+      theta: Math.PI / 4,
+      phi: Math.PI / 6,
+      radius: 6.0,
+      target: vec3.create(0, 0, 0),
+      pos: vec3.create()
+    };
+
+    const uniformsData = new Float32Array(32); // 128 bytes (aligned)
+
+    // Elements
+    const canvas = document.getElementById('webgpu-canvas');
+    const sliders = {
+      ax: document.getElementById('slider-ax'),
+      ay: document.getElementById('slider-ay'),
+      az: document.getElementById('slider-az'),
+      bx: document.getElementById('slider-bx'),
+      by: document.getElementById('slider-by'),
+      bz: document.getElementById('slider-bz')
+    };
+
+    const badges = {
+      ax: document.getElementById('val-ax'),
+      ay: document.getElementById('val-ay'),
+      az: document.getElementById('val-az'),
+      bx: document.getElementById('val-bx'),
+      by: document.getElementById('val-by'),
+      bz: document.getElementById('val-bz')
+    };
+
+    const diag = {
+      lenA: document.getElementById('diag-len-a'),
+      lenB: document.getElementById('diag-len-b'),
+      dot: document.getElementById('diag-dot'),
+      cross: document.getElementById('diag-cross'),
+      areaP: document.getElementById('diag-area-p'),
+      areaT: document.getElementById('diag-area-t'),
+      angle: document.getElementById('diag-angle')
+    };
+
+    const switches = {
+      grid: document.getElementById('switch-grid'),
+      cross: document.getElementById('switch-cross'),
+      area: document.getElementById('switch-area')
+    };
+
+    // --- RUN-TIME RENDER LOOP CONTROLLER ---
+    let isRenderScheduled = false;
+
+    function scheduleRender() {
+      if (!isRenderScheduled) {
+        isRenderScheduled = true;
+        requestAnimationFrame(() => {
+          render();
+          isRenderScheduled = false;
+        });
+      }
+    }
+
+    // --- INIT WEBGPU ---
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        document.getElementById('webgpu-error').style.display = 'flex';
+        return;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        document.getElementById('webgpu-error').style.display = 'flex';
+        return;
+      }
+
+      device = await adapter.requestDevice();
+
+      // Setup swapchain context
+      context = canvas.getContext('webgpu');
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: 'opaque'
+      });
+
+      // Shaders
+      const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_WGSL });
+      const renderModule = device.createShaderModule({ code: SCREEN_SHADER_WGSL });
+
+      // Uniforms Setup
+      uniformBuffer = device.createBuffer({
+        size: uniformsData.byteLength,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // Texture Sampler
+      sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+
+      // Pipeline Layouts & Bindgroups
+      const computeBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+          { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' } }
+        ]
+      });
+
+      computePipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [computeBindGroupLayout] }),
+        compute: { module: computeModule, entryPoint: 'main' }
+      });
+
+      const renderBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+          { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } }
+        ]
+      });
+
+      renderPipeline = device.createRenderPipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [renderBindGroupLayout] }),
+        vertex: { module: renderModule, entryPoint: 'vs_main' },
+        fragment: { module: renderModule, entryPoint: 'fs_main', targets: [{ format: presentationFormat }] },
+        primitive: { topology: 'triangle-list' }
+      });
+
+      // Resize observer
+      const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          const w = Math.floor(entry.contentRect.width * window.devicePixelRatio);
+          const h = Math.floor(entry.contentRect.height * window.devicePixelRatio);
+          resize(w, h);
+        }
+      });
+      resizeObserver.observe(document.getElementById('canvas-container'));
+
+      setupEventHandlers();
+      updateMathAndRender();
+    }
+
+    // --- HANDLE WINDOW RESIZING ---
+    function resize(w, h) {
+      canvas.width = w;
+      canvas.height = h;
+
+      // Re-create storage texture
+      if (storageTexture) storageTexture.destroy();
+
+      storageTexture = device.createTexture({
+        size: [w, h, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+
+      // Re-bind compute texture
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: storageTexture.createView() }
+        ]
+      });
+
+      // Re-bind screen renderer texture
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: storageTexture.createView() },
+          { binding: 1, resource: sampler }
+        ]
+      });
+
+      scheduleRender();
+    }
+
+    // --- MATH CALCULATION & UNIFORM UPDATES ---
+    function updateMathAndRender() {
+      // 1. Get current values
+      const ax = parseFloat(sliders.ax.value);
+      const ay = parseFloat(sliders.ay.value);
+      const az = parseFloat(sliders.az.value);
+      
+      const bx = parseFloat(sliders.bx.value);
+      const by = parseFloat(sliders.by.value);
+      const bz = parseFloat(sliders.bz.value);
+
+      badges.ax.textContent = ax.toFixed(2);
+      badges.ay.textContent = ay.toFixed(2);
+      badges.az.textContent = az.toFixed(2);
+      badges.bx.textContent = bx.toFixed(2);
+      badges.by.textContent = by.toFixed(2);
+      badges.bz.textContent = bz.toFixed(2);
+
+      const va = vec3.create(ax, ay, az);
+      const vb = vec3.create(bx, by, bz);
+
+      // 2. Perform Dot, Cross, Length
+      const lenA = vec3.length(va);
+      const lenB = vec3.length(vb);
+      const dotVal = vec3.dot(va, vb);
+      const crossVal = vec3.cross(va, vb);
+      const crossLen = vec3.length(crossVal);
+
+      // Triangle area is 0.5 * cross product length
+      const triArea = 0.5 * crossLen;
+
+      // Calculate Angle
+      let angleDeg = 0;
+      if (lenA > 1e-4 && lenB > 1e-4) {
+        const cosTheta = Math.max(-1, Math.min(1, dotVal / (lenA * lenB)));
+        angleDeg = Math.acos(cosTheta) * (180 / Math.PI);
+      }
+
+      // Update UI Diagnostics
+      diag.lenA.textContent = lenA.toFixed(4);
+      diag.lenB.textContent = lenB.toFixed(4);
+      diag.dot.textContent = dotVal.toFixed(4);
+      diag.cross.textContent = `(${crossVal[0].toFixed(2)}, ${crossVal[1].toFixed(2)}, ${crossVal[2].toFixed(2)})`;
+      diag.areaP.textContent = crossLen.toFixed(4);
+      diag.areaT.textContent = triArea.toFixed(4);
+      diag.angle.textContent = `${angleDeg.toFixed(1)}°`;
+
+      // 3. Build View Camera System
+      camera.pos[0] = camera.target[0] + camera.radius * Math.cos(camera.theta) * Math.cos(camera.phi);
+      camera.pos[1] = camera.target[1] + camera.radius * Math.sin(camera.phi);
+      camera.pos[2] = camera.target[2] + camera.radius * Math.sin(camera.theta) * Math.cos(camera.phi);
+
+      const forward = vec3.normalize(vec3.sub(camera.target, camera.pos));
+      const right = vec3.normalize(vec3.cross(forward, vec3.create(0, 1, 0)));
+      const up = vec3.normalize(vec3.cross(right, forward));
+
+      // 4. Fill Uniform Buffer with strict 16-byte WGSL alignments
+      // struct Uniforms {
+      //   0: vectorA (vec3f) + 12: showGrid (f32)
+      //   16: vectorB (vec3f) + 28: showCross (f32)
+      //   32: crossAB (vec3f) + 44: showArea (f32)
+      //   48: cameraPos (vec3f) + 60: pad
+      //   64: cameraForward (vec3f) + 76: pad
+      //   80: cameraRight (vec3f) + 92: pad
+      //   96: cameraUp (vec3f) + 108: pad
+      //   112: screenSize (vec2f)
+      // }
+      uniformsData[0] = va[0];  uniformsData[1] = va[1];  uniformsData[2] = va[2];
+      uniformsData[3] = switches.grid.checked ? 1.0 : 0.0;
+
+      uniformsData[4] = vb[0];  uniformsData[5] = vb[1];  uniformsData[6] = vb[2];
+      uniformsData[7] = switches.cross.checked ? 1.0 : 0.0;
+
+      uniformsData[8] = crossVal[0]; uniformsData[9] = crossVal[1]; uniformsData[10] = crossVal[2];
+      uniformsData[11] = switches.area.checked ? 1.0 : 0.0;
+
+      uniformsData[12] = camera.pos[0]; uniformsData[13] = camera.pos[1]; uniformsData[14] = camera.pos[2];
+      uniformsData[15] = 0.0; // padding
+
+      uniformsData[16] = forward[0]; uniformsData[17] = forward[1]; uniformsData[18] = forward[2];
+      uniformsData[19] = 0.0; // padding
+
+      uniformsData[20] = right[0]; uniformsData[21] = right[1]; uniformsData[22] = right[2];
+      uniformsData[23] = 0.0; // padding
+
+      uniformsData[24] = up[0]; uniformsData[25] = up[1]; uniformsData[26] = up[2];
+      uniformsData[27] = 0.0; // padding
+
+      uniformsData[28] = canvas.width; uniformsData[29] = canvas.height;
+
+      device.queue.writeBuffer(uniformBuffer, 0, uniformsData);
+      scheduleRender();
+    }
+
+    // --- ACTUAL RENDERING COMMAND QUEUE ---
+    function render() {
+      if (!device || !storageTexture) return;
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // Dispatch Compute Shader
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      const workgroupCountX = Math.ceil(canvas.width / 16);
+      const workgroupCountY = Math.ceil(canvas.height / 16);
+      computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+      computePass.end();
+
+      // Copy Compute Result to Context via Raster Pipeline
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6);
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+    }
+
+    // --- SETUP CONTROL & INTERACTION EVENTS ---
+    function setupEventHandlers() {
+      // Slider inputs
+      Object.values(sliders).forEach(slider => {
+        slider.addEventListener('input', updateMathAndRender);
+      });
+
+      // Filter switches
+      Object.values(switches).forEach(sw => {
+        sw.addEventListener('change', updateMathAndRender);
+      });
+
+      // Mouse Look & Orbit Control
+      let isDragging = false;
+      let prevX, prevY;
+
+      canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        prevX = e.clientX;
+        prevY = e.clientY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - prevX;
+        const dy = e.clientY - prevY;
+
+        camera.theta -= dx * 0.007;
+        camera.phi = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.phi - dy * 0.007));
+
+        prevX = e.clientX;
+        prevY = e.clientY;
+        updateMathAndRender();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      // Wheel Zoom Interaction
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.radius = Math.max(2.0, Math.min(15.0, camera.radius + e.deltaY * 0.005));
+        updateMathAndRender();
+      }, { passive: false });
+    }
+
+    // Initialize application
+    initWebGPU();
+  </script>
+</body>
+</html>
