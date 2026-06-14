@@ -228,6 +228,22 @@
           <div style="padding-left:12px;">rgb = clamp(rgb, 0.0, 1.0);</div>
           <div>}</div>
         </div>
+
+        <div class="imgui-section" style="margin-top:15px;">
+          <div style="color:#b0b0cf; font-weight:bold; margin-bottom:8px; font-size:12px;">IMAGE SOURCE</div>
+          <div class="control-group">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+              <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+              <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+              <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+              <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+              <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+              <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -240,6 +256,14 @@
   </div>
 
   <script>
+        let currentImageSrc = "../../images/colosseum.jpg";
+        async function _setImage(src) {
+            currentImageSrc = src;
+            if (typeof init === "function") { await init(); }
+            else if (typeof initWebGPU === "function") { await initWebGPU(); }
+            else { await main(); }
+        }
+
     // ImGui Window drag logic
     const win = document.getElementById('imgui-win');
     const header = win.querySelector('.imgui-header');
@@ -310,7 +334,7 @@
       // 1. Source Image loading (natural size, max 1280x960)
       let srcCanvas;
       try {
-        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1280, 960);
+        srcCanvas = await loadImageNaturalSize(currentImageSrc, 1280, 960);
       } catch (e) {
         console.error(e);
         // Fallback procedural visual in case the image cannot be found
@@ -559,16 +583,21 @@
       }
 
       // Event Listeners for ImGui controls
-      sliderBrightness.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value).toFixed(2);
-        valBrightness.innerText = val;
-        updateGPUParams();
-      });
+      if (!window._uiSetup______________________________________) {
+            window._uiSetup______________________________________ = true;
+            // ... move ALL the existing addEventListener calls here ...
+            sliderBrightness.addEventListener('input', (e) => {
+              const val = parseFloat(e.target.value).toFixed(2);
+              valBrightness.innerText = val;
+              updateGPUParams();
+            });
 
-      chkClamp.addEventListener('change', () => {
-        updateGPUParams();
-        showStatus(chkClamp.checked ? "std::clamp 활성화됨" : "std::clamp 비활성화됨");
-      });
+            chkClamp.addEventListener('change', () => {
+              updateGPUParams();
+              showStatus(chkClamp.checked ? "std::clamp 활성화됨" : "std::clamp 비활성화됨");
+            });
+            _setupImagePicker();
+      }
 
       // Initial Update and rendering
       updateGPUParams();
@@ -581,6 +610,30 @@
       document.getElementById('error-text').innerText = err.message || err;
       document.getElementById('app-container').style.display = 'none';
     });
+        function _setupImagePicker() {
+            document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+                thumb.addEventListener("click", async function() {
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent";
+                        t.style.opacity = "0.7";
+                    });
+                    thumb.style.borderColor = "#007acc";
+                    thumb.style.opacity = "1";
+                    await _setImage(thumb.getAttribute("data-src"));
+                });
+            });
+            var fileInput = document.getElementById("img-file-upload");
+            if (fileInput) {
+                fileInput.addEventListener("change", async function(e) {
+                    if (!e.target.files[0]) return;
+                    var url = URL.createObjectURL(e.target.files[0]);
+                    document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                        t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                    });
+                    await _setImage(url);
+                });
+            }
+        }
   </script>
 </body>
 </html>

@@ -231,6 +231,20 @@
           CS Threads: [numthreads(16, 16, 1)]<br>
           Shader: WGSL Compute Pass
         </div>
+
+        <div class="imgui-header" style="margin-top:15px;">IMAGE SOURCE</div>
+        <div class="imgui-control">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+            <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+            <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+            <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+            <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+            <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+            <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -242,6 +256,13 @@
   </div>
 
   <script>
+    let currentImageSrc = "../../images/colosseum.jpg";
+    async function _setImage(src) {
+        currentImageSrc = src;
+        if (typeof init === "function") { await init(); }
+        else if (typeof initWebGPU === "function") { await initWebGPU(); }
+    }
+
     // -------------------------------------------------------------------------
     // 1. WebGPU / WGSL 셰이더 코드 정의
     // -------------------------------------------------------------------------
@@ -442,7 +463,7 @@
       // 1. 소스 이미지 로드 및 GPU 리소스 바인딩
       let srcCanvas;
       try {
-        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
+        srcCanvas = await loadImageNaturalSize(currentImageSrc, 1920, 1080);
       } catch (err) {
         console.warn("로컬 이미지를 찾을 수 없어 절차적 백업 텍스처를 생성합니다.");
         srcCanvas = document.createElement('canvas');
@@ -649,12 +670,16 @@
       }
 
       // 슬라이더 조작 시 즉시 렌더 업데이트 스케줄링 (RAF 중복 발생 예방)
-      sliderImg.addEventListener('input', scheduleRender);
-      sliderCode.addEventListener('input', scheduleRender);
-      sliderScale.addEventListener('input', scheduleRender);
-      sliderSpeed.addEventListener('input', scheduleRender);
-      pickerColor.addEventListener('input', scheduleRender);
-      animEnable.addEventListener('change', scheduleRender);
+      if (!window._uiSetup_directx_11_3d________________________) {
+          window._uiSetup_directx_11_3d________________________ = true;
+          sliderImg.addEventListener('input', scheduleRender);
+          sliderCode.addEventListener('input', scheduleRender);
+          sliderScale.addEventListener('input', scheduleRender);
+          sliderSpeed.addEventListener('input', scheduleRender);
+          pickerColor.addEventListener('input', scheduleRender);
+          animEnable.addEventListener('change', scheduleRender);
+          _setupImagePicker();
+      }
 
       // 시작 루프 기동
       scheduleRender();
@@ -666,6 +691,31 @@
       errOverlay.style.display = 'flex';
       errOverlay.textContent = err.message;
     });
+
+    function _setupImagePicker() {
+        document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+            thumb.addEventListener("click", async function() {
+                document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                    t.style.borderColor = "transparent";
+                    t.style.opacity = "0.7";
+                });
+                thumb.style.borderColor = "#007acc";
+                thumb.style.opacity = "1";
+                await _setImage(thumb.getAttribute("data-src"));
+            });
+        });
+        var fileInput = document.getElementById("img-file-upload");
+        if (fileInput) {
+            fileInput.addEventListener("change", async function(e) {
+                if (!e.target.files[0]) return;
+                var url = URL.createObjectURL(e.target.files[0]);
+                document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                    t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                });
+                await _setImage(url);
+            });
+        }
+    }
   </script>
 </body>
 </html>

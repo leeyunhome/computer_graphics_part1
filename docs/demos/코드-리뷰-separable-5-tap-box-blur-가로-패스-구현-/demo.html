@@ -258,6 +258,20 @@
           <p style="margin: 4px 0;"><strong>Offsets:</strong> -2, -1, 0, +1, +2</p>
           <p style="margin: 4px 0; color: #ed8936;"><strong>Note:</strong> Vertical pass pending (separability demo)</p>
         </div>
+
+        <div class="collapsing-header" style="margin-top:15px;">IMAGE SOURCE</div>
+        <div class="control-group">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="img-thumbnails">
+            <img class="img-thumb" data-src="../../images/colosseum.jpg" src="../../images/colosseum.jpg" title="colosseum" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid #007acc;opacity:1;">
+            <img class="img-thumb" data-src="../../images/landscape.jpg" src="../../images/landscape.jpg" title="landscape" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+            <img class="img-thumb" data-src="../../images/portrait.jpg" src="../../images/portrait.jpg" title="portrait" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+            <img class="img-thumb" data-src="../../images/city.jpg" src="../../images/city.jpg" title="city" style="width:64px;height:48px;object-fit:cover;cursor:pointer;border-radius:3px;border:2px solid transparent;opacity:0.7;">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8a8a9a;cursor:pointer;margin-top:4px;">
+            <input type="file" id="img-file-upload" accept="image/*" style="display:none;">
+            <span style="background:#202030;padding:3px 8px;border-radius:3px;border:1px solid #44445a;">📁 로컬 파일</span>
+          </label>
+        </div>
       </div>
 
       <div id="dx-info">
@@ -274,6 +288,13 @@
   </div>
 
   <script type="module">
+    let currentImageSrc = "../../images/colosseum.jpg";
+    async function _setImage(src) {
+        currentImageSrc = src;
+        if (typeof init === "function") { await init(); }
+        else if (typeof initWebGPU === "function") { await initWebGPU(); }
+    }
+
     // --- WGSL Shaders ---
 
     const COMPUTE_SHADER_CODE = `
@@ -409,16 +430,22 @@
     const brightnessVal = document.getElementById('brightness-val');
     const blurEnableCb = document.getElementById('blur-enable');
 
-    brightnessSlider.addEventListener('input', (e) => {
-      state.brightness = parseFloat(e.target.value);
-      brightnessVal.textContent = state.brightness.toFixed(1);
-      scheduleRender();
-    });
+    if (!window._uiSetup_______separable_5_tap_box_blur__________) {
+      window._uiSetup_______separable_5_tap_box_blur__________ = true;
 
-    blurEnableCb.addEventListener('change', (e) => {
-      state.blurEnabled = e.target.checked ? 1 : 0;
-      scheduleRender();
-    });
+      brightnessSlider.addEventListener('input', (e) => {
+        state.brightness = parseFloat(e.target.value);
+        brightnessVal.textContent = state.brightness.toFixed(1);
+        scheduleRender();
+      });
+
+      blurEnableCb.addEventListener('change', (e) => {
+        state.blurEnabled = e.target.checked ? 1 : 0;
+        scheduleRender();
+      });
+
+      _setupImagePicker();
+    }
 
     function showError(msg) {
       const overlay = document.getElementById('error-overlay');
@@ -467,7 +494,7 @@
       // 1. 소스 이미지 로드 (colosseum.jpg)
       let srcCanvas;
       try {
-        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 1920, 1080);
+        srcCanvas = await loadImageNaturalSize(currentImageSrc, 1920, 1080);
       } catch (err) {
         console.warn("로컬 경로에서 이미지를 찾을 수 없어 백업 절차적 텍스처를 생성합니다.");
         // Fallback: 실제 이미지가 없는 경우를 대비한 절차적 패턴 드로잉
@@ -656,6 +683,31 @@
     }
 
     main();
+
+    function _setupImagePicker() {
+        document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(thumb) {
+            thumb.addEventListener("click", async function() {
+                document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                    t.style.borderColor = "transparent";
+                    t.style.opacity = "0.7";
+                });
+                thumb.style.borderColor = "#007acc";
+                thumb.style.opacity = "1";
+                await _setImage(thumb.getAttribute("data-src"));
+            });
+        });
+        var fileInput = document.getElementById("img-file-upload");
+        if (fileInput) {
+            fileInput.addEventListener("change", async function(e) {
+                if (!e.target.files[0]) return;
+                var url = URL.createObjectURL(e.target.files[0]);
+                document.querySelectorAll("#img-thumbnails .img-thumb").forEach(function(t) {
+                    t.style.borderColor = "transparent"; t.style.opacity = "0.7";
+                });
+                await _setImage(url);
+            });
+        }
+    }
   </script>
 </body>
 </html>
