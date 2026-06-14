@@ -89,3 +89,4 @@ nav:
     - "[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현": demos/리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추.md
     - 분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰: demos/분리형-가우시안-블러separable-gaussian-blur를-이용한-.md
     - GLM 실험적 확장 활성화를 통한 C++ 그래픽스 디버깅 환경 구축: demos/glm-실험적-확장-활성화를-통한-c-그래픽스-디버깅-환경-구축.md
+    - "[DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초": demos/directx-11-c-그래픽스-환경에서의-glm-실험적-확장-활성화-및.md

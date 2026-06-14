@@ -222,6 +222,11 @@ graph LR
 <a href="demos/glm-실험적-확장-활성화를-통한-c-그래픽스-디버깅-환경-구축/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초</strong><br><br>
+<a href="demos/directx-11-c-그래픽스-환경에서의-glm-실험적-확장-활성화-및/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)

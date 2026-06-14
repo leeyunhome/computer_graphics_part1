@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DirectX 11 — GLM Preprocessor & Matrix Debugger</title>
+  <style>
+    :root {
+      --bg-color: #1a1a2e;
+      --panel-bg: #16161a;
+      --panel-border: #32323a;
+      --text-color: #e3e3e6;
+      --accent-color: #007acc;
+      --accent-hover: #1f9eff;
+      --slider-track: #2a2a35;
+      --code-bg: #0f0f14;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* DirectX 11 App Window Frame Style */
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      border: 4px solid var(--panel-border);
+    }
+
+    #title-bar {
+      background-color: var(--panel-bg);
+      border-bottom: 2px solid var(--panel-border);
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+
+    #title-bar .controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    #title-bar .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #ff5f56;
+    }
+    #title-bar .dot.yellow { background-color: #ffbd2e; }
+    #title-bar .dot.green { background-color: #27c93f; }
+
+    #main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left panel: WebGPU Canvas Viewport */
+    #viewport-panel {
+      flex: 1;
+      position: relative;
+      background-color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Right panel: Controls & GLM Inspector (ImGui Style) */
+    #sidebar {
+      width: 420px;
+      background-color: var(--panel-bg);
+      border-left: 2px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      border-bottom: 1px solid var(--panel-border);
+      padding: 16px;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #888896;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge {
+      background-color: #2e7d32;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    .control-group {
+      margin-bottom: 12px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: #bbb;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent-color);
+      background-color: var(--slider-track);
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .val-display {
+      font-family: monospace;
+      font-size: 11px;
+      width: 50px;
+      text-align: right;
+      color: var(--accent-hover);
+    }
+
+    /* ImGui Tab Selector */
+    .tab-container {
+      display: flex;
+      background: #0f0f14;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .tab-button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: #888;
+      padding: 10px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-button.active {
+      color: var(--text-color);
+      background-color: var(--panel-bg);
+      border-bottom: 2px solid var(--accent-color);
+    }
+
+    /* GLM Console Out / Code View */
+    .console-box {
+      background-color: var(--code-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: 12px;
+      font-family: 'Consolas', 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #00ff66;
+      overflow-x: auto;
+      max-height: 250px;
+      white-space: pre;
+    }
+
+    .xml-box {
+      color: #e0a15f;
+    }
+
+    .xml-tag { color: #569cd6; }
+    .xml-attr { color: #9cdcfe; }
+    .xml-val { color: #ce9178; }
+
+    /* WebGPU error banner */
+    #error-banner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(180, 40, 40, 0.9);
+      border: 2px solid #ff4444;
+      padding: 24px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 500px;
+      display: none;
+      z-index: 100;
+    }
+
+    #error-banner h2 { margin-bottom: 12px; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Title Bar (DirectX 11 Style) -->
+    <div id="title-bar">
+      <div>DirectX 11 — GLM Matrix Inspector (GLM_ENABLE_EXPERIMENTAL)</div>
+      <div class="controls">
+        <div class="dot"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div id="main-content">
+      <!-- Left: Interactive WebGPU Raymarching Render -->
+      <div id="viewport-panel">
+        <canvas id="gpu-canvas" width="800" height="600"></canvas>
+        <div id="error-banner">
+          <h2>WebGPU 미지원 브라우저</h2>
+          <p>이 웹 데모는 WebGPU API를 사용합니다. Chrome, Edge 또는 WebGPU가 활성화된 최신 브라우저를 사용하여 실행해주세요.</p>
+        </div>
+      </div>
+
+      <!-- Right: Control Panel (ImGui DX11 Inspector Style) -->
+      <div id="sidebar">
+        <!-- Section 1: GLM_ENABLE_EXPERIMENTAL Info -->
+        <div class="panel-section">
+          <div class="panel-title">
+            <span>프로젝트 전처리기 설정</span>
+            <span class="badge">DX11 Build Success</span>
+          </div>
+          <p style="font-size: 11px; line-height: 1.4; color: #aaa; margin-bottom: 8px;">
+            <code>glm/gtx/string_cast.hpp</code>를 활용한 디버그 덤프를 활성화하기 위해 vcxproj 빌드 설정에 <strong>GLM_ENABLE_EXPERIMENTAL</strong> 매크로를 주입했습니다.
+          </p>
+        </div>
+
+        <!-- Section 2: Interactive Controls -->
+        <div class="panel-section">
+          <div class="panel-title">카메라 & 월드 행렬 조작</div>
+          
+          <div class="control-group">
+            <label>카메라 회전 (Yaw)</label>
+            <div class="control-row">
+              <input type="range" id="cam-yaw" min="-3.14" max="3.14" step="0.01" value="0.78">
+              <span class="val-display" id="val-cam-yaw">0.78</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>카메라 앙각 (Pitch)</label>
+            <div class="control-row">
+              <input type="range" id="cam-pitch" min="-1.5" max="1.5" step="0.01" value="0.5">
+              <span class="val-display" id="val-cam-pitch">0.50</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>카메라 거리</label>
+            <div class="control-row">
+              <input type="range" id="cam-dist" min="3.0" max="15.0" step="0.1" value="7.0">
+              <span class="val-display" id="val-cam-dist">7.0</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>도형 크기 (Scale)</label>
+            <div class="control-row">
+              <input type="range" id="obj-scale" min="0.5" max="2.0" step="0.05" value="1.0">
+              <span class="val-display" id="val-obj-scale">1.00</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>도형 Y축 이동 (Translation Y)</label>
+            <div class="control-row">
+              <input type="range" id="obj-y-pos" min="-2.0" max="2.0" step="0.1" value="0.0">
+              <span class="val-display" id="val-obj-y-pos">0.0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Code and Preprocessor Tabs -->
+        <div class="tab-container">
+          <button class="tab-button active" onclick="switchTab('string-cast')">GLM STRING_CAST</button>
+          <button class="tab-button" onclick="switchTab('vcxproj')">VCXPROJ CONFIG</button>
+        </div>
+
+        <div class="panel-section" style="flex: 1; min-height: 250px;">
+          <!-- Tab 1: C++ glm::to_string Output -->
+          <div id="tab-content-string-cast">
+            <div class="panel-title">실시간 GLM String Cast 디버그 출력</div>
+            <div class="console-box" id="glm-output" style="color: #4af626;">// 계산 중...</div>
+          </div>
+
+          <!-- Tab 2: MSBuild Project File XML -->
+          <div id="tab-content-vcxproj" style="display: none;">
+            <div class="panel-title">vcxproj preprocessor definitions</div>
+            <div class="console-box xml-box">
+&lt;<span class="xml-tag">ItemDefinitionGroup</span>&gt;
+  &lt;<span class="xml-tag">ClCompile</span>&gt;
+    &lt;<span class="xml-tag">PreprocessorDefinitions</span>&gt;
+      <span class="xml-val">WIN32;_DEBUG;_CONSOLE;</span>
+      <span class="xml-attr">GLM_ENABLE_EXPERIMENTAL;</span>
+      <span class="xml-val">%(PreprocessorDefinitions)</span>
+    &lt;/<span class="xml-tag">PreprocessorDefinitions</span>&gt;
+  &lt;/<span class="xml-tag">ClCompile</span>&gt;
+&lt;/<span class="xml-tag">ItemDefinitionGroup</span>&gt;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching logic
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-content-string-cast').style.display = 'none';
+      document.getElementById('tab-content-vcxproj').style.display = 'none';
+
+      if (tabId === 'string-cast') {
+        document.querySelectorAll('.tab-button')[0].classList.add('active');
+        document.getElementById('tab-content-string-cast').style.display = 'block';
+      } else {
+        document.querySelectorAll('.tab-button')[1].classList.add('active');
+        document.getElementById('tab-content-vcxproj').style.display = 'block';
+      }
+    }
+
+    // 4x4 Column-Major Matrix Math Utilities
+    const mat4 = {
+      identity: () => new Float32Array([
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      ]),
+      perspective: (fov, aspect, near, far) => {
+        const f = 1.0 / Math.tan(fov / 2);
+        const nf = 1 / (near - far);
+        return new Float32Array([
+          f / aspect, 0, 0, 0,
+          0, f, 0, 0,
+          0, 0, (far + near) * nf, -1,
+          0, 0, 2 * far * near * nf, 0
+        ]);
+      },
+      lookAt: (eye, center, up) => {
+        const eyex = eye[0], eyey = eye[1], eyez = eye[2];
+        const upx = up[0], upy = up[1], upz = up[2];
+        const centerx = center[0], centery = center[1], centerz = center[2];
+
+        let z0 = eyex - centerx, z1 = eyey - centery, z2 = eyez - centerz;
+        let len = Math.hypot(z0, z1, z2);
+        if (len === 0) { z0 = 0; z1 = 0; z2 = 1; } else { len = 1 / len; z0 *= len; z1 *= len; z2 *= len; }
+
+        let x0 = upy * z2 - upz * z1, x1 = upz * z0 - upx * z2, x2 = upx * z1 - upy * z0;
+        len = Math.hypot(x0, x1, x2);
+        if (len === 0) { x0 = 1; x1 = 0; x2 = 0; } else { len = 1 / len; x0 *= len; x1 *= len; x2 *= len; }
+
+        let y0 = z1 * x2 - z2 * x1, y1 = z2 * x0 - z0 * x2, y2 = z0 * x1 - z1 * x0;
+        len = Math.hypot(y0, y1, y2);
+        if (len === 0) { y0 = 0; y1 = 1; y2 = 0; } else { len = 1 / len; y0 *= len; y1 *= len; y2 *= len; }
+
+        return new Float32Array([
+          x0, y0, z0, 0,
+          x1, y1, z1, 0,
+          x2, y2, z2, 0,
+          -(x0 * eyex + x1 * eyey + x2 * eyez),
+          -(y0 * eyex + y1 * eyey + y2 * eyez),
+          -(z0 * eyex + z1 * eyey + z2 * eyez),
+          1
+        ]);
+      },
+      multiply: (a, b) => {
+        const out = new Float32Array(16);
+        const b00 = b[0], b01 = b[1], b02 = b[2], b03 = b[3];
+        const b10 = b[4], b11 = b[5], b12 = b[6], b13 = b[7];
+        const b20 = b[8], b21 = b[9], b22 = b[10], b23 = b[11];
+        const b30 = b[12], b31 = b[13], b32 = b[14], b33 = b[15];
+
+        let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+        out[0] = a0 * b00 + a1 * b10 + a2 * b20 + a3 * b30;
+        out[1] = a0 * b01 + a1 * b11 + a2 * b21 + a3 * b31;
+        out[2] = a0 * b02 + a1 * b12 + a2 * b22 + a3 * b32;
+        out[3] = a0 * b03 + a1 * b13 + a2 * b23 + a3 * b33;
+
+        a0 = a[4]; a1 = a[5]; a2 = a[6]; a3 = a[7];
+        out[4] = a0 * b00 + a1 * b10 + a2 * b20 + a3 * b30;
+        out[5] = a0 * b01 + a1 * b11 + a2 * b21 + a3 * b31;
+        out[6] = a0 * b02 + a1 * b12 + a2 * b22 + a3 * b32;
+        out[7] = a0 * b03 + a1 * b13 + a2 * b23 + a3 * b33;
+
+        a0 = a[8]; a1 = a[9]; a2 = a[10]; a3 = a[11];
+        out[8] = a0 * b00 + a1 * b10 + a2 * b20 + a3 * b30;
+        out[9] = a0 * b01 + a1 * b11 + a2 * b21 + a3 * b31;
+        out[10] = a0 * b02 + a1 * b12 + a2 * b22 + a3 * b32;
+        out[11] = a0 * b03 + a1 * b13 + a2 * b23 + a3 * b33;
+
+        a0 = a[12]; a1 = a[13]; a2 = a[14]; a3 = a[15];
+        out[12] = a0 * b00 + a1 * b10 + a2 * b20 + a3 * b30;
+        out[13] = a0 * b01 + a1 * b11 + a2 * b21 + a3 * b31;
+        out[14] = a0 * b02 + a1 * b12 + a2 * b22 + a3 * b32;
+        out[15] = a0 * b03 + a1 * b13 + a2 * b23 + a3 * b33;
+        return out;
+      },
+      invert: (a) => {
+        const out = new Float32Array(16);
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+        const a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+        const a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+        const a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+
+        const b00 = a00 * a11 - a01 * a10;
+        const b01 = a00 * a12 - a02 * a10;
+        const b02 = a00 * a13 - a03 * a10;
+        const b03 = a01 * a12 - a02 * a11;
+        const b04 = a01 * a13 - a03 * a11;
+        const b05 = a02 * a13 - a03 * a12;
+        const b06 = a20 * a31 - a21 * a30;
+        const b07 = a20 * a32 - a22 * a30;
+        const b08 = a20 * a33 - a23 * a30;
+        const b09 = a21 * a32 - a22 * a31;
+        const b10 = a21 * a33 - a23 * a31;
+        const b11 = a22 * a33 - a23 * a32;
+
+        let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+        if (!det) return null;
+        det = 1.0 / det;
+
+        out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+        out[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+        out[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+        out[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+        out[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+        out[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+        out[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+        out[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+        out[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+        out[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+        out[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+        out[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+        out[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+        out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+        out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+        out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+
+        return out;
+      },
+      translation: (x, y, z) => {
+        return new Float32Array([
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          x, y, z, 1
+        ]);
+      },
+      scaling: (x, y, z) => {
+        return new Float32Array([
+          x, 0, 0, 0,
+          0, y, 0, 0,
+          0, 0, z, 0,
+          0, 0, 0, 1
+        ]);
+      }
+    };
+
+    // Format matrix to glm::to_string style
+    function glmToStringMat4(m, name) {
+      let str = `// glm::to_string(${name})\n`;
+      str += `mat4x4(\n`;
+      for (let col = 0; col < 4; col++) {
+        str += `  vec4(`;
+        str += [
+          m[col * 4].toFixed(4),
+          m[col * 4 + 1].toFixed(4),
+          m[col * 4 + 2].toFixed(4),
+          m[col * 4 + 3].toFixed(4)
+        ].map(v => v.padStart(8, ' ')).join(', ');
+        str += `)${col < 3 ? ',' : ''}\n`;
+      }
+      str += `);`;
+      return str;
+    }
+
+    // WebGPU WGSL Shaders
+    const computeShaderCode = `
+      struct Uniforms {
+        view_proj: mat4x4f,
+        inv_view_proj: mat4x4f,
+        model: mat4x4f,
+        camera_pos: vec4f,
+        time: f32,
+        _pad0: f32,
+        _pad1: f32,
+        _pad2: f32,
+      }
+
+      @group(0) @binding(0) var<uniform> u: Uniforms;
+      @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+
+      fn sdBox(p: vec3f, b: vec3f) -> f32 {
+        let q = abs(p) - b;
+        return length(max(q, vec3f(0.0))) + min(max(q.x, max(q.y, q.z)), 0.0);
+      }
+
+      fn sdSphere(p: vec3f, s: f32) -> f32 {
+        return length(p) - s;
+      }
+
+      fn map(p: vec3f) -> f32 {
+        // Model Matrix Inverse (여기서는 orthogonal/affine이므로 간소하게 로컬 변환 적용)
+        // WGSL에서는 행렬 곱을 연산하기 위해 mat4 * vec4를 취합니다.
+        let local_pos4 = u.model * vec4f(p, 1.0);
+        let local_pos = local_pos4.xyz;
+
+        // GLM 3D 형상: 큐브 및 큐브에 결합된 여러 구조체들
+        let d1 = sdBox(local_pos, vec3f(1.0));
+        let d2 = sdSphere(local_pos - vec3f(0.0, 1.1 + 0.3 * sin(u.time * 2.5), 0.0), 0.6);
+        let d3 = sdSphere(local_pos - vec3f(0.0, -1.1 - 0.3 * sin(u.time * 2.5), 0.0), 0.6);
+        
+        return min(d1, min(d2, d3));
+      }
+
+      fn getNormal(p: vec3f) -> vec3f {
+        let e = vec2f(0.001, 0.0);
+        return normalize(vec3f(
+          map(p + e.xyy) - map(p - e.xyy),
+          map(p + e.yxy) - map(p - e.yxy),
+          map(p + e.yyx) - map(p - e.yyx)
+        ));
+      }
+
+      @compute @workgroup_size(16, 16)
+      fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(out_tex);
+        if (id.x >= size.x || id.y >= size.y) {
+          return;
+        }
+
+        // NDC coordinates (-1 to 1)
+        let uv = (vec2f(id.xy) + vec2f(0.5)) / vec2f(size);
+        let ndc = vec4f(uv.x * 2.0 - 1.0, (1.0 - uv.y) * 2.0 - 1.0, 0.0, 1.0);
+
+        // NDC to World Space Ray Direction
+        let target = u.inv_view_proj * ndc;
+        let ray_dir = normalize(target.xyz / target.w - u.camera_pos.xyz);
+        let ray_origin = u.camera_pos.xyz;
+
+        // Raymarching Loop
+        var t = 0.0;
+        var hit = false;
+        var p = ray_origin;
+        for (var i = 0; i < 70; i++) {
+          p = ray_origin + ray_dir * t;
+          let d = map(p);
+          if (d < 0.001) {
+            hit = true;
+            break;
+          }
+          t += d;
+          if (t > 40.0) {
+            break;
+          }
+        }
+
+        // Background Color (DirectX SDK Dark Slate Grey)
+        var color = vec3f(0.1, 0.1, 0.18); 
+
+        if (hit) {
+          let normal = getNormal(p);
+          let light_dir = normalize(vec3f(5.0, 10.0, -4.0));
+          
+          // Lambertian diffuse
+          let diff = max(dot(normal, light_dir), 0.0);
+          
+          // Specular
+          let view_dir = normalize(u.camera_pos.xyz - p);
+          let half_dir = normalize(light_dir + view_dir);
+          let spec = pow(max(dot(normal, half_dir), 0.0), 32.0);
+
+          // Grid procedural texture on local coords
+          let local_p = (u.model * vec4f(p, 1.0)).xyz;
+          let grid = step(0.96, fract(local_p.x * 2.0)) + 
+                     step(0.96, fract(local_p.y * 2.0)) + 
+                     step(0.96, fract(local_p.z * 2.0));
+          
+          let base_color = mix(vec3f(0.0, 0.48, 0.8), vec3f(0.9, 0.6, 0.1), clamp(grid, 0.0, 1.0));
+          
+          color = base_color * (diff + 0.15) + vec3f(spec * 0.4);
+          
+          // Depth Cue (안개 효과)
+          color = mix(color, vec3f(0.1, 0.1, 0.18), 1.0 - exp(-0.015 * t * t));
+        }
+
+        textureStore(out_tex, id.xy, vec4f(color, 1.0));
+      }
+    `;
+
+    const renderVertexShaderCode = `
+      @vertex
+      fn vs_main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4f {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0),
+          vec2f( 1.0, -1.0),
+          vec2f(-1.0,  1.0),
+          vec2f(-1.0,  1.0),
+          vec2f( 1.0, -1.0),
+          vec2f( 1.0,  1.0)
+        );
+        return vec4f(pos[index], 0.0, 1.0);
+      }
+    `;
+
+    const renderFragmentShaderCode = `
+      @group(0) @binding(0) var in_tex: texture_2d<f32>;
+      @group(0) @binding(1) var s: sampler;
+
+      @fragment
+      fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
+        let size = textureDimensions(in_tex);
+        let uv = coord.xy / vec2f(size);
+        return textureSample(in_tex, s, uv);
+      }
+    `;
+
+    // Global application state
+    let device = null;
+    let context = null;
+    let computePipeline = null;
+    let renderPipeline = null;
+    let storageTexture = null;
+    let renderBindGroup = null;
+    let uniformBuffer = null;
+    let computeBindGroup = null;
+    let sampler = null;
+
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 600;
+
+    // UI Input Elements
+    const camYawInput = document.getElementById('cam-yaw');
+    const camPitchInput = document.getElementById('cam-pitch');
+    const camDistInput = document.getElementById('cam-dist');
+    const objScaleInput = document.getElementById('obj-scale');
+    const objYPosInput = document.getElementById('obj-y-pos');
+
+    const valYaw = document.getElementById('val-cam-yaw');
+    const valPitch = document.getElementById('val-cam-pitch');
+    const valDist = document.getElementById('val-cam-dist');
+    const valScale = document.getElementById('val-obj-scale');
+    const valYPos = document.getElementById('val-obj-y-pos');
+    const glmOutput = document.getElementById('glm-output');
+
+    let renderScheduled = false;
+    let startTime = Date.now();
+
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        document.getElementById('error-banner').style.display = 'block';
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        document.getElementById('error-banner').style.display = 'block';
+        return false;
+      }
+
+      device = await adapter.requestDevice();
+      const canvas = document.getElementById('gpu-canvas');
+      context = canvas.getContext('webgpu');
+
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: 'premultiplied',
+      });
+
+      // 1. Create Uniform Buffer
+      // Uniforms layout: view_proj(64) + inv_view_proj(64) + model(64) + camera_pos(16) + time(4) + padding(12) = 224 bytes
+      uniformBuffer = device.createBuffer({
+        size: 224,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+
+      // 2. Create Storage Texture for Compute Shader output
+      storageTexture = device.createTexture({
+        size: [CANVAS_WIDTH, CANVAS_HEIGHT],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      });
+
+      sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear',
+      });
+
+      // Compile Shaders
+      const computeModule = device.createShaderModule({ code: computeShaderCode });
+      const vsModule = device.createShaderModule({ code: renderVertexShaderCode });
+      const fsModule = device.createShaderModule({ code: renderFragmentShaderCode });
+
+      // 3. Create Compute Pipeline
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'cs_main',
+        },
+      });
+
+      // 4. Create Render Pipeline
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: vsModule,
+          entryPoint: 'vs_main',
+        },
+        fragment: {
+          module: fsModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: presentationFormat }],
+        },
+        primitive: {
+          topology: 'triangle-list',
+        },
+      });
+
+      // Create Bind Groups
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: storageTexture.createView() },
+        ],
+      });
+
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: storageTexture.createView() },
+          { binding: 1, resource: sampler },
+        ],
+      });
+
+      return true;
+    }
+
+    function updateMatrices() {
+      const yaw = parseFloat(camYawInput.value);
+      const pitch = parseFloat(camPitchInput.value);
+      const dist = parseFloat(camDistInput.value);
+      const scale = parseFloat(objScaleInput.value);
+      const yPos = parseFloat(objYPosInput.value);
+
+      // Update UI displays
+      valYaw.textContent = yaw.toFixed(2);
+      valPitch.textContent = pitch.toFixed(2);
+      valDist.textContent = dist.toFixed(1);
+      valScale.textContent = scale.toFixed(2);
+      valYPos.textContent = yPos.toFixed(1);
+
+      // Compute Matrix calculations (Equivalent to GLM on CPU)
+      const camX = dist * Math.cos(pitch) * Math.sin(yaw);
+      const camY = dist * Math.sin(pitch);
+      const camZ = dist * Math.cos(pitch) * Math.cos(yaw);
+
+      const cameraPos = new Float32Array([camX, camY, camZ, 1.0]);
+
+      const modelMatrix = mat4.multiply(
+        mat4.scaling(scale, scale, scale),
+        mat4.translation(0, yPos, 0)
+      );
+
+      const viewMatrix = mat4.lookAt([camX, camY, camZ], [0, 0, 0], [0, 1, 0]);
+      const projMatrix = mat4.perspective(Math.PI / 4, CANVAS_WIDTH / CANVAS_HEIGHT, 0.1, 100.0);
+      const viewProj = mat4.multiply(projMatrix, viewMatrix);
+      const invViewProj = mat4.invert(viewProj);
+
+      if (!invViewProj) return;
+
+      // Update Uniform Buffer
+      // Float32Array sequence: view_proj (16 elements), inv_view_proj (16 elements), model (16 elements), camera_pos (4 elements), time (1 element), paddings (3 elements)
+      const bufferData = new Float32Array(56);
+      bufferData.set(viewProj, 0);
+      bufferData.set(invViewProj, 16);
+      bufferData.set(modelMatrix, 32);
+      bufferData.set(cameraPos, 48);
+      bufferData.set([(Date.now() - startTime) / 1000], 52); // Time
+
+      device.queue.writeBuffer(uniformBuffer, 0, bufferData);
+
+      // Print GLM string_cast output representation
+      let debugStr = `// GLM string_cast simulation (GLM_ENABLE_EXPERIMENTAL)\n\n`;
+      debugStr += glmToStringMat4(modelMatrix, "model") + "\n\n";
+      debugStr += glmToStringMat4(viewMatrix, "view") + "\n\n";
+      debugStr += glmToStringMat4(projMatrix, "projection") + "\n\n";
+      debugStr += `// Camera Position Vector\n`;
+      debugStr += `glm::vec4 camera_pos(${camX.toFixed(3)}, ${camY.toFixed(3)}, ${camZ.toFixed(3)}, 1.000);`;
+      
+      glmOutput.textContent = debugStr;
+    }
+
+    function render() {
+      updateMatrices();
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // 1. Compute Pass (Compute raymarching pixel values)
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      computePass.dispatchWorkgroups(Math.ceil(CANVAS_WIDTH / 16), Math.ceil(CANVAS_HEIGHT / 16));
+      computePass.end();
+
+      // 2. Render Pass (Copy Compute storage texture to screen framebuffer)
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store',
+        }],
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6); // Draw fullscreen quad
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+
+      renderScheduled = false;
+    }
+
+    function scheduleRender() {
+      if (!renderScheduled) {
+        renderScheduled = true;
+        requestAnimationFrame(render);
+      }
+    }
+
+    // Interactive Loop
+    const inputElements = [camYawInput, camPitchInput, camDistInput, objScaleInput, objYPosInput];
+    inputElements.forEach(elem => {
+      elem.addEventListener('input', scheduleRender);
+    });
+
+    // Run continuous tick for animated parts (spinning/hovering)
+    function tick() {
+      scheduleRender();
+      requestAnimationFrame(tick);
+    }
+
+    // Main entry point
+    async function main() {
+      const success = await initWebGPU();
+      if (success) {
+        tick();
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
