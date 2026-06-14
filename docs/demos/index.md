@@ -143,6 +143,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[리뷰 및 학습 가이드] Separable 5-Tap Box Blur 구현을 통한 2D 컨볼루션 최적화](리뷰-및-학습-가이드-separable-5-tap-box-blur-구현을.md)
+
+
+[→ 데모 열기](리뷰-및-학습-가이드-separable-5-tap-box-blur-구현을.md){.md-button}
+
+
+---
+
+
 ## [선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)](선형-톤-매핑과-오버플로우-방지를-위한-픽셀-클램핑clamping.md)
 
 

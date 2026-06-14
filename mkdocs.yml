@@ -83,3 +83,4 @@ nav:
     - 실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현: demos/실시간-픽셀-감쇄pixel-decay를-통한-점진적-암전-효과-구현.md
     - Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화: demos/bloom-효과-파이프라인-설계-및-2차원-공간-필터링-구조화.md
     - "[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현": demos/코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-deca.md
+    - "[리뷰 및 학습 가이드] Separable 5-Tap Box Blur 구현을 통한 2D 컨볼루션 최적화": demos/리뷰-및-학습-가이드-separable-5-tap-box-blur-구현을.md
