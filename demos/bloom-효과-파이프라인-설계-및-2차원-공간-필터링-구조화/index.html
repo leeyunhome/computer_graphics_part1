@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/">
       
       
-        <link rel="prev" href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/">
+        <link rel="prev" href="../%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/">
       
-      
-        <link rel="next" href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>1차원 버퍼와 프레임 업데이트를 통한 픽셀 애니메이션 구현 - Computer Graphics Portfolio</title>
+        <title>Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화 - Computer Graphics Portfolio</title>
       
     
     
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#1" class="md-skip">
+        <a href="#bloom-2" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              1차원 버퍼와 프레임 업데이트를 통한 픽셀 애니메이션 구현
+              Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화
             
           </span>
         </div>
@@ -997,19 +995,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1025,7 +1014,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1287,10 +1275,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1306,6 +1303,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1356,7 +1354,7 @@
   
 
 
-<h1 id="1">1차원 버퍼와 프레임 업데이트를 통한 픽셀 애니메이션 구현</h1>
+<h1 id="bloom-2">Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화</h1>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
 <iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
