@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — GLM experimental string_cast & Matrix Pipeline</title>
+  <style>
+    /* ImGui 스타일 다크 테마 */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* 창 제목표시줄 */
+    #title-bar {
+      background-color: #0f0f1e;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #3a3a5a;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    #title-bar .dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    #title-bar .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    #title-bar .dot.red { background-color: #ff5f56; }
+    #title-bar .dot.yellow { background-color: #ffbd2e; }
+    #title-bar .dot.green { background-color: #27c93f; }
+
+    #main-content {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 37px);
+      overflow: hidden;
+    }
+
+    /* 렌더 영역 */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      background-color: #05050a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid #2a2a40;
+    }
+
+    /* 설정 패널 */
+    #panel {
+      width: 420px;
+      background-color: #121224;
+      border-left: 2px solid #3a3a5a;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #4fc3f7;
+      border-bottom: 1px solid #3a3a5a;
+      padding-bottom: 6px;
+    }
+
+    .control-group {
+      background-color: #1a1a30;
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid #2a2a4a;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      font-size: 12px;
+      color: #b0bec5;
+      width: 120px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: #4fc3f7;
+      cursor: pointer;
+    }
+
+    .value-display {
+      width: 50px;
+      text-align: right;
+      font-family: monospace;
+      font-size: 12px;
+      color: #4fc3f7;
+    }
+
+    /* GLM string_cast 디버그 디스플레이 */
+    #debug-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #0b0b16;
+      border: 1px solid #1f1f3a;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: 'Consolas', 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #a5d6a7;
+      overflow-y: auto;
+    }
+
+    .debug-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #ffb74d;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .debug-code {
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    /* WebGPU 에러 출력 */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(10,10,20,0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      color: #ff5252;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 100;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- DirectX 11 GUI 느낌의 상단바 -->
+    <div id="title-bar">
+      <div>DirectX 11 — GLM Experimental matrix_cast & Compute Pipeline</div>
+      <div class="dots">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+    </div>
+
+    <div id="main-content">
+      <!-- WebGPU Canvas 렌더링 영역 -->
+      <div id="canvas-container">
+        <canvas id="gpu-canvas" width="800" height="600"></canvas>
+        <div id="error-overlay">WebGPU를 지원하지 않는 브라우저이거나 초기화에 실패했습니다.</div>
+      </div>
+
+      <!-- ImGui 스타일 컨트롤 패널 -->
+      <div id="panel">
+        <div>
+          <h3 style="margin-bottom: 4px;">GLM Build Fix & Debug</h3>
+          <p style="font-size: 11px; color: #888; margin: 0 0 10px 0; line-height: 1.3;">
+            C++ DX11 환경에서 <code>glm/gtx/string_cast.hpp</code> 디버깅 기능을 사용하기 위해 전처리기 매크로 
+            <code>GLM_ENABLE_EXPERIMENTAL</code>을 활성화했습니다.<br>
+            본 데모는 GPU 연산 행렬을 CPU로 역전송하여 실시간으로 <b>GLM string_cast</b> 형식으로 디버깅 출력합니다.
+          </p>
+        </div>
+
+        <!-- 3D 기하학 변환 슬라이더 -->
+        <div class="control-group">
+          <h3>행렬 변환 파라미터 (GPU Uniform)</h3>
+          
+          <div class="control-row">
+            <label>회전 X축</label>
+            <input type="range" id="rotX" min="-180" max="180" value="25">
+            <span class="value-display" id="rotX-val">25°</span>
+          </div>
+
+          <div class="control-row">
+            <label>회전 Y축</label>
+            <input type="range" id="rotY" min="-180" max="180" value="-35">
+            <span class="value-display" id="rotY-val">-35°</span>
+          </div>
+
+          <div class="control-row">
+            <label>회전 Z축</label>
+            <input type="range" id="rotZ" min="-180" max="180" value="0">
+            <span class="value-display" id="rotZ-val">0°</span>
+          </div>
+
+          <div class="control-row">
+            <label>큐브 크기</label>
+            <input type="range" id="scale" min="5" max="25" value="12" step="1">
+            <span class="value-display" id="scale-val">1.2</span>
+          </div>
+
+          <div class="control-row">
+            <label>카메라 시야각</label>
+            <input type="range" id="fov" min="30" max="100" value="60">
+            <span class="value-display" id="fov-val">60°</span>
+          </div>
+        </div>
+
+        <!-- GLM string_cast 실시간 출력창 -->
+        <div style="display: flex; flex-direction: column; flex: 1; min-height: 250px;">
+          <div class="debug-title">
+            <span>💻 GLM string_cast (GPU -> CPU MapRead)</span>
+            <span style="color: #4fc3f7; font-size: 10px;">Experimental Ext Enabled</span>
+          </div>
+          <div id="debug-container">
+            <div class="debug-code" id="debug-output">// GPU에서 전송된 행렬 대기 중...</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // WebGPU 메인 애플리케이션
+
+    const canvas = document.getElementById('gpu-canvas');
+    const errorOverlay = document.getElementById('error-overlay');
+
+    // UI 엘리먼트
+    const rotXSlider = document.getElementById('rotX');
+    const rotYSlider = document.getElementById('rotY');
+    const rotZSlider = document.getElementById('rotZ');
+    const scaleSlider = document.getElementById('scale');
+    const fovSlider = document.getElementById('fov');
+
+    const rotXVal = document.getElementById('rotX-val');
+    const rotYVal = document.getElementById('rotY-val');
+    const rotZVal = document.getElementById('rotZ-val');
+    const scaleVal = document.getElementById('scale-val');
+    const fovVal = document.getElementById('fov-val');
+    const debugOutput = document.getElementById('debug-output');
+
+    let device, context;
+    let computePipeline, renderPipeline;
+    let uniformBuffer, storageTexture, debugBuffer, stagingBuffer;
+    let computeBindGroup, renderBindGroup;
+
+    // 렌더 스케줄링 변수
+    let renderRequested = false;
+
+    // 파라미터 캐시
+    const params = {
+      rotX: 25,
+      rotY: -35,
+      rotZ: 0,
+      scale: 1.2,
+      fov: 60,
+      time: 0.0
+    };
+
+    // WebGPU 초기화
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        showError("이 브라우저는 WebGPU를 지원하지 않습니다. Chrome/Edge 최신 버전을 사용하세요.");
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        showError("기기에 호환되는 GPU 어댑터를 찾을 수 없습니다.");
+        return false;
+      }
+
+      device = await adapter.requestDevice();
+      context = canvas.getContext('webgpu');
+
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device: device,
+        format: format,
+        alphaMode: 'opaque'
+      });
+
+      return true;
+    }
+
+    function showError(msg) {
+      errorOverlay.innerText = msg;
+      errorOverlay.style.display = 'flex';
+    }
+
+    // 셰이더 및 리소스 준비
+    async function setupPipelines() {
+      
+      // 1. Uniform Buffer 생성 (파라미터 전달용)
+      // 크기: 6 * 4 bytes = 24 bytes (alignment 맞춰서 32 bytes 할당)
+      uniformBuffer = device.createBuffer({
+        size: 32,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // 2. Storage Texture 생성 (Compute Shader에서 결과 픽셀을 작성할 타겟)
+      storageTexture = device.createTexture({
+        size: [canvas.width, canvas.height],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+
+      // 3. Debug Buffer 생성 (GPU 연산 결과를 CPU로 Readback 하기 위함)
+      // 데이터 포맷: Model 행렬(mat4x4), View 행렬(mat4x4), Proj 행렬(mat4x4)
+      // 크기: 16 floats * 3 = 48 floats * 4 bytes = 192 bytes
+      debugBuffer = device.createBuffer({
+        size: 192,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+      });
+
+      // 4. Staging Buffer 생성 (GPU -> CPU 맵핑용)
+      stagingBuffer = device.createBuffer({
+        size: 192,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+      });
+
+      // 5. Compute Shader 작성 (레이마칭 기반 3D 공간 연산 및 행렬 변환 디버깅 데이터 생성)
+      const computeShaderSource = `
+        struct Uniforms {
+          rotX: f32,
+          rotY: f32,
+          rotZ: f32,
+          scale: f32,
+          fov: f32,
+          time: f32,
+        }
+
+        struct DebugData {
+          modelMatrix: mat4x4f,
+          viewMatrix: mat4x4f,
+          projMatrix: mat4x4f,
+        }
+
+        @group(0) @binding(0) var<uniform> u_params: Uniforms;
+        @group(0) @binding(1) var o_texture: texture_storage_2d<rgba8unorm, write>;
+        @group(0) @binding(2) var<storage, read_write> o_debug: DebugData;
+
+        // 회전 행렬 생성 헬퍼
+        fn getRotationMatrix(x: f32, y: f32, z: f32) -> mat4x4f {
+          let cx = cos(x); let sx = sin(x);
+          let cy = cos(y); let sy = sin(y);
+          let cz = cos(z); let sz = sin(z);
+
+          let rotX = mat4x4f(
+            vec4f(1.0, 0.0, 0.0, 0.0),
+            vec4f(0.0, cx, sx, 0.0),
+            vec4f(0.0, -sx, cx, 0.0),
+            vec4f(0.0, 0.0, 0.0, 1.0)
+          );
+
+          let rotY = mat4x4f(
+            vec4f(cy, 0.0, -sy, 0.0),
+            vec4f(0.0, 1.0, 0.0, 0.0),
+            vec4f(sy, 0.0, cy, 0.0),
+            vec4f(0.0, 0.0, 0.0, 1.0)
+          );
+
+          let rotZ = mat4x4f(
+            vec4f(cz, sz, 0.0, 0.0),
+            vec4f(-sz, cz, 0.0, 0.0),
+            vec4f(0.0, 0.0, 1.0, 0.0),
+            vec4f(0.0, 0.0, 0.0, 1.0)
+          );
+
+          return rotZ * rotY * rotX;
+        }
+
+        // Perspective Projection 행렬 생성 헬퍼
+        fn getProjectionMatrix(fovRad: f32, aspect: f32, near: f32, far: f32) -> mat4x4f {
+          let f = 1.0 / tan(fovRad * 0.5);
+          let rangeInv = 1.0 / (near - far);
+
+          return mat4x4f(
+            vec4f(f / aspect, 0.0, 0.0, 0.0),
+            vec4f(0.0, f, 0.0, 0.0),
+            vec4f(0.0, 0.0, (near + far) * rangeInv, -1.0),
+            vec4f(0.0, 0.0, (2.0 * near * far) * rangeInv, 0.0)
+          );
+        }
+
+        // SDF 3D 큐브 함수
+        fn sdBox(p: vec3f, b: vec3f) -> f32 {
+          let q = abs(p) - b;
+          return length(max(q, vec3f(0.0))) + min(max(q.x, max(q.y, q.z)), 0.0);
+        }
+
+        @compute @workgroup_size(16, 16)
+        fn main(@builtin(global_invocation_id) id: vec3u) {
+          let size = textureDimensions(o_texture);
+          if (id.x >= size.x || id.y >= size.y) { return; }
+
+          let width = f32(size.x);
+          let height = f32(size.y);
+          let uv = (vec2f(f32(id.x), f32(id.y)) - vec2f(width, height) * 0.5) / height;
+
+          // 1. 행렬 연산 수행 (GLM의 CPU 연산 흐름을 GPU 셰이더 내부로 완전 모방)
+          let radX = u_params.rotX * 3.141592 / 180.0;
+          let radY = u_params.rotY * 3.141592 / 180.0;
+          let radZ = u_params.rotZ * 3.141592 / 180.0;
+
+          // Model Matrix: 스케일 및 회전 적용
+          let rotM = getRotationMatrix(radX, radY, radZ);
+          let modelM = rotM * mat4x4f(
+            vec4f(u_params.scale, 0.0, 0.0, 0.0),
+            vec4f(0.0, u_params.scale, 0.0, 0.0),
+            vec4f(0.0, 0.0, u_params.scale, 0.0),
+            vec4f(0.0, 0.0, 0.0, 1.0)
+          );
+
+          // View Matrix: 고정된 카메라 위치 (Z축 3.5 거리에서 바라봄)
+          let viewM = mat4x4f(
+            vec4f(1.0, 0.0, 0.0, 0.0),
+            vec4f(0.0, 1.0, 0.0, 0.0),
+            vec4f(0.0, 0.0, 1.0, 0.0),
+            vec4f(0.0, 0.0, -3.5, 1.0)
+          );
+
+          // Projection Matrix
+          let fovRad = u_params.fov * 3.141592 / 180.0;
+          let projM = getProjectionMatrix(fovRad, width / height, 0.1, 100.0);
+
+          // 첫 번째 스레드 블록의 대표 스레드가 CPU 디버그 피드백용 전역 버퍼에 행렬 데이터를 복사해둠 (GLM string_cast 재현용)
+          if (id.x == 0 && id.y == 0) {
+            o_debug.modelMatrix = modelM;
+            o_debug.viewMatrix = viewM;
+            o_debug.projMatrix = projM;
+          }
+
+          // 2. 3D 공간 Raymarching 시각화
+          let rayOrigin = vec3f(0.0, 0.0, 3.5);
+          let rayDir = normalize(vec3f(uv, -1.0 / tan(fovRad * 0.5)));
+
+          var t = 0.0;
+          var hit = false;
+          var norm = vec3f(0.0);
+          var steps = 0;
+
+          // 레이마칭 루프
+          for (var i = 0; i < 80; i = i + 1) {
+            let p = rayOrigin + rayDir * t;
+
+            // Model Transform 역행렬을 적용하여 큐브 로컬 좌표계로 변환 (역회전 및 역스케일)
+            // 직교행렬이므로 전치(Transpose) 처리하여 빠른 역회전 행렬 구함
+            let invRot = transpose(rotM);
+            let localP = (invRot * vec4f(p, 1.0)).xyz / u_params.scale;
+
+            // 큐브 SDF 계산
+            let d = sdBox(localP, vec3f(0.6)) * u_params.scale;
+
+            if (d < 0.001) {
+              hit = true;
+              steps = i;
+              
+              // 법선 벡터(Normal) 계산
+              let eps = 0.002;
+              let dx = sdBox((invRot * vec4f(p + vec3f(eps, 0.0, 0.0), 1.0)).xyz / u_params.scale, vec3f(0.6));
+              let dy = sdBox((invRot * vec4f(p + vec3f(0.0, eps, 0.0), 1.0)).xyz / u_params.scale, vec3f(0.6));
+              let dz = sdBox((invRot * vec4f(p + vec3f(0.0, 0.0, eps), 1.0)).xyz / u_params.scale, vec3f(0.6));
+              norm = normalize((rotM * vec4f(dx - d, dy - d, dz - d, 0.0)).xyz);
+              break;
+            }
+            t = t + d;
+            if (t > 15.0) { break; }
+          }
+
+          // 배경 디자인: 공학적 그리드 스타일 패턴
+          var pixelColor = vec3f(0.08, 0.08, 0.15);
+          let grid = step(0.98, fract(uv.x * 10.0)) + step(0.98, fract(uv.y * 10.0));
+          pixelColor = mix(pixelColor, vec3f(0.12, 0.12, 0.22), grid);
+
+          if (hit) {
+            // 조명 셰이딩 (Lambertian Diffuse + Ambient Occlusion 근사)
+            let lightDir = normalize(vec3f(1.5, 2.5, 3.0));
+            let diffuse = max(dot(norm, lightDir), 0.0);
+            
+            // 박스 표면의 미세한 와이어프레임 이펙트 (구조화 디버그용)
+            let localP = (transpose(rotM) * vec4f(rayOrigin + rayDir * t, 1.0)).xyz / u_params.scale;
+            let wire = step(0.57, abs(localP.x)) * step(0.57, abs(localP.y)) +
+                       step(0.57, abs(localP.y)) * step(0.57, abs(localP.z)) +
+                       step(0.57, abs(localP.z)) * step(0.57, abs(localP.x));
+
+            let baseColor = mix(vec3f(0.2, 0.5, 0.8), vec3f(0.9, 0.6, 0.1), wire * 0.8);
+            let ambient = 0.15 * (1.0 - f32(steps) / 80.0);
+            
+            pixelColor = baseColor * (diffuse + ambient) + vec3f(0.1, 0.2, 0.3) * (1.0 - diffuse);
+          }
+
+          textureStore(o_texture, id.xy, vec4f(pixelColor, 1.0));
+        }
+      `;
+
+      const computeModule = device.createShaderModule({ code: computeShaderSource });
+
+      // Compute 파이프라인 레이아웃 설정
+      const computeBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+          { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' } },
+          { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } }
+        ]
+      });
+
+      computePipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [computeBindGroupLayout] }),
+        compute: { module: computeModule, entryPoint: 'main' }
+      });
+
+      computeBindGroup = device.createBindGroup({
+        layout: computeBindGroupLayout,
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: storageTexture.createView() },
+          { binding: 2, resource: { buffer: debugBuffer } }
+        ]
+      });
+
+      // 6. Render Pipeline 작성 (Storage Texture를 캔버스에 Fullscreen Blit 함)
+      const renderShaderSource = `
+        struct VertexOutput {
+          @builtin(position) position: vec4f,
+          @location(0) uv: vec2f,
+        }
+
+        @vertex
+        fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+          var pos = array<vec2f, 6>(
+            vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+            vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+          );
+          var uv = array<vec2f, 6>(
+            vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+            vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+          );
+
+          var out: VertexOutput;
+          out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+          out.uv = uv[vertexIndex];
+          return out;
+        }
+
+        @group(0) @binding(0) var t_input: texture_2d<f32>;
+        @group(0) @binding(1) var s_sampler: sampler;
+
+        @fragment
+        fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSample(t_input, s_sampler, uv);
+        }
+      `;
+
+      const renderModule = device.createShaderModule({ code: renderShaderSource });
+      const renderBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+          { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} }
+        ]
+      });
+
+      renderPipeline = device.createRenderPipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [renderBindGroupLayout] }),
+        vertex: { module: renderModule, entryPoint: 'vs_main' },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+        }
+      });
+
+      const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+
+      renderBindGroup = device.createBindGroup({
+        layout: renderBindGroupLayout,
+        entries: [
+          { binding: 0, resource: storageTexture.createView() },
+          { binding: 1, resource: sampler }
+        ]
+      });
+    }
+
+    // Uniform 버퍼에 값 기록
+    function updateUniforms() {
+      const data = new Float32Array([
+        params.rotX,
+        params.rotY,
+        params.rotZ,
+        params.scale,
+        params.fov,
+        params.time
+      ]);
+      device.queue.writeBuffer(uniformBuffer, 0, data);
+    }
+
+    // GPU 연산 완료 후 Matrix 데이터를 가져와 GLM string_cast 형식으로 출력
+    let isReadingDebug = false;
+    async function readAndDisplayDebugMatrices() {
+      if (isReadingDebug) return;
+      isReadingDebug = true;
+
+      const commandEncoder = device.createCommandEncoder();
+      commandEncoder.copyBufferToBuffer(debugBuffer, 0, stagingBuffer, 0, 192);
+      device.queue.submit([commandEncoder.finish()]);
+
+      // 비동기 GPU 메모리 Map 수행
+      await stagingBuffer.mapAsync(GPUMapMode.READ);
+      const arrayBuffer = stagingBuffer.getMappedRange();
+      const floatData = new Float32Array(arrayBuffer.slice(0));
+      stagingBuffer.unmap();
+
+      isReadingDebug = false;
+
+      // GLM string_cast(matrix) 및 string_cast(vector) 포맷 구현
+      const formatMatrix = (offset) => {
+        let str = "  [\n";
+        for (let row = 0; row < 4; row++) {
+          str += "    [";
+          for (let col = 0; col < 4; col++) {
+            const val = floatData[offset + row * 4 + col];
+            // 부호 포함 정렬 출력
+            const sign = val >= 0 ? " " : "";
+            str += `${sign}${val.toFixed(4)}`;
+            if (col < 3) str += ", ";
+          }
+          str += "]";
+          if (row < 3) str += ",\n";
+        }
+        str += "\n  ]";
+        return str;
+      };
+
+      const modelStr = formatMatrix(0);
+      const viewStr = formatMatrix(16);
+      const projStr = formatMatrix(32);
+
+      const outputText = 
+`// GLM Experimental string_cast Output
+// Enabled via GLM_ENABLE_EXPERIMENTAL definition
+
+glm::mat4 modelMatrix = glm::mat4(
+${modelStr}
+);
+
+glm::mat4 viewMatrix = glm::mat4(
+${viewStr}
+);
+
+glm::mat4 projectionMatrix = glm::mat4(
+${projStr}
+);
+
+// Scale Modifier: ${params.scale.toFixed(2)}
+// Raymarching Field of View: ${params.fov.toFixed(1)}°
+`;
+
+      debugOutput.innerText = outputText;
+    }
+
+    // 메인 그래픽스 루프 및 패스 스케줄링
+    function draw() {
+      updateUniforms();
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // Step 1: Compute Pipeline으로 3D Raymarching 렌더링 및 행렬 연산 처리
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      computePass.dispatchWorkgroups(Math.ceil(canvas.width / 16), Math.ceil(canvas.height / 16));
+      computePass.end();
+
+      // Step 2: Render Pipeline으로 Storage Texture 내용을 백버퍼에 Blit
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6);
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+
+      // 매 프레임 병목을 줄이기 위해 한 프레임 지연되어도 실시간 비동기로 행렬 Readback 처리
+      readAndDisplayDebugMatrices();
+    }
+
+    // 중복 요청 방지 렌더 스케줄러 (scheduleRender 패턴)
+    function scheduleRender() {
+      if (renderRequested) return;
+      renderRequested = true;
+      requestAnimationFrame(() => {
+        draw();
+        renderRequested = false;
+      });
+    }
+
+    // 이벤트 리스너 바인딩
+    function bindUIEvents() {
+      const updateInputs = () => {
+        params.rotX = parseFloat(rotXSlider.value);
+        params.rotY = parseFloat(rotYSlider.value);
+        params.rotZ = parseFloat(rotZSlider.value);
+        params.scale = parseFloat(scaleSlider.value) / 10.0;
+        params.fov = parseFloat(fovSlider.value);
+
+        rotXVal.innerText = `${params.rotX}°`;
+        rotYVal.innerText = `${params.rotY}°`;
+        rotZVal.innerText = `${params.rotZ}°`;
+        scaleVal.innerText = params.scale.toFixed(1);
+        fovVal.innerText = `${params.fov}°`;
+
+        scheduleRender();
+      };
+
+      rotXSlider.addEventListener('input', updateInputs);
+      rotYSlider.addEventListener('input', updateInputs);
+      rotZSlider.addEventListener('input', updateInputs);
+      scaleSlider.addEventListener('input', updateInputs);
+      fovSlider.addEventListener('input', updateInputs);
+    }
+
+    // 프로그램 시작점
+    window.addEventListener('DOMContentLoaded', async () => {
+      const ok = await initWebGPU();
+      if (ok) {
+        await setupPipelines();
+        bindUIEvents();
+        // 초기 프레임 그리기
+        scheduleRender();
+      }
+    });
+
+  </script>
+</body>
+</html>
