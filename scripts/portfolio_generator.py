@@ -38,7 +38,11 @@ def mark_commit_processed(commit_hash):
 # ── Git diff extraction ────────────────────────────────────────────────────────
 
 def get_commit_diff(repo_path, commit_hash=None):
-    """특정 커밋(또는 HEAD)의 diff를 반환합니다. (hexsha, message, diff_text)"""
+    """특정 커밋(또는 HEAD)의 diff와 변경 파일 전체 내용을 반환합니다.
+    Returns: (hexsha, message, diff_text, file_contents)
+      - diff_text: 변경 부분(+/- 줄)
+      - file_contents: {파일경로: 커밋 시점 전체 내용} — 주석·코드 구조 파악용
+    """
     repo = Repo(repo_path)
     commit = repo.commit(commit_hash) if commit_hash else repo.head.commit
 
@@ -48,24 +52,58 @@ def get_commit_diff(repo_path, commit_hash=None):
         diff = commit.parents[0].diff(commit, create_patch=True)
 
     diff_text = ""
+    file_contents = {}
     for d in diff:
+        path = d.b_path or d.a_path
         try:
-            if d.a_path.endswith(SUPPORTED_EXTS):
-                diff_text += f"--- File: {d.a_path} ---\n"
+            if path.endswith(SUPPORTED_EXTS):
+                # diff (변경 부분)
+                diff_text += f"--- File: {path} ---\n"
                 diff_text += str(d.diff.decode('utf-8', errors='ignore')) + "\n\n"
+                # 커밋 시점 전체 파일 내용
+                try:
+                    blob = commit.tree[path]
+                    file_contents[path] = blob.data_stream.read().decode('utf-8', errors='ignore')
+                except Exception:
+                    pass
         except Exception as e:
-            print(f"  diff 건너뜀 ({d.a_path}): {e}")
+            print(f"  diff 건너뜀 ({path}): {e}")
 
-    return commit.hexsha, commit.message.strip(), diff_text
+    return commit.hexsha, commit.message.strip(), diff_text, file_contents
 
 
 # Keep backward-compat alias
 def get_latest_commit_diff(repo_path):
-    _, msg, diff = get_commit_diff(repo_path)
+    _, msg, diff, _ = get_commit_diff(repo_path)
     return msg, diff
 
 
 # ── Gemini helpers ─────────────────────────────────────────────────────────────
+
+def _format_file_contents(file_contents, max_chars_per_file=4000, max_files=4):
+    """file_contents dict를 프롬프트용 텍스트로 포맷합니다.
+    핵심 파일 우선 (HLSL 셰이더 > C++ > 헤더 순), 파일당 최대 max_chars_per_file 글자."""
+    if not file_contents:
+        return "(파일 내용 없음)"
+
+    def _priority(path):
+        if path.endswith(('.hlsl', '.glsl', '.vert', '.frag')):
+            return 0
+        if path.endswith('.cpp'):
+            return 1
+        if path.endswith('.h'):
+            return 2
+        return 3
+
+    sorted_files = sorted(file_contents.items(), key=lambda kv: _priority(kv[0]))[:max_files]
+    parts = []
+    for path, content in sorted_files:
+        truncated = content[:max_chars_per_file]
+        if len(content) > max_chars_per_file:
+            truncated += f"\n... (이하 {len(content) - max_chars_per_file}자 생략)"
+        parts.append(f"=== {path} ===\n{truncated}")
+    return "\n\n".join(parts)
+
 
 def _call_gemini(prompt):
     api_key = os.getenv("GEMINI_API_KEY")
@@ -88,30 +126,38 @@ def _make_slug(text):
 
 # ── Content generation ─────────────────────────────────────────────────────────
 
-def generate_portfolio_post(commit_msg, diff_text):
+def generate_portfolio_post(commit_msg, diff_text, file_contents=None):
+    file_section = _format_file_contents(file_contents) if file_contents else "(파일 내용 없음)"
     prompt = f"""당신은 컴퓨터 그래픽스 전문가입니다.
 아래는 학습자가 DirectX 11 / C++ 그래픽스 스터디 레포지토리에 커밋한 내용입니다.
 
 커밋 메시지: {commit_msg}
 
-코드 변경사항(diff):
-{diff_text[:6000] if diff_text.strip() else "(코드 변경 없음 — 커밋 메시지 기반으로 작성)"}
+────── 변경된 파일 전체 코드 (주석 포함) ──────
+{file_section}
+
+────── 코드 변경사항(diff) ──────
+{diff_text[:4000] if diff_text.strip() else "(코드 변경 없음 — 위 파일 내용 기반으로 작성)"}
 
 작성 규칙:
 1. 한국어로 작성하세요.
 2. Markdown 형식으로, 첫 줄은 반드시 # 제목 형식의 제목으로 시작하세요.
-3. 학습자가 '직접 구현하며 이해한 개념'을 중심으로 서술하세요.
-4. 핵심 수식은 $$ ... $$ LaTeX 블록으로 표현하세요.
-5. 강의 소스코드를 그대로 붙여넣지 말고, 핵심 알고리즘을 의사코드(pseudo-code) 또는 추상화된 형태로 설명하세요.
-6. 마지막에 **WebGPU 인터랙티브 데모** 섹션을 추가하세요 — 이 내용을 브라우저 WebGPU Compute Shader로 시각화하면 어떤 모습인지 간략히 설명하세요.
-7. ```markdown 블록으로 감싸지 말고 바로 Markdown을 출력하세요.
+3. 위 전체 코드와 주석을 꼼꼼히 읽고, **이 커밋의 핵심 개념이 무엇인지** 파악하세요.
+   - 주석에서 설명하는 알고리즘의 의도와 수식을 중심으로 서술하세요.
+   - 단순히 diff에서 추가된 줄을 나열하지 말고, 전체 구조에서 이 변경이 갖는 의미를 설명하세요.
+4. 학습자가 '직접 구현하며 이해한 개념'을 중심으로 서술하세요.
+5. 핵심 수식은 $$ ... $$ LaTeX 블록으로 표현하세요.
+6. 강의 소스코드를 그대로 붙여넣지 말고, 핵심 알고리즘을 의사코드(pseudo-code) 또는 추상화된 형태로 설명하세요.
+7. 마지막에 **WebGPU 인터랙티브 데모** 섹션을 추가하세요 — 이 내용을 브라우저 WebGPU Compute Shader로 시각화하면 어떤 모습인지 간략히 설명하세요.
+8. ```markdown 블록으로 감싸지 말고 바로 Markdown을 출력하세요.
 """
     print("  포스트 생성 중 (Gemini)...")
     return _call_gemini(prompt)
 
 
-def generate_webgpu_demo(commit_msg, diff_text, topic_hint):
+def generate_webgpu_demo(commit_msg, diff_text, topic_hint, file_contents=None):
     """WebGPU Compute Shader 기반 self-contained HTML 데모를 생성합니다."""
+    file_section = _format_file_contents(file_contents, max_chars_per_file=3000) if file_contents else "(파일 내용 없음)"
     prompt = f"""당신은 WebGPU/WGSL 전문가이며 DirectX 11 파이프라인을 WebGPU로 정확히 재현합니다.
 
 아래 DirectX 11 / C++ 컴퓨터 그래픽스 주제를 WebGPU Compute Shader 기반으로 구현하세요.
@@ -119,8 +165,17 @@ def generate_webgpu_demo(commit_msg, diff_text, topic_hint):
 주제: {topic_hint}
 커밋 메시지: {commit_msg}
 
-코드 변경사항 (요약):
-{diff_text[:3000] if diff_text.strip() else "(커밋 메시지 기반으로 구현)"}
+────── 변경된 파일 전체 코드 (주석 포함) ──────
+{file_section}
+
+────── 코드 변경사항(diff) ──────
+{diff_text[:2000] if diff_text.strip() else "(커밋 메시지 기반으로 구현)"}
+
+## 핵심 파악 지침 (데모 구현 전 반드시 확인):
+- 위 전체 코드와 주석을 꼼꼼히 읽고, **이 커밋에서 가장 중요한 알고리즘/수식이 무엇인지** 파악하세요.
+- HLSL 셰이더 코드가 있으면 해당 로직을 WGSL Compute Shader로 정확히 옮기세요.
+- C++ 코드의 CPU 픽셀 루프가 있으면 GPU Compute Shader로 재현하세요.
+- 주석에서 설명하는 수학적 개념(정규화, 감쇄, 컨볼루션 등)을 데모의 핵심 인터랙션으로 만드세요.
 
 ## DX11 → WebGPU 매핑 (반드시 이 패턴 사용)
 
@@ -477,11 +532,13 @@ def process_commit(commit_hash=None, skip_if_processed=True):
     label = commit_hash[:7] if commit_hash else 'HEAD'
     print(f"커밋 처리 중: {label}")
 
-    hexsha, commit_msg, diff_text = get_commit_diff(STUDY_REPO_PATH, commit_hash)
+    hexsha, commit_msg, diff_text, file_contents = get_commit_diff(STUDY_REPO_PATH, commit_hash)
     if not diff_text.strip():
         print("  주의: 지원되는 파일 형식의 코드 변경이 없습니다.")
+    else:
+        print(f"  파일 내용 로드: {list(file_contents.keys())}")
 
-    md_content = generate_portfolio_post(commit_msg, diff_text)
+    md_content = generate_portfolio_post(commit_msg, diff_text, file_contents)
 
     title = commit_msg.split('\n')[0]
     first_line = md_content.split('\n')[0].strip()
@@ -489,7 +546,7 @@ def process_commit(commit_hash=None, skip_if_processed=True):
         title = first_line[2:].strip()
 
     demo_slug = _make_slug(title)[:40]
-    js_html = generate_webgpu_demo(commit_msg, diff_text, commit_msg)
+    js_html = generate_webgpu_demo(commit_msg, diff_text, commit_msg, file_contents)
 
     save_and_commit(
         title, md_content,
