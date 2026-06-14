@@ -230,9 +230,9 @@
   </div>
 
   <script type="module">
-    // 이미지 사이즈 정의
-    const IMAGE_WIDTH = 512;
-    const IMAGE_HEIGHT = 512;
+    // 이미지 사이즈 (자연 해상도로 동적 결정)
+    let IMAGE_WIDTH = 512;
+    let IMAGE_HEIGHT = 512;
 
     // UI 요소 취득
     const canvas = document.getElementById('webgpu-canvas');
@@ -250,20 +250,22 @@
     let paramsBuffer;
     let renderRequested = false;
 
-    // 이미지 로드 헬퍼 함수 (절대 경로 준수 및 RENDER_ATTACHMENT 우회 크래시 방지)
-    async function loadImage(url, w, h) {
+    // 이미지 로드 헬퍼 함수 — 자연 해상도 기반, maxW/maxH 초과 시 비율 유지 축소
+    async function loadImageNaturalSize(url, maxW, maxH) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));
+        img.onerror = () => reject(new Error('이미지 로드 실패: ' + url));
         img.src = url;
       });
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      return ctx.getImageData(0, 0, w, h);
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c;
     }
 
     // WebGPU 초기화 흐름
@@ -285,6 +287,24 @@
         return;
       }
 
+      // 1. 소스 이미지 로드 (colosseum.jpg) — 자연 해상도 기준, 최대 2048×2048
+      let srcCanvas;
+      try {
+        srcCanvas = await loadImageNaturalSize('../../images/colosseum.jpg', 2048, 2048);
+      } catch (err) {
+        console.warn("로컬 상대경로 로드 실패, 대체 이미지 생성 프로세스를 진행합니다.", err);
+        const fallbackCanvas = document.createElement('canvas');
+        fallbackCanvas.width = IMAGE_WIDTH; fallbackCanvas.height = IMAGE_HEIGHT;
+        const fctx = fallbackCanvas.getContext('2d');
+        fctx.putImageData(createProceduralImage(IMAGE_WIDTH, IMAGE_HEIGHT), 0, 0);
+        srcCanvas = fallbackCanvas;
+      }
+
+      // 자연 해상도로 크기 변수 갱신
+      IMAGE_WIDTH = srcCanvas.width;
+      IMAGE_HEIGHT = srcCanvas.height;
+      const imgData = srcCanvas.getContext('2d').getImageData(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+
       // 캔버스 크기 및 컨텍스트 성질 결정
       canvas.width = IMAGE_WIDTH;
       canvas.height = IMAGE_HEIGHT;
@@ -295,15 +315,6 @@
         format: presentationFormat,
         alphaMode: 'opaque'
       });
-
-      // 1. 소스 이미지 로드 (colosseum.jpg)
-      let imgData;
-      try {
-        imgData = await loadImage('../../images/colosseum.jpg', IMAGE_WIDTH, IMAGE_HEIGHT);
-      } catch (err) {
-        console.warn("로컬 상대경로 로드 실패, 대체 이미지 생성 프로세스를 진행합니다.", err);
-        imgData = createProceduralImage(IMAGE_WIDTH, IMAGE_HEIGHT);
-      }
 
       // 2. Texture 생성 및 데이터 탑재
       inputTexture = device.createTexture({
@@ -319,20 +330,20 @@
         { width: IMAGE_WIDTH, height: IMAGE_HEIGHT }
       );
 
-      // 연산 결과를 기록할 Storage Texture 생성 (샘플러 바인딩도 가능케 함)
+      // 3. 연산 결과를 기록할 Storage Texture 생성 (샘플러 바인딩도 가능케 함)
       resultTexture = device.createTexture({
         size: [IMAGE_WIDTH, IMAGE_HEIGHT, 1],
         format: 'rgba8unorm',
         usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
       });
 
-      // 3. Uniform Buffer 설정
+      // 4. Uniform Buffer 설정
       paramsBuffer = device.createBuffer({
         size: 16, // threshold, weight, numRepeat, padding
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
       });
 
-      // 4. Compute WGSL Shader 및 파이프라인 구성
+      // 5. Compute WGSL Shader 및 파이프라인 구성
       const computeShaderSource = `
         struct Params {
           threshold: f32,
@@ -389,7 +400,7 @@
         ]
       });
 
-      // 5. Render WGSL Shader (FullScreen Quad) 구성
+      // 6. Render WGSL Shader (FullScreen Quad) 구성
       const renderShaderSource = `
         struct VertexOutput {
           @builtin(position) position: vec4f,
