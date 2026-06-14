@@ -33,6 +33,15 @@
 ---
 
 
+## [분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰](2026-06-14-분리형-가우시안-블러separable-gaussian-blur를-이용한-bloom-효과-구현-리뷰.md)
+
+
+📅 2026-06-14
+
+
+---
+
+
 ## [[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현](2026-06-14-리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추출-구현.md)
 
 

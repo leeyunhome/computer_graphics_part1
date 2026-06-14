@@ -83,11 +83,6 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작</strong><br><br>
-<a href="demos/이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>이미지 밝기 조절 픽셀 값 직접 조작하기</strong><br><br>
 <a href="demos/이미지-밝기-조절-픽셀-값-직접-조작하기/">데모 보기 →</a>
 </div>
@@ -133,16 +128,6 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현</strong><br><br>
-<a href="demos/코드-리뷰-separable-convolution을-활용한-box-blu/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>[코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리</strong><br><br>
-<a href="demos/코드-리뷰-separable-5-tap-box-blur-가로-패스-구현-/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해</strong><br><br>
 <a href="demos/box-blur-5x5-수평-패스-구현-및-분리형-컨볼루션-이해/">데모 보기 →</a>
 </div>
@@ -153,33 +138,8 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>[코드 리뷰] 이미지 밝기(Brightness) 조절의 기초와 픽셀 연산</strong><br><br>
-<a href="demos/코드-리뷰-이미지-밝기brightness-조절의-기초와-픽셀-연산/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>[DirectX 11] 3D 공간 변환과 렌더링 파이프라인의 핵심 구현</strong><br><br>
-<a href="demos/directx-11-3d-공간-변환과-렌더링-파이프라인의-핵심-구현/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>DirectX 11 포스트 프로세싱: 블룸(Bloom) 필터 구현과 렌더 타겟 초기화 분석</strong><br><br>
-<a href="demos/directx-11-포스트-프로세싱-블룸bloom-필터-구현과-렌더-타겟/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>선형 톤 매핑과 클램핑을 통한 이미지 밝기 조절 및 오버플로우 방지</strong><br><br>
-<a href="demos/선형-톤-매핑과-클램핑을-통한-이미지-밝기-조절-및-오버플로우-방지/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)</strong><br><br>
 <a href="demos/선형-톤-매핑과-오버플로우-방지를-위한-픽셀-클램핑clamping/">데모 보기 →</a>
-</div>
-
-<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현</strong><br><br>
-<a href="demos/실시간-픽셀-감쇄pixel-decay를-통한-점진적-암전-효과-구현/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
@@ -193,13 +153,18 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현</strong><br><br>
-<a href="demos/코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-deca/">데모 보기 →</a>
+<strong>[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현</strong><br><br>
+<a href="demos/코드-리뷰-separable-convolution을-활용한-box-blu/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안</strong><br><br>
-<a href="demos/피드백-separable-5-tap-gaussian-blur-구현-분석-/">데모 보기 →</a>
+<strong>선형 톤 매핑과 클램핑을 통한 이미지 밝기 조절 및 오버플로우 방지</strong><br><br>
+<a href="demos/선형-톤-매핑과-클램핑을-통한-이미지-밝기-조절-및-오버플로우-방지/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[DirectX 11] 3D 공간 변환과 렌더링 파이프라인의 핵심 구현</strong><br><br>
+<a href="demos/directx-11-3d-공간-변환과-렌더링-파이프라인의-핵심-구현/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
@@ -208,8 +173,48 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>DirectX 11 포스트 프로세싱: 블룸(Bloom) 필터 구현과 렌더 타겟 초기화 분석</strong><br><br>
+<a href="demos/directx-11-포스트-프로세싱-블룸bloom-필터-구현과-렌더-타겟/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리</strong><br><br>
+<a href="demos/코드-리뷰-separable-5-tap-box-blur-가로-패스-구현-/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현</strong><br><br>
+<a href="demos/코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-deca/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] 이미지 밝기(Brightness) 조절의 기초와 픽셀 연산</strong><br><br>
+<a href="demos/코드-리뷰-이미지-밝기brightness-조절의-기초와-픽셀-연산/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현</strong><br><br>
+<a href="demos/실시간-픽셀-감쇄pixel-decay를-통한-점진적-암전-효과-구현/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작</strong><br><br>
+<a href="demos/이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안</strong><br><br>
+<a href="demos/피드백-separable-5-tap-gaussian-blur-구현-분석-/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현</strong><br><br>
 <a href="demos/리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰</strong><br><br>
+<a href="demos/분리형-가우시안-블러separable-gaussian-blur를-이용한-/">데모 보기 →</a>
 </div>
 
 </div>
@@ -223,7 +228,7 @@ graph LR
 - [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](posts/2026-06-14-피드백-separable-5-tap-gaussian-blur-구현-분석-및-최적화-제안.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](posts/2026-06-14-코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-decay와-이미지-프로세싱-파이프라인-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화](posts/2026-06-14-코드-리뷰-separable-5-tap-gaussian-blur-구현-분석-및-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
+- [분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰](posts/2026-06-14-분리형-가우시안-블러separable-gaussian-blur를-이용한-bloom-효과-구현-리뷰.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현](posts/2026-06-14-리뷰-블룸bloom-효과의-첫-단계-휘도luminance-기반-임계값-추출-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
-- [[리뷰 및 학습 가이드] Separable 5-Tap Box Blur 구현을 통한 2D 컨볼루션 최적화](posts/2026-06-14-리뷰-및-학습-가이드-separable-5-tap-box-blur-구현을-통한-2d-컨볼루션-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
 
 [모든 포스트 보기 →](posts/index.md)
