@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>DirectX 11 — Raytracing Step 2: Circle in Screen Space</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: row;
+            background-color: #0f0f1a;
+            border: 2px solid #3f3f5f;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            max-width: 95vw;
+        }
+
+        /* DirectX 11 어플리케이션 프레임 스타일 */
+        #canvas-container {
+            position: relative;
+            background-color: #000;
+        }
+
+        canvas {
+            display: block;
+            width: 800px;
+            height: 600px;
+            cursor: crosshair;
+        }
+
+        /* ImGui 스타일 사이드 컨트롤러 */
+        #imgui-panel {
+            width: 320px;
+            background-color: #1c1c28;
+            border-left: 2px solid #3f3f5f;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .imgui-header {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00ffcc;
+            border-bottom: 1px solid #3f3f5f;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .imgui-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background-color: #13131f;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #2d2d3f;
+        }
+
+        .imgui-section-title {
+            font-weight: bold;
+            color: #a0a0c0;
+            margin-bottom: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            color: #b0b0cf;
+            font-size: 12px;
+        }
+
+        .control-group label span.val {
+            color: #00ffcc;
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2d2d3f;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffcc;
+            cursor: pointer;
+            border: 2px solid #1c1c28;
+            transition: background 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #00ff99;
+        }
+
+        .color-picker-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #3f3f5f;
+            border-radius: 4px;
+        }
+
+        .status-bar {
+            grid-column: span 2;
+            background-color: #0f0f1a;
+            padding: 8px 16px;
+            border-top: 1px solid #2d2d3f;
+            font-size: 12px;
+            color: #80809f;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 0 0 6px 6px;
+        }
+
+        #error-message {
+            color: #ff5555;
+            background-color: rgba(255, 85, 85, 0.1);
+            border: 1px solid #ff5555;
+            padding: 15px;
+            border-radius: 6px;
+            max-width: 600px;
+            text-align: center;
+            display: none;
+        }
+
+        .dx-titlebar {
+            background: linear-gradient(90deg, #1c1c28 0%, #0f0f1a 100%);
+            border-bottom: 2px solid #3f3f5f;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #a0a0c0;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .dx-titlebar-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dx-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dx-close { background-color: #ff5f56; }
+        .dx-min { background-color: #ffbd2e; }
+        .dx-max { background-color: #27c93f; }
+
+        .hint {
+            font-size: 11px;
+            color: #70708f;
+            line-height: 1.4;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-message"></div>
+
+    <div id="app-container">
+        <div style="display: flex; flex-direction: column; flex-grow: 1;">
+            <!-- DX11 Titlebar 에뮬레이션 -->
+            <div class="dx-titlebar">
+                <span>DirectX 11 — Raytracing Step 2: Circle in Screen Space (Procedural)</span>
+                <div class="dx-titlebar-buttons">
+                    <span class="dx-btn dx-min"></span>
+                    <span class="dx-btn dx-max"></span>
+                    <span class="dx-btn dx-close"></span>
+                </div>
+            </div>
+            
+            <div id="canvas-container">
+                <canvas id="webgpu-canvas" width="800" height="600"></canvas>
+            </div>
+
+            <div class="status-bar">
+                <span id="gpu-info">GPU: Loading...</span>
+                <span id="status-text">FPS: 60 | Status: Active</span>
+            </div>
+        </div>
+
+        <!-- ImGui Control Panel -->
+        <div id="imgui-panel">
+            <div class="imgui-header">
+                <span>Inspector</span>
+                <span style="color:#80809f; font-size:11px;">v1.0.0</span>
+            </div>
+
+            <!-- Circle Parameters -->
+            <div class="imgui-section">
+                <div class="imgui-section-title">Circle Configuration</div>
+                
+                <div class="control-group">
+                    <label>반지름 (Radius) <span id="val-radius" class="val">150</span></label>
+                    <input type="range" id="param-radius" min="10" max="400" value="150" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>중심 X (Center X) <span id="val-centerX" class="val">400</span></label>
+                    <input type="range" id="param-centerX" min="0" max="800" value="400" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>중심 Y (Center Y) <span id="val-centerY" class="val">300</span></label>
+                    <input type="range" id="param-centerY" min="0" max="600" value="300" step="1">
+                </div>
+            </div>
+
+            <!-- Color Parameters -->
+            <div class="imgui-section">
+                <div class="imgui-section-title">Styling & Colors</div>
+                
+                <div class="control-group">
+                    <label>원 색상 (Circle Color)</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="param-circle-color" value="#ff007f">
+                        <span id="val-circle-color-hex" style="font-family: monospace; font-size: 12px; color:#ff007f;">#ff007f</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>배경 색상 (Background Color)</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="param-bg-color" value="#050510">
+                        <span id="val-bg-color-hex" style="font-family: monospace; font-size: 12px; color:#a0a0c0;">#050510</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Procedural Info -->
+            <div class="imgui-section">
+                <div class="imgui-section-title">Math & Equations</div>
+                <div style="font-size:12px; color:#a0a0cf; line-height: 1.5; font-family: monospace;">
+                    // Distance formula<br>
+                    dx = x - center.x;<br>
+                    dy = y - center.y;<br>
+                    dist2 = dx*dx + dy*dy;<br>
+                    <br>
+                    // IsInside Check<br>
+                    if (dist2 &lt;= R*R) {<br>
+                    &nbsp;&nbsp;pixel = CircleColor;<br>
+                    } else {<br>
+                    &nbsp;&nbsp;pixel = BgColor;<br>
+                    }
+                </div>
+            </div>
+
+            <div class="hint">
+                💡 <b>화면을 클릭하거나 드래그</b>하여 원의 중심을 직접 이동할 수 있습니다.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WGSL Shaders
+        const computeShaderSource = `
+            struct Params {
+                center: vec2f,
+                radius: f32,
+                _pad: f32, // Struct alignment padding
+                color: vec4f,
+                bgColor: vec4f,
+            }
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var outTexture: texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(16, 16)
+            fn main(@builtin(global_invocation_id) global_id: vec3u) {
+                let size = textureDimensions(outTexture);
+                if (global_id.x >= size.x || global_id.y >= size.y) {
+                    return;
+                }
+
+                let pixel_coord = vec2f(global_id.xy);
+                
+                // IsInside check using the point-in-circle equation
+                let d2 = distanceSquared(pixel_coord, params.center);
+                
+                var final_color = params.bgColor;
+                if (d2 <= params.radius * params.radius) {
+                    final_color = params.color;
+                }
+
+                textureStore(outTexture, global_id.xy, final_color);
+            }
+
+            fn distanceSquared(a: vec2f, b: vec2f) -> f32 {
+                let diff = a - b;
+                return dot(diff, diff);
+            }
+        `;
+
+        const renderShaderSource = `
+            @group(0) @binding(0) var img: texture_2d<f32>;
+
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+                var out: VertexOutput;
+                out.position = vec4f(pos[vertex_index], 0.0, 1.0);
+                out.uv = uv[vertex_index];
+                return out;
+            }
+
+            @fragment
+            fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+                let size = textureDimensions(img);
+                let coords = vec2i(in.uv * vec2f(size));
+                return textureLoad(img, coords, 0);
+            }
+        `;
+
+        // Hex to RGBA Vec4
+        function hexToRgbaVec4(hex) {
+            const r = parseInt(hex.slice(1, 3), 16) / 255;
+            const g = parseInt(hex.slice(3, 5), 16) / 255;
+            const b = parseInt(hex.slice(5, 7), 16) / 255;
+            return [r, g, b, 1.0];
+        }
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                showError("WebGPU를 지원하지 않는 브라우저입니다. Chrome, Edge 또는 Safari 최신 버전을 사용하세요.");
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                showError("WebGPU 어댑터를 찾을 수 없습니다.");
+                return;
+            }
+
+            const device = await adapter.requestDevice();
+            
+            // 업데이트 GPU 정보 표시
+            document.getElementById("gpu-info").innerText = `GPU: ${adapter.info.architecture || "WebGPU Device"}`;
+
+            const canvas = document.getElementById("webgpu-canvas");
+            const context = canvas.getContext("webgpu");
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: presentationFormat,
+                alphaMode: "premultiplied"
+            });
+
+            // 1. Storage Texture 생성 (UAV 대용)
+            const storageTexture = device.createTexture({
+                size: [width, height, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            // 2. Uniform Buffer 생성 및 세팅
+            // struct Params { center: vec2f, radius: f32, _pad: f32, color: vec4f, bgColor: vec4f } -> 48 Bytes
+            const uniformBufferSize = 48;
+            const uniformBuffer = device.createBuffer({
+                size: uniformBufferSize,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // 3. Compute Pipeline 빌드
+            const computeModule = device.createShaderModule({ code: computeShaderSource });
+            const computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeModule,
+                    entryPoint: 'main',
+                }
+            });
+
+            // Bind Group for Compute
+            const computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: storageTexture.createView() }
+                ]
+            });
+
+            // 4. Render Pipeline 빌드 (Storage Texture에서 직접 Read하여 그리기)
+            const renderModule = device.createShaderModule({ code: renderShaderSource });
+            const renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: presentationFormat }]
+                },
+                primitive: {
+                    topology: 'triangle-list'
+                }
+            });
+
+            // Bind Group for Render
+            const renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: storageTexture.createView() }
+                ]
+            });
+
+            // --- UI 컨트롤 인터랙션 ---
+            const rSlider = document.getElementById("param-radius");
+            const cxSlider = document.getElementById("param-centerX");
+            const cySlider = document.getElementById("param-centerY");
+            const circleColorPicker = document.getElementById("param-circle-color");
+            const bgColorPicker = document.getElementById("param-bg-color");
+
+            const valR = document.getElementById("val-radius");
+            const valCX = document.getElementById("val-centerX");
+            const valCY = document.getElementById("val-centerY");
+            const valCircleColorHex = document.getElementById("val-circle-color-hex");
+            const valBgColorHex = document.getElementById("val-bg-color-hex");
+
+            // 초기값 세팅 (기본 radius = height/4, center = screen center)
+            const initialRadius = Math.floor(height / 4);
+            const initialCX = Math.floor(width / 2);
+            const initialCY = Math.floor(height / 2);
+
+            rSlider.value = initialRadius;
+            cxSlider.value = initialCX;
+            cySlider.value = initialCY;
+
+            let isPendingRender = false;
+
+            function updateAndRender() {
+                // UI 텍스트 업데이트
+                valR.innerText = rSlider.value;
+                valCX.innerText = cxSlider.value;
+                valCY.innerText = cySlider.value;
+                valCircleColorHex.innerText = circleColorPicker.value;
+                valCircleColorHex.style.color = circleColorPicker.value;
+                valBgColorHex.innerText = bgColorPicker.value;
+                valBgColorHex.style.color = bgColorPicker.value;
+
+                // CPU Uniform Buffer 데이터 준비 (DirectX 11 Constant Buffer 갱신 패턴)
+                const arrayBuffer = new ArrayBuffer(uniformBufferSize);
+                const floatView = new Float32Array(arrayBuffer);
+
+                // center: vec2f (offset 0, 1)
+                floatView[0] = parseFloat(cxSlider.value);
+                floatView[1] = parseFloat(cySlider.value);
+                // radius: f32 (offset 2)
+                floatView[2] = parseFloat(rSlider.value);
+                // padding: f32 (offset 3)
+                floatView[3] = 0.0;
+
+                // color: vec4f (offset 4, 5, 6, 7)
+                const colorVec = hexToRgbaVec4(circleColorPicker.value);
+                floatView[4] = colorVec[0];
+                floatView[5] = colorVec[1];
+                floatView[6] = colorVec[2];
+                floatView[7] = colorVec[3];
+
+                // bgColor: vec4f (offset 8, 9, 10, 11)
+                const bgColorVec = hexToRgbaVec4(bgColorPicker.value);
+                floatView[8] = bgColorVec[0];
+                floatView[9] = bgColorVec[1];
+                floatView[10] = bgColorVec[2];
+                floatView[11] = bgColorVec[3];
+
+                // Device Queue를 사용해 GPU Buffer에 라이트
+                device.queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+
+                // RAF 기반 렌더링 스케줄링
+                if (!isPendingRender) {
+                    isPendingRender = true;
+                    requestAnimationFrame(render);
+                }
+            }
+
+            function render() {
+                isPendingRender = false;
+
+                const commandEncoder = device.createCommandEncoder();
+
+                // Compute Pass 실행 (DirectX 11 Dispatch)
+                const computePass = commandEncoder.beginComputePass();
+                computePass.setPipeline(computePipeline);
+                computePass.setBindGroup(0, computeBindGroup);
+                // 16x16 workgroup size에 맞게 디스패치
+                const workgroupCountX = Math.ceil(width / 16);
+                const workgroupCountY = Math.ceil(height / 16);
+                computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+                computePass.end();
+
+                // Render Pass 실행 (Screen Full-size Render)
+                const renderPassDescriptor = {
+                    colorAttachments: [{
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }]
+                };
+
+                const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+                renderPass.setPipeline(renderPipeline);
+                renderPass.setBindGroup(0, renderBindGroup);
+                // Fullscreen Quad (6 vertices) 그리기
+                renderPass.draw(6);
+                renderPass.end();
+
+                // 커맨드 버퍼 제출
+                device.queue.submit([commandEncoder.finish()]);
+            }
+
+            // 이벤트 리스너 바인딩
+            [rSlider, cxSlider, cySlider, circleColorPicker, bgColorPicker].forEach(element => {
+                element.addEventListener("input", updateAndRender);
+            });
+
+            // 마우스 인터랙션 추가 (원의 위치를 실시간으로 이동)
+            let isDrawing = false;
+            function moveCircleByMouse(e) {
+                const rect = canvas.getBoundingClientRect();
+                // 캔버스 내부 상대 좌표 계산
+                const x = Math.min(Math.max(0, e.clientX - rect.left), width);
+                const y = Math.min(Math.max(0, e.clientY - rect.top), height);
+
+                cxSlider.value = Math.round(x);
+                cySlider.value = Math.round(y);
+                updateAndRender();
+            }
+
+            canvas.addEventListener("mousedown", (e) => {
+                isDrawing = true;
+                moveCircleByMouse(e);
+            });
+
+            canvas.addEventListener("mousemove", (e) => {
+                if (isDrawing) moveCircleByMouse(e);
+            });
+
+            window.addEventListener("mouseup", () => {
+                isDrawing = false;
+            });
+
+            // 첫 프레임 실행
+            updateAndRender();
+        }
+
+        function showError(msg) {
+            const errEl = document.getElementById("error-message");
+            errEl.style.display = "block";
+            errEl.innerText = msg;
+            const container = document.getElementById("app-container");
+            if (container) container.style.display = "none";
+        }
+
+        window.onload = () => {
+            initWebGPU().catch(err => {
+                console.error(err);
+                showError("WebGPU 어플리케이션 초기화 실패: " + err.message);
+            });
+        };
+    </script>
+</body>
+</html>

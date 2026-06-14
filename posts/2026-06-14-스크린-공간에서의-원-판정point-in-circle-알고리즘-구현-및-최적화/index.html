@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-13-%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blur-5-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-14-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EC%A0%95point-in-circle-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EC%B5%9C%EC%A0%81%ED%99%94/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현 - Computer Graphics Portfolio</title>
+        <title>스크린 공간에서의 원 판정(Point-in-Circle) 알고리즘 구현 및 최적화 - Computer Graphics Portfolio</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#separable-convolution-box-blur-5" class="md-skip">
+        <a href="#point-in-circle" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              [코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현
+              스크린 공간에서의 원 판정(Point-in-Circle) 알고리즘 구현 및 최적화
             
           </span>
         </div>
@@ -1663,19 +1663,19 @@
   <a href="#1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. 학습자가 직접 구현하며 이해한 핵심 개념
+        1. 커밋의 핵심 개념 및 수학적 배경
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. 학습자가 직접 구현하며 이해한 핵심 개념">
+    <nav class="md-nav" aria-label="1. 커밋의 핵심 개념 및 수학적 배경">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-separable-convolution" class="md-nav__link">
+  <a href="#point-in-circle-equation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ① 분리 가능한 합성곱 (Separable Convolution)
+        수학적 정형화 (Point-in-Circle Equation)
       
     </span>
   </a>
@@ -1683,21 +1683,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-box-blur-5" class="md-nav__link">
+  <a href="#squared-distance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ② Box Blur 5 알고리즘
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-multi-pass-filtering" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ③ 다중 패스 필터링 (Multi-pass Filtering)
+        그래픽스 관점에서의 최적화: Squared Distance
       
     </span>
   </a>
@@ -1713,7 +1702,46 @@
   <a href="#2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. 핵심 알고리즘 설명 (의사코드)
+        2. 코드 구조 분석 및 개선 제안
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 코드 구조 분석 및 개선 제안">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#glm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GLM 확장 헤더 및 전처리기 설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#micro-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        마이크로 최적화 (Micro-Optimization) 기회
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 라스터라이제이션 파이프라인에서의 흐름 (추상화)
       
     </span>
   </a>
@@ -1721,22 +1749,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-webgpu" class="md-nav__link">
+  <a href="#4-webgpu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. WebGPU 인터랙티브 데모로 시각화하기
+        4. WebGPU 인터랙티브 데모 시각화
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. WebGPU 인터랙티브 데모로 시각화하기">
+    <nav class="md-nav" aria-label="4. WebGPU 인터랙티브 데모 시각화">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webgpu-wgsl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGPU 셰이더(WGSL)에서의 구현 방식
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        💡 데모 구성 및 시각화 아이디어
+        데모 시각화 효과
       
     </span>
   </a>
@@ -1779,80 +1818,103 @@
   
 
 
-<h1 id="separable-convolution-box-blur-5">[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현</h1>
-<p>학습자가 작성한 커밋은 이미지 프로세싱 및 블룸(Bloom) 효과의 핵심 기초가 되는 <strong>분리 가능한 합성곱(Separable Convolution)</strong>을 활용하여 5x5 박스 블러(Box Blur 5)의 가로 패스(Horizontal Pass)를 활성화하고 테스트하는 단계를 담고 있습니다. </p>
-<p>단순히 전체 이미지의 밝기를 균일하게 올리던 기존 코드(<code>image.pixels[i].v[0] *= 1.2f</code>)를 주석 처리하고, 인접 픽셀들의 공간적 정보를 활용하는 필터 기반의 블러 알고리즘으로 전환한 점이 돋보입니다. 학습자가 이 작업을 통해 직접 구현하고 이해한 핵심 그래픽스 개념들을 정리해 드립니다.</p>
+<h1 id="point-in-circle">스크린 공간에서의 원 판정(Point-in-Circle) 알고리즘 구현 및 최적화</h1>
+<p>이번 커밋은 2D 스크린 공간(Screen Space)에서 CPU 라스터라이제이션(Rasterization)을 통해 원을 그리기 위한 핵심 판정 함수인 <code>IsInside</code>를 구현하고, 이를 위해 GLM(OpenGL Mathematics)의 확장 기능을 프로젝트에 통합한 작업입니다. </p>
+<p>학습자는 단순한 수학적 공식을 코드로 옮기는 것에 그치지 않고, 컴퓨터 그래픽스 연산에서 매우 중요한 <strong>제곱근(Square Root) 연산 피하기</strong> 최적화 기법을 직접 고민하고 적용하였습니다.</p>
 <hr />
-<h2 id="1">1. 학습자가 직접 구현하며 이해한 핵심 개념</h2>
-<h3 id="1-separable-convolution">① 분리 가능한 합성곱 (Separable Convolution)</h3>
-<p>일반적으로 2차원 이미지에 <span class="arithmatex">\(N \times N\)</span> 크기의 커널로 합성곱 연산을 적용하려면 픽셀당 <span class="arithmatex">\(N^2\)</span> 번의 텍스처 샘플링(혹은 메모리 접근)이 필요합니다. 하지만 커널이 가로와 세로 성분으로 분리 가능하다면, 이를 <span class="arithmatex">\(N \times 1\)</span> 가로 패스와 <span class="arithmatex">\(1 \times N\)</span> 세로 패스의 두 단계로 나누어 처리할 수 있습니다.</p>
-<p>수식으로 표현하면, 2차원 필터 커널 <span class="arithmatex">\(K\)</span>가 두 1차원 벡터의 외적 <span class="arithmatex">\(K = v \cdot h^T\)</span>로 표현될 때 다음과 같이 합성곱의 결합법칙이 성립합니다.</p>
-<div class="arithmatex">\[ I_{blur} = I * K = I * (v \cdot h^T) = (I * h^T) * v \]</div>
-<p>이 경우 픽셀당 연산량은 다음과 같이 획기적으로 줄어듭니다.
-*   <strong>기본 2D Convolution</strong>: <span class="arithmatex">\(O(N^2)\)</span> (5x5 블러의 경우 픽셀당 <strong>25회</strong> 연산)
-*   <strong>Separable Convolution</strong>: <span class="arithmatex">\(O(N + N) = O(2N)\)</span> (5x5 블러의 경우 픽셀당 <strong>10회</strong> 연산)</p>
-<p>학습자는 이 효율적인 방식을 구현하기 위해 첫 번째 단계인 <strong>가로 방향 1D 합성곱(Horizontal Pass)</strong>을 먼저 적용하였습니다.</p>
-<h3 id="2-box-blur-5">② Box Blur 5 알고리즘</h3>
-<p>Box Blur는 필터 영역 내의 모든 픽셀에 동일한 가중치를 부여하여 평균을 내는 가장 단순하고 직관적인 블러 방식입니다. 5x5 Box Blur의 가로 패스에서 각 픽셀은 자신을 중심으로 좌우 2개씩, 총 5개 픽셀 값의 평균을 취합니다.</p>
-<p>이때 1차원 가로 커널의 가중치는 모두 동일하게 <span class="arithmatex">\(\frac{1}{5}\)</span> (0.2)이 됩니다.</p>
-<div class="arithmatex">\[ P_{out}(x, y) = \frac{1}{5} \sum_{i=-2}^{2} P_{in}(x+i, y) \]</div>
-<p>학습자는 가로 패스를 적용한 중간 결과 버퍼를 생성하고, 경계선 처리(Boundary Condition) 등을 고려하며 메모리에 안전하게 쓰는 과정을 이해하고 구현했을 것입니다.</p>
-<h3 id="3-multi-pass-filtering">③ 다중 패스 필터링 (Multi-pass Filtering)</h3>
-<p>커밋된 코드에서 <code>image.BoxBlur5()</code>를 100번 반복 실행하는 루프가 확인됩니다. 
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">image</span><span class="p">.</span><span class="n">BoxBlur5</span><span class="p">();</span>
+<h2 id="1">1. 커밋의 핵심 개념 및 수학적 배경</h2>
+<p>이 커밋의 핵심은 <strong>"특정 스크린 좌표 <span class="arithmatex">\(\mathbf{x}(x, y)\)</span>가 중심이 <span class="arithmatex">\(\mathbf{c}(c_x, c_y)\)</span> 이고 반지름이 <span class="arithmatex">\(r\)</span>인 원의 내부에 정합하는가?"</strong>를 판정하는 것입니다.</p>
+<h3 id="point-in-circle-equation">수학적 정형화 (Point-in-Circle Equation)</h3>
+<p>전형적인 2차원 유클리드 공간에서 두 점 사이의 거리를 구하는 공식은 다음과 같습니다.</p>
+<div class="arithmatex">\[ d = \sqrt{(x - c_x)^2 + (y - c_y)^2} \]</div>
+<p>이 거리 <span class="arithmatex">\(d\)</span>가 반지름 <span class="arithmatex">\(r\)</span>보다 작거나 같으면 점 <span class="arithmatex">\(\mathbf{x}\)</span>는 원의 내부에 존재합니다 (<span class="arithmatex">\(d \le r\)</span>). 따라서 판정식은 다음과 같이 정의됩니다.</p>
+<div class="arithmatex">\[ \sqrt{(x - c_x)^2 + (y - c_y)^2} \le r \]</div>
+<h3 id="squared-distance">그래픽스 관점에서의 최적화: Squared Distance</h3>
+<p>컴퓨터 그래픽스에서 CPU나 GPU 모두에게 제곱근(<span class="arithmatex">\(\sqrt{\cdot}\)</span>) 연산은 매우 무거운(비싼) 연산 중 하나입니다. 수만에서 수백만 개의 픽셀을 매 프레임마다 검사해야 하는 라스터라이제이션 환경에서 픽셀당 한 번씩 제곱근을 호출하는 것은 심각한 병목을 유발합니다.</p>
+<p>따라서 양변을 제곱하여 제곱근 연산을 제거한 식을 사용합니다.</p>
+<div class="arithmatex">\[ (x - c_x)^2 + (y - c_y)^2 \le r^2 \]</div>
+<p>벡터 표현식으로는 다음과 같이 표현할 수 있습니다.</p>
+<div class="arithmatex">\[ \|\mathbf{x} - \mathbf{c}\|^2 \le r^2 \]</div>
+<p>학습자는 주석을 통해 이 두 가지 방법(제곱근을 쓰는 방법과 내적을 통해 제곱된 거리를 비교하는 방법)을 모두 고민했음을 보여주고 있으며, 최종적으로 GLM 라이브러리의 최적화 함수인 <code>glm::distance2</code>를 사용하여 이를 간결하게 해결했습니다.</p>
+<hr />
+<h2 id="2">2. 코드 구조 분석 및 개선 제안</h2>
+<h3 id="glm">GLM 확장 헤더 및 전처리기 설정</h3>
+<p><code>glm/gtx/norm.hpp</code>에 정의된 <code>glm::distance2</code> 함수는 두 벡터 사이의 거리의 제곱(L2 Norm의 제곱)을 반환합니다. <code>gtx</code> 네임스페이스 아래에 있는 함수들은 GLM의 실험적(Experimental) 확장 기능이므로, 이를 C++에서 컴파일하기 위해 프로젝트의 전처리기 정의에 <code>GLM_ENABLE_EXPERIMENTAL</code>을 추가한 것은 올바른 조치입니다.</p>
+<h3 id="micro-optimization">마이크로 최적화 (Micro-Optimization) 기회</h3>
+<p>학습자는 코드 작성 시 매우 훌륭한 시도를 해두었습니다. <code>Circle</code> 클래스의 생성자에서 미리 반지름의 제곱 값을 계산하여 멤버 변수 <code>radiusSquared</code>에 저장하도록 설계했습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">Circle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">glm</span><span class="o">::</span><span class="n">vec2</span><span class="w"> </span><span class="o">&amp;</span><span class="n">center</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">radius</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">glm</span><span class="o">::</span><span class="n">vec4</span><span class="w"> </span><span class="o">&amp;</span><span class="n">color</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="n">center</span><span class="p">(</span><span class="n">center</span><span class="p">),</span><span class="w"> </span><span class="n">color</span><span class="p">(</span><span class="n">color</span><span class="p">),</span><span class="w"> </span><span class="n">radius</span><span class="p">(</span><span class="n">radius</span><span class="p">),</span><span class="w"> </span><span class="n">radiusSquared</span><span class="p">(</span><span class="n">radius</span><span class="o">*</span><span class="n">radius</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">{</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
 </code></pre></div>
-블러 필터를 여러 번 반복해서 적용하면 블러의 반경(Radius)이 넓어지는 효과를 얻을 수 있으며, 통계학의 <strong>중앙한계정리(Central Limit Theorem)</strong>에 의해 단순한 Box Blur라 할지라도 반복 적용할수록 종형 곡선 형태인 Gaussian Blur에 가까운 부드러운 결과를 얻을 수 있음을 실험적으로 이해했을 것입니다.</p>
-<hr />
-<h2 id="2">2. 핵심 알고리즘 설명 (의사코드)</h2>
-<p>학습자가 구현한 <code>BoxBlur5</code> 내부의 가로 패스 알고리즘을 추상화된 의사코드로 표현하면 다음과 같습니다. 원래의 이미지 데이터를 직접 덮어쓰면(In-place) 이후 연산에 왜곡이 생기므로, 반드시 입력 이미지와 출력 이미지를 분리하여 처리해야 합니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>function ApplyHorizontalBoxBlur5(inputImage, outputImage):
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    width = inputImage.width
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    height = inputImage.height
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    for y from 0 to height - 1:
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        for x from 0 to width - 1:
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>            colorSum = Vector3(0, 0, 0)
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            // 가로 방향으로 인접한 5개의 픽셀 샘플링
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>            for offset from -2 to 2:
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>                sampleX = Clamp(x + offset, 0, width - 1) // 경계 영역 처리
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>                colorSum += inputImage.GetPixel(sampleX, y)
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>            // 평균값을 출력 버퍼에 저장
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>            outputImage.SetPixel(x, y, colorSum / 5.0)
+<p>하지만 정작 <code>IsInside</code> 함수의 반환문에서는 매번 곱셈 연산을 다시 수행하고 있습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">return</span><span class="w"> </span><span class="n">glm</span><span class="o">::</span><span class="n">distance2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">center</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">radius</span><span class="p">;</span>
 </code></pre></div>
+<p>이를 이미 준비해 둔 <code>radiusSquared</code> 멤버 변수를 사용하도록 변경하면, 불필요한 부동소수점 곱셈 연산(<span class="arithmatex">\(radius \times radius\)</span>)을 매 픽셀 판정마다 생략할 수 있습니다.</p>
+<p><strong>개선 제안 코드:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kt">bool</span><span class="w"> </span><span class="nf">IsInside</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">glm</span><span class="o">::</span><span class="n">vec2</span><span class="w"> </span><span class="o">&amp;</span><span class="n">x</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">glm</span><span class="o">::</span><span class="n">distance2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">center</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">radiusSquared</span><span class="p">;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</code></pre></div></p>
 <hr />
-<h2 id="3-webgpu">3. WebGPU 인터랙티브 데모로 시각화하기</h2>
-<p>만약 이 C++ CPU 기반의 알고리즘을 최신 웹 그래픽스 표준인 <strong>WebGPU의 Compute Shader</strong>로 옮겨 브라우저에서 실시간 인터랙티브 데모로 시각화한다면 다음과 같이 멋지게 구성할 수 있습니다.</p>
-<h3 id="_1">💡 데모 구성 및 시각화 아이디어</h3>
-<ol>
-<li>
-<p><strong>실시간 파이프라인 시각화 (Split Screen)</strong></p>
-<ul>
-<li>화면을 반으로 나누어 한쪽에는 원본 이미지를, 다른 쪽에는 실시간으로 블러가 적용되는 이미지를 렌더링합니다.</li>
-<li><strong>Horizontal Pass Only</strong> 모드를 제공하여 가로 방향으로만 픽셀이 길게 늘어지는(Stretched) 중간 단계의 이미지를 직접 눈으로 확인할 수 있게 합니다.</li>
-</ul>
-</li>
-<li>
-<p><strong>Compute Shader의 공유 메모리(Workgroup Memory) 활용</strong></p>
-<ul>
-<li>WebGPU의 <code>@compute</code> 셰이더 내에서 가로 패스를 수행할 때, 각 스레드 그룹이 텍스처를 개별적으로 샘플링하는 대신 <code>workgroup</code> 공유 메모리에 가로 1라인의 픽셀 데이터를 미리 로드(<code>LDS, Local Data Store</code> 활용)하도록 구현합니다.</li>
-<li>이를 통해 GPU 메모리 대역폭을 극적으로 절약하는 고급 최적화 기법을 데모 코드와 성능 그래프(FPS / GPU Time ms)로 시각화합니다.</li>
-</ul>
-</li>
-<li>
-<p><strong>인터랙티브 파라미터 조절</strong></p>
-<ul>
-<li><strong>Iteration Slider (1 ~ 100)</strong>: CPU에서는 100번 반복하면 병목이 생기지만, WebGPU Compute Shader에서는 수십 번의 패스도 실시간(60fps)으로 돌아가는 모습을 슬라이더를 통해 직접 체험합니다.</li>
-<li><strong>Kernel Type Selector</strong>: BoxBlur5와 GaussianBlur5를 실시간으로 스위칭하며, 박스 블러를 여러 번 반복했을 때 가우시안 블러와 시각적으로 얼마나 유사해지는지 비교 분석할 수 있도록 합니다.</li>
-</ul>
-</li>
-</ol>
+<h2 id="3">3. 라스터라이제이션 파이프라인에서의 흐름 (추상화)</h2>
+<p>이 <code>IsInside</code> 함수가 전체 스크린 space 상에서 원을 그리기 위해 어떻게 활용되는지 추상화된 의사코드(Pseudo-code)로 나타내면 다음과 같습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>function RenderScene(FrameBuffer, ScreenWidth, ScreenHeight, Circle):
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    for y from 0 to ScreenHeight - 1:
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        for x from 0 to ScreenWidth - 1:
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>            pixelPosition = Vector2(x, y)
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>            // 현재 픽셀이 원 내부에 있는지 검사
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>            if Circle.IsInside(pixelPosition) is True:
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>                FrameBuffer.SetPixel(x, y, Circle.color)
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>            else:
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>                FrameBuffer.SetPixel(x, y, BackgroundColor)
+</code></pre></div>
+<p>이 방식은 전형적인 <strong>CPU 기반의 브루트포스 라스터라이제이션(Rasterization by Grid Search)</strong> 방식입니다. </p>
+<hr />
+<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모 시각화</h2>
+<p>이 개념을 현대적인 웹 그래픽스 API인 <strong>WebGPU</strong>의 <strong>Compute Shader</strong> 또는 <strong>Fragment Shader</strong>로 이식하면, CPU에서 순차적으로 처리하던 루프를 수만 개의 GPU 코어를 통해 극도로 병렬화할 수 있습니다.</p>
+<h3 id="webgpu-wgsl">WebGPU 셰이더(WGSL)에서의 구현 방식</h3>
+<p>WebGPU에서는 화면의 각 픽셀(Fragment)에 대해 이 수식이 동시에 실행됩니다. 브라우저 스크린의 모든 픽셀에서 병렬로 거리 판정이 수행되어 60fps 이상의 부드러운 속도로 원이 렌더링됩니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// WGSL Fragment Shader 예시</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">struct</span><span class="w"> </span><span class="n">CanvasUniform</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="n">screenSize</span><span class="p">:</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="n">circleCenter</span><span class="p">:</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="n">circleRadius</span><span class="p">:</span><span class="w"> </span><span class="nb">f32</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="n">circleColor</span><span class="p">:</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">};</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="o">&lt;</span><span class="nb">uniform</span><span class="o">&gt;</span><span class="w"> </span><span class="n">canvas</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">CanvasUniform</span><span class="p">;</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="nd">@fragment</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="k">fn</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="nd">@builtin</span><span class="p">(</span><span class="nb">position</span><span class="p">)</span><span class="w"> </span><span class="n">FragCoord</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nd">@location</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">pixelCoord</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FragCoord</span><span class="p">.</span><span class="n">xy</span><span class="p">;</span><span class="w"> </span><span class="c1">// 스크린 공간 좌표 (x, y)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">    </span><span class="c1">// 점과 원 중심 사이의 벡터</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">toCenter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pixelCoord</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">canvas</span><span class="p">.</span><span class="n">circleCenter</span><span class="p">;</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">    </span><span class="c1">// 벡터의 내적(dot product)을 이용해 제곱 거리를 구함</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">distanceSquared</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dot</span><span class="p">(</span><span class="n">toCenter</span><span class="p">,</span><span class="w"> </span><span class="n">toCenter</span><span class="p">);</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">radiusSquared</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">canvas</span><span class="p">.</span><span class="n">circleRadius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">canvas</span><span class="p">.</span><span class="n">circleRadius</span><span class="p">;</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">    </span><span class="c1">// 원 안쪽이면 원의 색상을, 바깥쪽이면 검은색을 반환</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">distanceSquared</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">radiusSquared</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">canvas</span><span class="p">.</span><span class="n">circleColor</span><span class="p">;</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span><span class="w"> </span><span class="c1">// 배경색</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="_1">데모 시각화 효과</h3>
+<p>WebGPU 데모를 브라우저에서 실행하면 다음과 같은 실시간 인터랙션을 구현할 수 있습니다.
+1. <strong>마우스 상호작용</strong>: 사용자가 캔버스 위에서 마우스를 움직이면 <code>circleCenter</code> 유니폼 변수가 마우스 포인터 좌표로 실시간 업데이트되어 마우스를 부드럽게 따라다니는 원이 그려집니다.
+2. <strong>해상도 독립성</strong>: 화면 크기가 달라져도 스크린 공간 좌표 <code>FragCoord</code>를 기준으로 연산하기 때문에 왜곡 없는 정밀한 원을 렌더링합니다.
+3. <strong>안티앨리어싱(Anti-aliasing) 확장</strong>: 데모에서 판정 경계면(<span class="arithmatex">\(distanceSquared \approx radiusSquared\)</span>)에 <code>smoothstep</code> 함수를 적용하면 거친 계단 현상(Aliasing)이 해결된 부드러운 경계선의 원을 시각화할 수 있습니다.</p>
 <hr />
 <h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="../../demos/코드-리뷰-separable-convolution을-활용한-box-blu/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/스크린-공간에서의-원-판정point-in-circle-알고리즘-구현-및-/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
