@@ -59,7 +59,17 @@ input[type=range]::-webkit-slider-thumb {
 }
 #status { font-size: 0.7rem; color: #6b7280; min-height: 1.2em; }
 #gpu-error { color: #f87171; font-size: 0.85rem; padding: 10px; background: #2d1515; border-radius: 4px; display: none; }
-</style>
+
+    /* == Mobile responsive == */
+    @media (max-width: 768px) {
+      canvas { max-width: 100% !important; height: auto !important; }
+      .viewport-container { width: 100% !important; height: auto !important; }
+      .dx-body { padding: 10px !important; gap: 10px !important; }
+      .control-panel { min-width: unset !important; width: 100% !important; max-height: none !important; }
+      #imgui-panel { position: relative !important; top: auto !important; left: auto !important; width: calc(100% - 20px) !important; margin: 10px auto !important; max-height: 55vh; overflow-y: auto; }
+    }
+
+  </style>
 </head>
 <body>
 <h2>이미지 밝기 조절 — 픽셀 단위 곱셈</h2>
