@@ -215,6 +215,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화](코드-리뷰-separable-5-tap-gaussian-blur-구현-분.md)
+
+
+[→ 데모 열기](코드-리뷰-separable-5-tap-gaussian-blur-구현-분.md){.md-button}
+
+
+---
+
+
 ## [[코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현](코드-리뷰-separable-convolution을-활용한-box-blu.md)
 
 

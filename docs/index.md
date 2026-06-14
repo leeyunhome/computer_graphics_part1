@@ -202,6 +202,11 @@ graph LR
 <a href="demos/피드백-separable-5-tap-gaussian-blur-구현-분석-/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화</strong><br><br>
+<a href="demos/코드-리뷰-separable-5-tap-gaussian-blur-구현-분/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
@@ -212,8 +217,8 @@ graph LR
 
 - [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](posts/2026-06-14-피드백-separable-5-tap-gaussian-blur-구현-분석-및-최적화-제안.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현](posts/2026-06-14-코드-리뷰-실시간-템포럴-라이트-디케이temporal-light-decay와-이미지-프로세싱-파이프라인-구현.md) <small style='color:#64748b'>(2026-06-14)</small>
+- [[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화](posts/2026-06-14-코드-리뷰-separable-5-tap-gaussian-blur-구현-분석-및-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [[리뷰 및 학습 가이드] Separable 5-Tap Box Blur 구현을 통한 2D 컨볼루션 최적화](posts/2026-06-14-리뷰-및-학습-가이드-separable-5-tap-box-blur-구현을-통한-2d-컨볼루션-최적화.md) <small style='color:#64748b'>(2026-06-14)</small>
 - [Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화](posts/2026-06-14-bloom-효과-파이프라인-설계-및-2차원-공간-필터링-구조화.md) <small style='color:#64748b'>(2026-06-14)</small>
-- [학습자 커밋 분석: add source code](posts/2026-06-13-학습자-커밋-분석-add-source-code.md) <small style='color:#64748b'>(2026-06-13)</small>
 
 [모든 포스트 보기 →](posts/index.md)
