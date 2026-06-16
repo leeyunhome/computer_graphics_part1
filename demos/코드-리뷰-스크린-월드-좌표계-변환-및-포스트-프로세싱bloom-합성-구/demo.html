@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Screen-to-World Coordinate Mapping</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: rgba(22, 22, 37, 0.9);
+            --panel-border: #4f5b66;
+            --text-color: #e0e0e0;
+            --accent-color: #007acc;
+            --accent-hover: #0098ff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ImGui Style Dark Panel */
+        .imgui-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 330px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            user-select: none;
+            font-size: 13px;
+        }
+
+        .imgui-header {
+            background-color: var(--accent-color);
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .imgui-content {
+            padding: 12px;
+        }
+
+        .imgui-group {
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+
+        .imgui-group:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .imgui-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #b0c4de;
+        }
+
+        .imgui-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .imgui-control span {
+            width: 80px;
+            color: #a0a0a0;
+        }
+
+        .imgui-slider {
+            flex-grow: 1;
+            margin-right: 10px;
+            accent-color: var(--accent-color);
+            background: #2d2d44;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .imgui-value {
+            width: 45px;
+            text-align: right;
+            font-family: monospace;
+            background: #0f0f1a;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #3a3a55;
+        }
+
+        .imgui-color-picker {
+            flex-grow: 1;
+            height: 24px;
+            border: 1px solid #3a3a55;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        #webgpu-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(139, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #ff0000;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="webgpu-error">
+        이 브라우저는 WebGPU를 지원하지 않거나 활성화되지 않았습니다.<br>
+        Chrome/Edge 최신 버전을 사용 중인지 확인해 주세요.
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="gpu-canvas"></canvas>
+    </div>
+
+    <!-- ImGui Window Replica -->
+    <div class="imgui-panel" id="gui-panel">
+        <div class="imgui-header" id="gui-header">
+            <span>DirectX 11 — Coordinate Mapping 데모</span>
+        </div>
+        <div class="imgui-content">
+            <div class="imgui-group">
+                <div class="imgui-label">Circle World Properties</div>
+                
+                <div class="imgui-control">
+                    <span>Center X</span>
+                    <input type="range" class="imgui-slider" id="param-center-x" min="-1.5" max="1.5" step="0.01" value="0.00">
+                    <span class="imgui-value" id="val-center-x">0.00</span>
+                </div>
+
+                <div class="imgui-control">
+                    <span>Center Y</span>
+                    <input type="range" class="imgui-slider" id="param-center-y" min="-1.0" max="1.0" step="0.01" value="0.00">
+                    <span class="imgui-value" id="val-center-y">0.00</span>
+                </div>
+
+                <div class="imgui-control">
+                    <span>Radius</span>
+                    <input type="range" class="imgui-slider" id="param-radius" min="0.05" max="1.0" step="0.01" value="0.40">
+                    <span class="imgui-value" id="val-radius">0.40</span>
+                </div>
+            </div>
+
+            <div class="imgui-group">
+                <div class="imgui-label">Colors</div>
+                
+                <div class="imgui-control">
+                    <span>Circle</span>
+                    <input type="color" class="imgui-color-picker" id="param-color-circle" value="#ff0000">
+                </div>
+
+                <div class="imgui-control">
+                    <span>Background</span>
+                    <input type="color" class="imgui-color-picker" id="param-color-bg" value="#cccccc">
+                </div>
+            </div>
+
+            <div class="imgui-group" style="font-size:11px; color:#888;">
+                <div>Aspect Ratio: <span id="info-aspect">1.0</span></div>
+                <div>Screen Space: <span id="info-screen">800 x 600</span></div>
+                <div>World Space Bounds: <span id="info-bounds">[-1.33, 1.33] x [-1.0, 1.0]</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- WGSL Shaders ---
+
+        const computeShaderSource = `
+            struct Params {
+                width: f32,
+                height: f32,
+                aspect: f32,
+                circleRadius: f32,
+                circleCenter: vec2f,
+                padding: vec2f,
+                circleColor: vec4f,
+                bgColor: vec4f,
+            };
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var outTex: texture_storage_2d<rgba8unorm, write>;
+
+            @compute @workgroup_size(16, 16)
+            fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+                let width = u32(params.width);
+                let height = u32(params.height);
+
+                if (id.x >= width || id.y >= height) {
+                    return;
+                }
+
+                let positionScreen = vec2f(f32(id.x), f32(id.y));
+
+                // DirectX 11 / C++ 코드 수식 완벽 재현
+                // const float aspect = float(width) / height;
+                // const float xScale = 2.0f * aspect / (this->width - 1);
+                // const float yScale = 2.0f / (this->height - 1);
+                // return glm::vec2((positionScreen.x * xScale) - aspect, -1 *(positionScreen.y * yScale - 1));
+
+                let xScale = 2.0 * params.aspect / (params.width - 1.0);
+                let yScale = 2.0 / (params.height - 1.0);
+
+                let positionWorld = vec2f(
+                    (positionScreen.x * xScale) - params.aspect,
+                    -1.0 * (positionScreen.y * yScale - 1.0)
+                );
+
+                let dist = distance(positionWorld, params.circleCenter);
+
+                var color = params.bgColor;
+                if (dist < params.circleRadius) {
+                    color = params.circleColor;
+                }
+
+                textureStore(outTex, id.xy, color);
+            }
+        `;
+
+        const renderShaderSource = `
+            struct VertexOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+                
+                var output: VertexOutput;
+                output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                output.uv = uv[vertexIndex];
+                return output;
+            }
+
+            @group(0) @binding(0) var inTex: texture_2d<f32>;
+            @group(0) @binding(1) var s: sampler;
+
+            @fragment
+            fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(inTex, s, uv);
+            }
+        `;
+
+        // --- Application State ---
+        let device, context;
+        let width = 0, height = 0;
+        let storageTexture = null, textureView = null;
+        let computePipeline, renderPipeline;
+        let uniformBuffer;
+        let computeBindGroup, renderBindGroup, sampler;
+        let renderRequested = false;
+
+        // UI Parameters
+        const params = {
+            centerX: 0.0,
+            centerY: 0.0,
+            radius: 0.4,
+            circleColor: [1.0, 0.0, 0.0, 1.0], // Red
+            bgColor: [0.8, 0.8, 0.8, 1.0]     // D3D11 Default Gray (0.8)
+        };
+
+        // --- Helper functions ---
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16) / 255.0,
+                parseInt(result[2], 16) / 255.0,
+                parseInt(result[3], 16) / 255.0,
+                1.0
+            ] : [1, 1, 1, 1];
+        }
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                document.getElementById('webgpu-error').style.display = 'block';
+                return false;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                document.getElementById('webgpu-error').style.display = 'block';
+                return false;
+            }
+
+            device = await adapter.requestDevice();
+            
+            const canvas = document.getElementById('gpu-canvas');
+            context = canvas.getContext('webgpu');
+            
+            const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: presentationFormat,
+                alphaMode: 'opaque'
+            });
+
+            return true;
+        }
+
+        function createPipelines() {
+            // Compute Pipeline
+            const computeModule = device.createShaderModule({ code: computeShaderSource });
+            computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: {
+                    module: computeModule,
+                    entryPoint: 'cs_main'
+                }
+            });
+
+            // Render Pipeline (Fullscreen Quad)
+            const renderModule = device.createShaderModule({ code: renderShaderSource });
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: renderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+                },
+                primitive: {
+                    topology: 'triangle-list'
+                }
+            });
+
+            // Sampler for final presentation
+            sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            // Uniform Buffer
+            // struct Params: 64 bytes
+            uniformBuffer = device.createBuffer({
+                size: 64,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+        }
+
+        function recreateTextures() {
+            const canvas = document.getElementById('gpu-canvas');
+            const dpr = window.devicePixelRatio || 1;
+            width = Math.floor(canvas.clientWidth * dpr);
+            height = Math.floor(canvas.clientHeight * dpr);
+            
+            canvas.width = width;
+            canvas.height = height;
+
+            if (storageTexture) {
+                storageTexture.destroy();
+            }
+
+            // Create intermediate texture with storage capability
+            storageTexture = device.createTexture({
+                size: [width, height],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+            });
+            textureView = storageTexture.createView();
+
+            // Rebuild Bind Groups
+            computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: textureView }
+                ]
+            });
+
+            renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: textureView },
+                    { binding: 1, resource: sampler }
+                ]
+            });
+
+            // Info panel update
+            const aspect = width / height;
+            document.getElementById('info-aspect').innerText = aspect.toFixed(4);
+            document.getElementById('info-screen').innerText = `${width} x ${height}`;
+            document.getElementById('info-bounds').innerText = `[-${aspect.toFixed(2)}, ${aspect.toFixed(2)}] x [-1.0, 1.0]`;
+
+            // Adjust horizontal slider constraints according to current aspect ratio
+            const xSlider = document.getElementById('param-center-x');
+            xSlider.min = -aspect;
+            xSlider.max = aspect;
+        }
+
+        function updateUniforms() {
+            const aspect = width / height;
+            
+            // Layout (64 Bytes Total, Float32Array length 16)
+            // 0: width (f32)
+            // 1: height (f32)
+            // 2: aspect (f32)
+            // 3: radius (f32)
+            // 4, 5: circleCenter (vec2f)
+            // 6, 7: padding (vec2f)
+            // 8-11: circleColor (vec4f)
+            // 12-15: bgColor (vec4f)
+            
+            const data = new Float32Array(16);
+            data[0] = width;
+            data[1] = height;
+            data[2] = aspect;
+            data[3] = params.radius;
+            data[4] = params.centerX;
+            data[5] = params.centerY;
+            data[6] = 0.0; // padding
+            data[7] = 0.0; // padding
+            
+            data[8] = params.circleColor[0];
+            data[9] = params.circleColor[1];
+            data[10] = params.circleColor[2];
+            data[11] = params.circleColor[3];
+
+            data[12] = params.bgColor[0];
+            data[13] = params.bgColor[1];
+            data[14] = params.bgColor[2];
+            data[15] = params.bgColor[3];
+
+            device.queue.writeBuffer(uniformBuffer, 0, data);
+        }
+
+        function render() {
+            updateUniforms();
+
+            const commandEncoder = device.createCommandEncoder();
+            
+            // 1. Compute Pass
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            const workgroupX = Math.ceil(width / 16);
+            const workgroupY = Math.ceil(height / 16);
+            computePass.dispatchWorkgroups(workgroupX, workgroupY);
+            computePass.end();
+
+            // 2. Render Pass
+            const renderPassDesc = {
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            };
+            const renderPass = commandEncoder.beginRenderPass(renderPassDesc);
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+            
+            renderRequested = false;
+        }
+
+        function scheduleRender() {
+            if (!renderRequested) {
+                renderRequested = true;
+                requestAnimationFrame(render);
+            }
+        }
+
+        // --- Event Listeners and Setup ---
+
+        function setupUI() {
+            const sliders = [
+                { id: 'param-center-x', key: 'centerX', valId: 'val-center-x' },
+                { id: 'param-center-y', key: 'centerY', valId: 'val-center-y' },
+                { id: 'param-radius', key: 'radius', valId: 'val-radius' }
+            ];
+
+            sliders.forEach(slider => {
+                const el = document.getElementById(slider.id);
+                const valEl = document.getElementById(slider.valId);
+                
+                el.addEventListener('input', (e) => {
+                    params[slider.key] = parseFloat(e.target.value);
+                    valEl.innerText = params[slider.key].toFixed(2);
+                    scheduleRender();
+                });
+            });
+
+            document.getElementById('param-color-circle').addEventListener('input', (e) => {
+                params.circleColor = hexToRgb(e.target.value);
+                scheduleRender();
+            });
+
+            document.getElementById('param-color-bg').addEventListener('input', (e) => {
+                params.bgColor = hexToRgb(e.target.value);
+                scheduleRender();
+            });
+
+            // Resizing window handler
+            window.addEventListener('resize', () => {
+                recreateTextures();
+                scheduleRender();
+            });
+
+            // Panel dragging behavior (ImGui-like window dragging)
+            const panel = document.getElementById('gui-panel');
+            const header = document.getElementById('gui-header');
+            let isDragging = false;
+            let offset = { x: 0, y: 0 };
+
+            header.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offset.x = e.clientX - panel.offsetLeft;
+                offset.y = e.clientY - panel.offsetTop;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    panel.style.left = (e.clientX - offset.x) + 'px';
+                    panel.style.top = (e.clientY - offset.y) + 'px';
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        // --- Main Execution ---
+        async function run() {
+            const success = await initWebGPU();
+            if (!success) return;
+
+            createPipelines();
+            recreateTextures();
+            setupUI();
+            
+            // Initial render
+            scheduleRender();
+        }
+
+        run();
+    </script>
+</body>
+</html>
