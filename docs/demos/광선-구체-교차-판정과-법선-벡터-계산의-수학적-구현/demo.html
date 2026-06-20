@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Ray-Sphere Intersection</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: rgba(22, 22, 37, 0.9);
+            --panel-border: #4f5b66;
+            --accent-color: #007acc;
+            --accent-active: #0098ff;
+            --text-color: #e0e0e0;
+            --text-muted: #888888;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 메인 컨테이너 */
+        #app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* 캔버스 영역 */
+        #canvas-container {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0d0d1a;
+            position: relative;
+        }
+
+        canvas {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* ImGui 스타일 사이드바 패널 */
+        #imgui-panel {
+            width: 380px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+        }
+
+        /* 타이틀 바 (DirectX 11 스타일) */
+        .panel-header {
+            background-color: #2d2d44;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--panel-border);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+        }
+
+        .panel-header .win-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .win-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .win-close { background-color: #ff5f56; }
+        .win-min { background-color: #ffbd2e; }
+        .win-max { background-color: #27c93f; }
+
+        .panel-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .section-title {
+            color: #00bcd4;
+            border-bottom: 1px dashed #4f5b66;
+            padding-bottom: 5px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        /* 슬라이더 / 입력 폼 스타일 */
+        .control-group {
+            margin-bottom: 14px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .control-val {
+            color: #ffcb6b;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2d2d44;
+            border-radius: 3px;
+            outline: none;
+            border: 1px solid #4f5b66;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: 1px solid #ffffff;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-active);
+        }
+
+        /* 콤보 박스 스타일 */
+        select {
+            width: 100%;
+            background: #2d2d44;
+            color: var(--text-color);
+            border: 1px solid var(--panel-border);
+            padding: 6px;
+            border-radius: 3px;
+            outline: none;
+            font-family: 'Consolas', monospace;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--accent-color);
+        }
+
+        /* 상태값 정보 표시 */
+        .status-box {
+            background-color: rgba(10, 10, 20, 0.6);
+            border: 1px solid #2d2d44;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #a9b2c3;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .status-item span:first-child {
+            color: var(--text-muted);
+        }
+
+        .status-item span:last-child {
+            color: #c3e88d;
+        }
+
+        /* 에러 화면용 */
+        #error-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(13, 13, 26, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #ff5f56;
+            font-family: monospace;
+            padding: 30px;
+            text-align: center;
+            display: none;
+        }
+        #error-overlay h2 { margin-bottom: 10px; }
+        #error-overlay p { color: #ccc; max-width: 600px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div id="error-overlay">
+        <h2>WebGPU Not Supported</h2>
+        <p id="error-message">이 브라우저는 WebGPU를 지원하지 않거나 활성화되어 있지 않습니다. Chrome Canary 또는 최신 브라우저에서 실행해 주세요.</p>
+    </div>
+
+    <div id="app-container">
+        <!-- 메인 3D 뷰포트 -->
+        <div id="canvas-container">
+            <canvas id="webgpu-canvas" width="800" height="600"></canvas>
+        </div>
+
+        <!-- DirectX 11 스타일 인스펙터 패널 -->
+        <div id="imgui-panel">
+            <div class="panel-header">
+                <span>DirectX 11 — Ray-Sphere Intersection</span>
+                <div class="win-controls">
+                    <span class="win-min"></span>
+                    <span class="win-max"></span>
+                    <span class="win-close"></span>
+                </div>
+            </div>
+            
+            <div class="panel-content">
+                <div class="section-title">Renderer Configuration</div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Visualization Mode</span>
+                    </div>
+                    <select id="visualize-mode">
+                        <option value="0">Shaded (Lit / Lambertian)</option>
+                        <option value="1">Normal Vector (XYZ to RGB)</option>
+                        <option value="2">Depth (Hit Distance)</option>
+                    </select>
+                </div>
+
+                <div class="section-title">Sphere Geometry</div>
+                
+                <!-- Center X -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Center X</span>
+                        <span class="control-val" id="val-cx">0.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="sphere-cx" min="-2.0" max="2.0" step="0.05" value="0.0">
+                    </div>
+                </div>
+
+                <!-- Center Y -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Center Y</span>
+                        <span class="control-val" id="val-cy">0.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="sphere-cy" min="-2.0" max="2.0" step="0.05" value="0.0">
+                    </div>
+                </div>
+
+                <!-- Center Z -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Center Z</span>
+                        <span class="control-val" id="val-cz">-1.20</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="sphere-cz" min="-3.0" max="-0.5" step="0.05" value="-1.2">
+                    </div>
+                </div>
+
+                <!-- Radius -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Radius</span>
+                        <span class="control-val" id="val-r">0.50</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="sphere-r" min="0.1" max="1.5" step="0.02" value="0.5">
+                    </div>
+                </div>
+
+                <div class="section-title">Material & Lighting</div>
+
+                <!-- Sphere Color (R, G, B) -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Sphere Color R</span>
+                        <span class="control-val" id="val-cr">0.90</span>
+                    </div>
+                    <input type="range" id="color-r" min="0.0" max="1.0" step="0.05" value="0.9">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Sphere Color G</span>
+                        <span class="control-val" id="val-cg">0.30</span>
+                    </div>
+                    <input type="range" id="color-g" min="0.0" max="1.0" step="0.05" value="0.3">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Sphere Color B</span>
+                        <span class="control-val" id="val-cb">0.20</span>
+                    </div>
+                    <input type="range" id="color-b" min="0.0" max="1.0" step="0.05" value="0.2">
+                </div>
+
+                <!-- Light Direction -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Light Pos X</span>
+                        <span class="control-val" id="val-lx">1.50</span>
+                    </div>
+                    <input type="range" id="light-x" min="-5.0" max="5.0" step="0.1" value="1.5">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Light Pos Y</span>
+                        <span class="control-val" id="val-ly">1.50</span>
+                    </div>
+                    <input type="range" id="light-y" min="-5.0" max="5.0" step="0.1" value="1.5">
+                </div>
+
+                <div class="section-title">Mathematical Diagnostics</div>
+                <div class="status-box">
+                    <div class="status-item">
+                        <span>Ray Solver</span>
+                        <span>Discriminant &nabla;</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Formula</span>
+                        <span>b&sup2;/4 - c</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Hit Math</span>
+                        <span>min(d1, d2)</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Normal</span>
+                        <span>normalize(P - C)</span>
+                    </div>
+                    <div class="status-item">
+                        <span>WGSL Precision</span>
+                        <span>f32 (Single)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // -----------------------------------------------------------------------------
+        // WGSL Shaders
+        // -----------------------------------------------------------------------------
+        const COMPUTE_SHADER_CODE = `
+            struct Ray {
+                start: vec3f,
+                dir: vec3f,
+            }
+
+            struct Hit {
+                d: f32,
+                point: vec3f,
+                normal: vec3f,
+            }
+
+            struct Sphere {
+                center: vec3f,
+                radius: f32,
+                color: vec3f,
+            }
+
+            struct Params {
+                sphere_center: vec3f,
+                sphere_radius: f32,
+                sphere_color: vec3f,
+                aspect_ratio: f32,
+                light_pos: vec3f,
+                visualize_mode: f32,
+            }
+
+            @group(0) @binding(0) var<uniform> params: Params;
+            @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+
+            fn intersect_ray_sphere(ray: Ray, sphere: Sphere) -> Hit {
+                var hit: Hit;
+                hit.d = -1.0;
+                hit.point = vec3f(0.0);
+                hit.normal = vec3f(0.0);
+
+                // Wikipedia Line-sphere intersection
+                // Nabla (b^2 / 4 - c) discriminant form
+                let b = 2.0 * dot(ray.dir, ray.start - sphere.center);
+                let c = dot(ray.start - sphere.center, ray.start - sphere.center) - sphere.radius * sphere.radius;
+                let nabla = (b * b) / 4.0 - c;
+
+                if (nabla >= 0.0) {
+                    let d1 = -b / 2.0 + sqrt(nabla);
+                    let d2 = -b / 2.0 - sqrt(nabla);
+                    
+                    // Select closest positive hit
+                    var t = -1.0;
+                    if (d1 > 0.0 && d2 > 0.0) {
+                        t = min(d1, d2);
+                    } else if (d1 > 0.0) {
+                        t = d1;
+                    } else if (d2 > 0.0) {
+                        t = d2;
+                    }
+
+                    if (t > 0.0) {
+                        hit.d = t;
+                        hit.point = ray.start + ray.dir * t;
+                        hit.normal = normalize(hit.point - sphere.center);
+                    }
+                }
+
+                return hit;
+            }
+
+            @compute @workgroup_size(8, 8)
+            fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+                let size = textureDimensions(out_tex);
+                if (id.x >= size.x || id.y >= size.y) {
+                    return;
+                }
+
+                // Normalised Device Coordinates [-1, 1]
+                let uv = vec2f(
+                    (f32(id.x) + 0.5) / f32(size.x) * 2.0 - 1.0,
+                    -((f32(id.y) + 0.5) / f32(size.y) * 2.0 - 1.0)
+                );
+
+                // Simple Camera: Perspective Projection
+                let cam_pos = vec3f(0.0, 0.0, 1.0); // Looking down -Z
+                let aspect = params.aspect_ratio;
+                
+                // Perspective ray generation
+                let ray_dir = normalize(vec3f(uv.x * aspect * 0.75, uv.y * 0.75, -1.0));
+
+                var ray: Ray;
+                ray.start = cam_pos;
+                ray.dir = ray_dir;
+
+                var sphere: Sphere;
+                sphere.center = params.sphere_center;
+                sphere.radius = params.sphere_radius;
+                sphere.color = params.sphere_color;
+
+                let hit = intersect_ray_sphere(ray, sphere);
+
+                // Procedural dark blue/gray space background
+                var color = vec3f(0.08, 0.08, 0.14) + vec3f(0.02) * uv.y;
+
+                if (hit.d > 0.0) {
+                    if (params.visualize_mode == 1.0) {
+                        // Mode 1: Visualize normal vector as RGB
+                        color = hit.normal * 0.5 + vec3f(0.5);
+                    } else if (params.visualize_mode == 2.0) {
+                        // Mode 2: Visualize depth / hit distance
+                        let depth_norm = clamp(1.0 - (hit.d - 0.5) / 2.0, 0.0, 1.0);
+                        color = vec3f(depth_norm);
+                    } else {
+                        // Mode 0: Shaded Lit
+                        let ambient = 0.12;
+                        
+                        let light_dir = normalize(params.light_pos - hit.point);
+                        
+                        // Lambertian diffuse
+                        let diffuse_factor = max(dot(hit.normal, light_dir), 0.0);
+                        
+                        // Blinn-Phong Specular
+                        let view_dir = normalize(cam_pos - hit.point);
+                        let half_dir = normalize(light_dir + view_dir);
+                        let specular_factor = pow(max(dot(hit.normal, half_dir), 0.0), 40.0);
+                        
+                        let diffuse = sphere.color * diffuse_factor;
+                        let specular = vec3f(0.4) * specular_factor;
+                        
+                        color = sphere.color * ambient + diffuse + specular;
+                    }
+                }
+
+                textureStore(out_tex, id.xy, vec4f(color, 1.0));
+            }
+        `;
+
+        const RENDER_SHADER_CODE = `
+            struct VSOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) idx: u32) -> VSOutput {
+                var pos = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+                var out: VSOutput;
+                out.position = vec4f(pos[idx], 0.0, 1.0);
+                out.uv = uv[idx];
+                return out;
+            }
+
+            @group(0) @binding(0) var texSampler: sampler;
+            @group(0) @binding(1) var tex: texture_2d<f32>;
+
+            @fragment
+            fn fr_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(tex, texSampler, uv);
+            }
+        `;
+
+        // -----------------------------------------------------------------------------
+        // Application State / UI Binding
+        // -----------------------------------------------------------------------------
+        const canvas = document.getElementById("webgpu-canvas");
+        const WIDTH = 800;
+        const HEIGHT = 600;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // UI Controls Cache
+        const controls = {
+            visualizeMode: document.getElementById("visualize-mode"),
+            cx: document.getElementById("sphere-cx"),
+            cy: document.getElementById("sphere-cy"),
+            cz: document.getElementById("sphere-cz"),
+            r: document.getElementById("sphere-r"),
+            cr: document.getElementById("color-r"),
+            cg: document.getElementById("color-g"),
+            cb: document.getElementById("color-b"),
+            lx: document.getElementById("light-x"),
+            ly: document.getElementById("light-y"),
+        };
+
+        const valDisplays = {
+            cx: document.getElementById("val-cx"),
+            cy: document.getElementById("val-cy"),
+            cz: document.getElementById("val-cz"),
+            r: document.getElementById("val-r"),
+            cr: document.getElementById("val-cr"),
+            cg: document.getElementById("val-cg"),
+            cb: document.getElementById("val-cb"),
+            lx: document.getElementById("val-lx"),
+            ly: document.getElementById("val-ly"),
+        };
+
+        // Render request scheduling
+        let renderRequested = false;
+
+        function updateUIValues() {
+            valDisplays.cx.textContent = parseFloat(controls.cx.value).toFixed(2);
+            valDisplays.cy.textContent = parseFloat(controls.cy.value).toFixed(2);
+            valDisplays.cz.textContent = parseFloat(controls.cz.value).toFixed(2);
+            valDisplays.r.textContent = parseFloat(controls.r.value).toFixed(2);
+            valDisplays.cr.textContent = parseFloat(controls.cr.value).toFixed(2);
+            valDisplays.cg.textContent = parseFloat(controls.cg.value).toFixed(2);
+            valDisplays.cb.textContent = parseFloat(controls.cb.value).toFixed(2);
+            valDisplays.lx.textContent = parseFloat(controls.lx.value).toFixed(2);
+            valDisplays.ly.textContent = parseFloat(controls.ly.value).toFixed(2);
+        }
+
+        // -----------------------------------------------------------------------------
+        // WebGPU Main Setup
+        // -----------------------------------------------------------------------------
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                showError("WebGPU API가 이 브라우저에서 차단되었거나 지원되지 않습니다.");
+                return null;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                showError("사용 가능한 GPU 어댑터를 찾지 못했습니다.");
+                return null;
+            }
+
+            const device = await adapter.requestDevice();
+            if (!device) {
+                showError("WebGPU 논리 디바이스 요청에 실패했습니다.");
+                return null;
+            }
+
+            const context = canvas.getContext("webgpu");
+            const format = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({
+                device: device,
+                format: format,
+                alphaMode: "premultiplied"
+            });
+
+            // 1. Uniform Buffer setup
+            // Layout (total 64 bytes structure to comply with 16-byte alignment):
+            // float32 sphere_center[3]
+            // float32 sphere_radius
+            // float32 sphere_color[3]
+            // float32 aspect_ratio
+            // float32 light_pos[3] (X, Y, Z = 1.0f)
+            // float32 visualize_mode
+            const uniformBufferSize = 64; 
+            const uniformBuffer = device.createBuffer({
+                size: uniformBufferSize,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            // 2. Storage Texture to keep Compute Shader output
+            const renderTexture = device.createTexture({
+                size: [WIDTH, HEIGHT, 1],
+                format: "rgba8unorm",
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            // 3. Compute Pipeline Setup
+            const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_CODE });
+            const computePipeline = device.createComputePipeline({
+                layout: "auto",
+                compute: {
+                    module: computeModule,
+                    entryPoint: "cs_main"
+                }
+            });
+
+            // Bind Group for Compute Pass
+            const computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: renderTexture.createView() }
+                ]
+            });
+
+            // 4. Render Pipeline Setup (Direct copy of Storage texture to Canvas)
+            const renderModule = device.createShaderModule({ code: RENDER_SHADER_CODE });
+            const renderPipeline = device.createRenderPipeline({
+                layout: "auto",
+                vertex: {
+                    module: renderModule,
+                    entryPoint: "vs_main"
+                },
+                fragment: {
+                    module: renderModule,
+                    entryPoint: "fr_main",
+                    targets: [{ format: format }]
+                },
+                primitive: {
+                    topology: "triangle-list"
+                }
+            });
+
+            const sampler = device.createSampler({
+                magFilter: "linear",
+                minFilter: "linear"
+            });
+
+            const renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: sampler },
+                    { binding: 1, resource: renderTexture.createView() }
+                ]
+            });
+
+            return {
+                device,
+                context,
+                uniformBuffer,
+                computePipeline,
+                computeBindGroup,
+                renderPipeline,
+                renderBindGroup
+            };
+        }
+
+        function showError(msg) {
+            document.getElementById("error-message").textContent = msg;
+            document.getElementById("error-overlay").style.display = "flex";
+        }
+
+        // -----------------------------------------------------------------------------
+        // Main Loop & Interactive logic
+        // -----------------------------------------------------------------------------
+        async function main() {
+            const gpu = await initWebGPU();
+            if (!gpu) return;
+
+            function updateBuffer() {
+                const cx = parseFloat(controls.cx.value);
+                const cy = parseFloat(controls.cy.value);
+                const cz = parseFloat(controls.cz.value);
+                const radius = parseFloat(controls.r.value);
+                const cr = parseFloat(controls.cr.value);
+                const cg = parseFloat(controls.cg.value);
+                const cb = parseFloat(controls.cb.value);
+                const lx = parseFloat(controls.lx.value);
+                const ly = parseFloat(controls.ly.value);
+                const mode = parseFloat(controls.visualizeMode.value);
+
+                // Build aligned array
+                const data = new Float32Array(16);
+                
+                // offset 0: vec3f center, offset 12: float32 radius
+                data[0] = cx;
+                data[1] = cy;
+                data[2] = cz;
+                data[3] = radius;
+
+                // offset 16: vec3f color, offset 28: float32 aspect
+                data[4] = cr;
+                data[5] = cg;
+                data[6] = cb;
+                data[7] = WIDTH / HEIGHT;
+
+                // offset 32: vec3f light_pos, offset 44: float32 mode
+                data[8] = lx;
+                data[9] = ly;
+                data[10] = 1.0; // Light depth Z
+                data[11] = mode;
+
+                // Rest are padding to 64 bytes
+                gpu.device.queue.writeBuffer(gpu.uniformBuffer, 0, data);
+            }
+
+            function render() {
+                updateBuffer();
+
+                const commandEncoder = gpu.device.createCommandEncoder();
+
+                // Compute Pass
+                const computePass = commandEncoder.beginComputePass();
+                computePass.setPipeline(gpu.computePipeline);
+                computePass.setBindGroup(0, gpu.computeBindGroup);
+                computePass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
+                computePass.end();
+
+                // Render Pass
+                const renderPass = commandEncoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: gpu.context.getCurrentTexture().createView(),
+                        clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
+                        loadOp: "clear",
+                        storeOp: "store"
+                    }]
+                });
+                renderPass.setPipeline(gpu.renderPipeline);
+                renderPass.setBindGroup(0, gpu.renderBindGroup);
+                renderPass.draw(6);
+                renderPass.end();
+
+                gpu.device.queue.submit([commandEncoder.finish()]);
+                renderRequested = false;
+            }
+
+            function scheduleRender() {
+                if (!renderRequested) {
+                    renderRequested = true;
+                    requestAnimationFrame(render);
+                }
+            }
+
+            // Wire UI Event Listeners
+            const uiElements = Object.values(controls);
+            uiElements.forEach(elem => {
+                elem.addEventListener("input", () => {
+                    updateUIValues();
+                    scheduleRender();
+                });
+                elem.addEventListener("change", () => {
+                    updateUIValues();
+                    scheduleRender();
+                });
+            });
+
+            // Initial Draw
+            updateUIValues();
+            render();
+        }
+
+        main();
+    </script>
+</body>
+</html>
