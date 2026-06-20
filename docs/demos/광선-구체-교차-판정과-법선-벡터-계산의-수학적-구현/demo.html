@@ -1,814 +1,352 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DirectX 11 — Ray-Sphere Intersection</title>
-    <style>
-        :root {
-            --bg-color: #1a1a2e;
-            --panel-bg: rgba(22, 22, 37, 0.9);
-            --panel-border: #4f5b66;
-            --accent-color: #007acc;
-            --accent-active: #0098ff;
-            --text-color: #e0e0e0;
-            --text-muted: #888888;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        /* 메인 컨테이너 */
-        #app-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-
-        /* 캔버스 영역 */
-        #canvas-container {
-            flex: 1;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #0d0d1a;
-            position: relative;
-        }
-
-        canvas {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        /* ImGui 스타일 사이드바 패널 */
-        #imgui-panel {
-            width: 380px;
-            background-color: var(--panel-bg);
-            border-left: 1px solid var(--panel-border);
-            display: flex;
-            flex-direction: column;
-            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
-            z-index: 10;
-            font-family: 'Consolas', monospace;
-            font-size: 13px;
-        }
-
-        /* 타이틀 바 (DirectX 11 스타일) */
-        .panel-header {
-            background-color: #2d2d44;
-            padding: 10px 15px;
-            border-bottom: 1px solid var(--panel-border);
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            letter-spacing: 0.5px;
-            color: #ffffff;
-        }
-
-        .panel-header .win-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .win-btn {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .win-close { background-color: #ff5f56; }
-        .win-min { background-color: #ffbd2e; }
-        .win-max { background-color: #27c93f; }
-
-        .panel-content {
-            padding: 20px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .section-title {
-            color: #00bcd4;
-            border-bottom: 1px dashed #4f5b66;
-            padding-bottom: 5px;
-            margin-top: 20px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-
-        .section-title:first-of-type {
-            margin-top: 0;
-        }
-
-        /* 슬라이더 / 입력 폼 스타일 */
-        .control-group {
-            margin-bottom: 14px;
-        }
-
-        .control-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            color: var(--text-color);
-        }
-
-        .control-val {
-            color: #ffcb6b;
-        }
-
-        .slider-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: #2d2d44;
-            border-radius: 3px;
-            outline: none;
-            border: 1px solid #4f5b66;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: var(--accent-color);
-            cursor: pointer;
-            border: 1px solid #ffffff;
-            transition: background 0.15s;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            background: var(--accent-active);
-        }
-
-        /* 콤보 박스 스타일 */
-        select {
-            width: 100%;
-            background: #2d2d44;
-            color: var(--text-color);
-            border: 1px solid var(--panel-border);
-            padding: 6px;
-            border-radius: 3px;
-            outline: none;
-            font-family: 'Consolas', monospace;
-            cursor: pointer;
-        }
-
-        select:focus {
-            border-color: var(--accent-color);
-        }
-
-        /* 상태값 정보 표시 */
-        .status-box {
-            background-color: rgba(10, 10, 20, 0.6);
-            border: 1px solid #2d2d44;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 15px;
-            font-size: 11px;
-            line-height: 1.5;
-            color: #a9b2c3;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .status-item span:first-child {
-            color: var(--text-muted);
-        }
-
-        .status-item span:last-child {
-            color: #c3e88d;
-        }
-
-        /* 에러 화면용 */
-        #error-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(13, 13, 26, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: #ff5f56;
-            font-family: monospace;
-            padding: 30px;
-            text-align: center;
-            display: none;
-        }
-        #error-overlay h2 { margin-bottom: 10px; }
-        #error-overlay p { color: #ccc; max-width: 600px; line-height: 1.6; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ray-Sphere Intersection — 판별식과 법선 벡터</title>
+  <style>
+    :root {
+      --bg: #1a1a2e; --panel: #161625; --border: #3b3b4f;
+      --accent: #007acc; --accent2: #00bcff; --text: #e0e0e0; --muted: #888;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', sans-serif; font-size: 13px;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; padding: 12px; gap: 12px;
+    }
+    .titlebar {
+      width: 100%; max-width: 900px;
+      background: linear-gradient(90deg, #005a9e, var(--accent));
+      border-radius: 4px 4px 0 0; padding: 7px 14px;
+      font-weight: bold; font-size: 13px; letter-spacing: .4px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .badge {
+      background: rgba(0,0,0,.35); border-radius: 3px;
+      padding: 2px 7px; font-size: 11px; font-weight: normal;
+    }
+    .main {
+      display: flex; flex-direction: row; gap: 14px;
+      width: 100%; max-width: 900px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 0 0 4px 4px;
+      padding: 14px;
+    }
+    canvas {
+      display: block; border: 1px solid var(--border);
+      background: #000; flex-shrink: 0;
+      width: 480px; height: 480px;
+      image-rendering: pixelated;
+    }
+    .panel {
+      flex: 1; display: flex; flex-direction: column; gap: 10px;
+      min-width: 220px; overflow-y: auto; max-height: 480px;
+    }
+    .section {
+      background: #1c1c2e; border: 1px solid var(--border);
+      border-radius: 3px; padding: 10px;
+    }
+    .section-title {
+      font-size: 11px; font-weight: bold; letter-spacing: .8px;
+      color: var(--accent2); text-transform: uppercase;
+      border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 8px;
+    }
+    .row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+    .row:last-child { margin-bottom: 0; }
+    .label {
+      display: flex; justify-content: space-between; font-size: 12px; color: #bbb;
+    }
+    .val { color: #fff; font-family: monospace; font-weight: bold; }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 5px;
+      background: #2a2a3f; border-radius: 3px; outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 13px; height: 13px;
+      background: var(--accent); border-radius: 50%; cursor: pointer;
+    }
+    .info {
+      font-size: 11px; color: var(--muted); line-height: 1.5;
+      background: #111; border-left: 3px solid var(--accent);
+      padding: 6px 8px; border-radius: 0 3px 3px 0;
+    }
+    .warn { border-left-color: #f0a500; color: #f0a500; }
+    .code-box {
+      font-family: monospace; font-size: 11px; color: #a8d0f0;
+      background: #0d0d1a; padding: 8px; border-radius: 3px;
+      border: 1px solid #2a2a3f; line-height: 1.7;
+    }
+    .hl { color: #ffd700; }
+    /* Mobile */
+    @media (max-width: 700px) {
+      .main { flex-direction: column; }
+      canvas { width: 100% !important; height: auto !important; max-width: 480px; }
+      .panel { max-height: none; }
+    }
+  </style>
 </head>
 <body>
 
-    <div id="error-overlay">
-        <h2>WebGPU Not Supported</h2>
-        <p id="error-message">이 브라우저는 WebGPU를 지원하지 않거나 활성화되어 있지 않습니다. Chrome Canary 또는 최신 브라우저에서 실행해 주세요.</p>
+<div class="titlebar">
+  <span>DirectX 11 — Ray-Sphere Intersection (Step 4)</span>
+  <span class="badge">Orthographic · Depth Shading</span>
+</div>
+
+<div class="main">
+  <canvas id="c" width="480" height="480"></canvas>
+
+  <div class="panel">
+
+    <div class="section">
+      <div class="section-title">구체 파라미터 (Sphere)</div>
+
+      <div class="row">
+        <div class="label"><span>Center X</span><span class="val" id="vx">0.00</span></div>
+        <input type="range" id="sx" min="-1.5" max="1.5" step="0.01" value="0">
+      </div>
+      <div class="row">
+        <div class="label"><span>Center Y</span><span class="val" id="vy">0.00</span></div>
+        <input type="range" id="sy" min="-1.5" max="1.5" step="0.01" value="0">
+      </div>
+      <div class="row">
+        <div class="label"><span>Center Z</span><span class="val" id="vz">0.50</span></div>
+        <input type="range" id="sz" min="-1.0" max="2.0" step="0.01" value="0.5">
+        <div class="info" id="z-hint">z &lt; 0이면 구체가 카메라 뒤에 위치 → 화면에서 사라집니다</div>
+      </div>
+      <div class="row">
+        <div class="label"><span>Radius</span><span class="val" id="vr">0.40</span></div>
+        <input type="range" id="sr" min="0.05" max="1.0" step="0.01" value="0.4">
+      </div>
     </div>
 
-    <div id="app-container">
-        <!-- 메인 3D 뷰포트 -->
-        <div id="canvas-container">
-            <canvas id="webgpu-canvas" width="800" height="600"></canvas>
-        </div>
-
-        <!-- DirectX 11 스타일 인스펙터 패널 -->
-        <div id="imgui-panel">
-            <div class="panel-header">
-                <span>DirectX 11 — Ray-Sphere Intersection</span>
-                <div class="win-controls">
-                    <span class="win-min"></span>
-                    <span class="win-max"></span>
-                    <span class="win-close"></span>
-                </div>
-            </div>
-            
-            <div class="panel-content">
-                <div class="section-title">Renderer Configuration</div>
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Visualization Mode</span>
-                    </div>
-                    <select id="visualize-mode">
-                        <option value="0">Shaded (Lit / Lambertian)</option>
-                        <option value="1">Normal Vector (XYZ to RGB)</option>
-                        <option value="2">Depth (Hit Distance)</option>
-                    </select>
-                </div>
-
-                <div class="section-title">Sphere Geometry</div>
-                
-                <!-- Center X -->
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Center X</span>
-                        <span class="control-val" id="val-cx">0.00</span>
-                    </div>
-                    <div class="slider-wrapper">
-                        <input type="range" id="sphere-cx" min="-2.0" max="2.0" step="0.05" value="0.0">
-                    </div>
-                </div>
-
-                <!-- Center Y -->
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Center Y</span>
-                        <span class="control-val" id="val-cy">0.00</span>
-                    </div>
-                    <div class="slider-wrapper">
-                        <input type="range" id="sphere-cy" min="-2.0" max="2.0" step="0.05" value="0.0">
-                    </div>
-                </div>
-
-                <!-- Center Z -->
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Center Z</span>
-                        <span class="control-val" id="val-cz">-1.20</span>
-                    </div>
-                    <div class="slider-wrapper">
-                        <input type="range" id="sphere-cz" min="-3.0" max="-0.5" step="0.05" value="-1.2">
-                    </div>
-                </div>
-
-                <!-- Radius -->
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Radius</span>
-                        <span class="control-val" id="val-r">0.50</span>
-                    </div>
-                    <div class="slider-wrapper">
-                        <input type="range" id="sphere-r" min="0.1" max="1.5" step="0.02" value="0.5">
-                    </div>
-                </div>
-
-                <div class="section-title">Material & Lighting</div>
-
-                <!-- Sphere Color (R, G, B) -->
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Sphere Color R</span>
-                        <span class="control-val" id="val-cr">0.90</span>
-                    </div>
-                    <input type="range" id="color-r" min="0.0" max="1.0" step="0.05" value="0.9">
-                </div>
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Sphere Color G</span>
-                        <span class="control-val" id="val-cg">0.30</span>
-                    </div>
-                    <input type="range" id="color-g" min="0.0" max="1.0" step="0.05" value="0.3">
-                </div>
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Sphere Color B</span>
-                        <span class="control-val" id="val-cb">0.20</span>
-                    </div>
-                    <input type="range" id="color-b" min="0.0" max="1.0" step="0.05" value="0.2">
-                </div>
-
-                <!-- Light Direction -->
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Light Pos X</span>
-                        <span class="control-val" id="val-lx">1.50</span>
-                    </div>
-                    <input type="range" id="light-x" min="-5.0" max="5.0" step="0.1" value="1.5">
-                </div>
-                <div class="control-group">
-                    <div class="control-label">
-                        <span>Light Pos Y</span>
-                        <span class="control-val" id="val-ly">1.50</span>
-                    </div>
-                    <input type="range" id="light-y" min="-5.0" max="5.0" step="0.1" value="1.5">
-                </div>
-
-                <div class="section-title">Mathematical Diagnostics</div>
-                <div class="status-box">
-                    <div class="status-item">
-                        <span>Ray Solver</span>
-                        <span>Discriminant &nabla;</span>
-                    </div>
-                    <div class="status-item">
-                        <span>Formula</span>
-                        <span>b&sup2;/4 - c</span>
-                    </div>
-                    <div class="status-item">
-                        <span>Hit Math</span>
-                        <span>min(d1, d2)</span>
-                    </div>
-                    <div class="status-item">
-                        <span>Normal</span>
-                        <span>normalize(P - C)</span>
-                    </div>
-                    <div class="status-item">
-                        <span>WGSL Precision</span>
-                        <span>f32 (Single)</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="section">
+      <div class="section-title">구체 색상 (Color)</div>
+      <div class="row">
+        <div class="label"><span>R</span><span class="val" id="vcr">1.00</span></div>
+        <input type="range" id="scr" min="0" max="1" step="0.01" value="1">
+      </div>
+      <div class="row">
+        <div class="label"><span>G</span><span class="val" id="vcg">1.00</span></div>
+        <input type="range" id="scg" min="0" max="1" step="0.01" value="1">
+      </div>
+      <div class="row">
+        <div class="label"><span>B</span><span class="val" id="vcb">1.00</span></div>
+        <input type="range" id="scb" min="0" max="1" step="0.01" value="1">
+      </div>
     </div>
 
-    <script type="module">
-        // -----------------------------------------------------------------------------
-        // WGSL Shaders
-        // -----------------------------------------------------------------------------
-        const COMPUTE_SHADER_CODE = `
-            struct Ray {
-                start: vec3f,
-                dir: vec3f,
-            }
+    <div class="section">
+      <div class="section-title">강의 핵심 코드</div>
+      <div class="code-box">
+        <span class="hl">// a = 1 (unit dir 가정, 생략)</span><br>
+        b = 2 · dot(dir, start−center)<br>
+        c = |start−center|² − r²<br>
+        <span class="hl">nabla</span> = b²/4 − c<br><br>
+        if (<span class="hl">nabla</span> ≥ 0):<br>
+        &nbsp;d = min(−b/2+√∇, −b/2−√∇)<br><br>
+        color = sphere.color × <span class="hl">hit.d</span>
+      </div>
+      <div class="info" style="margin-top:8px;" id="hit-info">대기 중...</div>
+    </div>
 
-            struct Hit {
-                d: f32,
-                point: vec3f,
-                normal: vec3f,
-            }
+  </div>
+</div>
 
-            struct Sphere {
-                center: vec3f,
-                radius: f32,
-                color: vec3f,
-            }
+<script>
+(async () => {
+  if (!navigator.gpu) {
+    document.querySelector('.main').innerHTML =
+      '<p style="color:#f55;padding:20px;">WebGPU 미지원. Chrome 113+ 에서 확인하세요.</p>';
+    return;
+  }
+  const adapter = await navigator.gpu.requestAdapter();
+  const device = await adapter.requestDevice();
 
-            struct Params {
-                sphere_center: vec3f,
-                sphere_radius: f32,
-                sphere_color: vec3f,
-                aspect_ratio: f32,
-                light_pos: vec3f,
-                visualize_mode: f32,
-            }
+  const canvas = document.getElementById('c');
+  const W = 480, H = 480;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('webgpu');
+  const fmt = navigator.gpu.getPreferredCanvasFormat();
+  ctx.configure({ device, format: fmt, alphaMode: 'opaque' });
 
-            @group(0) @binding(0) var<uniform> params: Params;
-            @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+  // Storage texture for compute output
+  const tex = device.createTexture({
+    size: [W, H], format: 'rgba8unorm',
+    usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+  });
 
-            fn intersect_ray_sphere(ray: Ray, sphere: Sphere) -> Hit {
-                var hit: Hit;
-                hit.d = -1.0;
-                hit.point = vec3f(0.0);
-                hit.normal = vec3f(0.0);
+  // Uniform buffer: cx cy cz r  colorR colorG colorB _pad  W H _p0 _p1
+  const UB_SIZE = 48;
+  const ub = device.createBuffer({ size: UB_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
-                // Wikipedia Line-sphere intersection
-                // Nabla (b^2 / 4 - c) discriminant form
-                let b = 2.0 * dot(ray.dir, ray.start - sphere.center);
-                let c = dot(ray.start - sphere.center, ray.start - sphere.center) - sphere.radius * sphere.radius;
-                let nabla = (b * b) / 4.0 - c;
+  const computeWGSL = /* wgsl */`
+struct U {
+  center : vec3f,
+  radius : f32,
+  color  : vec3f,
+  _pad   : f32,
+  width  : u32,
+  height : u32,
+}
+@group(0) @binding(0) var<uniform> u : U;
+@group(0) @binding(1) var out : texture_storage_2d<rgba8unorm, write>;
 
-                if (nabla >= 0.0) {
-                    let d1 = -b / 2.0 + sqrt(nabla);
-                    let d2 = -b / 2.0 - sqrt(nabla);
-                    
-                    // Select closest positive hit
-                    var t = -1.0;
-                    if (d1 > 0.0 && d2 > 0.0) {
-                        t = min(d1, d2);
-                    } else if (d1 > 0.0) {
-                        t = d1;
-                    } else if (d2 > 0.0) {
-                        t = d2;
-                    }
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) id : vec3u) {
+  if (id.x >= u.width || id.y >= u.height) { return; }
 
-                    if (t > 0.0) {
-                        hit.d = t;
-                        hit.point = ray.start + ray.dir * t;
-                        hit.normal = normalize(hit.point - sphere.center);
-                    }
-                }
+  // TransformScreenToWorld — 스크린 → 월드 (z = 0)
+  let aspect = f32(u.width) / f32(u.height);
+  let xScale = 2.0 / f32(u.width  - 1u);
+  let yScale = 2.0 / f32(u.height - 1u);
+  let px = (f32(id.x) * xScale - 1.0) * aspect;
+  let py = -f32(id.y) * yScale + 1.0;
 
-                return hit;
-            }
+  // 정투영(Orthographic): 광선 시작은 픽셀 위치(z=0), 방향은 항상 +z
+  let ray_start = vec3f(px, py, 0.0);
+  let ray_dir   = vec3f(0.0, 0.0, 1.0);
 
-            @compute @workgroup_size(8, 8)
-            fn cs_main(@builtin(global_invocation_id) id: vec3u) {
-                let size = textureDimensions(out_tex);
-                if (id.x >= size.x || id.y >= size.y) {
-                    return;
-                }
+  // 판별식 계산 (a=1 생략)
+  let diff  = ray_start - u.center;
+  let b     = 2.0 * dot(ray_dir, diff);
+  let c     = dot(diff, diff) - u.radius * u.radius;
+  let nabla = b * b / 4.0 - c;
 
-                // Normalised Device Coordinates [-1, 1]
-                let uv = vec2f(
-                    (f32(id.x) + 0.5) / f32(size.x) * 2.0 - 1.0,
-                    -((f32(id.y) + 0.5) / f32(size.y) * 2.0 - 1.0)
-                );
+  var rgb = vec3f(0.0); // 배경: 검정
+  if (nabla >= 0.0) {
+    let sq = sqrt(nabla);
+    let d1 = -b / 2.0 + sq;
+    let d2 = -b / 2.0 - sq;
+    let d  = min(d1, d2);
+    if (d >= 0.0) {
+      // 강의와 동일: color = sphere.color * hit.d
+      rgb = u.color * d;
+    }
+  }
+  textureStore(out, vec2u(id.x, id.y), vec4f(rgb, 1.0));
+}`;
 
-                // Simple Camera: Perspective Projection
-                let cam_pos = vec3f(0.0, 0.0, 1.0); // Looking down -Z
-                let aspect = params.aspect_ratio;
-                
-                // Perspective ray generation
-                let ray_dir = normalize(vec3f(uv.x * aspect * 0.75, uv.y * 0.75, -1.0));
+  const renderWGSL = /* wgsl */`
+@group(0) @binding(0) var samp : sampler;
+@group(0) @binding(1) var t    : texture_2d<f32>;
+@vertex fn vs(@builtin(vertex_index) vi : u32) -> @builtin(position) vec4f {
+  var pos = array<vec2f,6>(
+    vec2f(-1,-1), vec2f(1,-1), vec2f(-1,1),
+    vec2f(-1,1),  vec2f(1,-1), vec2f(1,1));
+  return vec4f(pos[vi], 0.0, 1.0);
+}
+@fragment fn fs(@builtin(position) p : vec4f) -> @location(0) vec4f {
+  return textureSample(t, samp, p.xy / vec2f(${W}.0, ${H}.0));
+}`;
 
-                var ray: Ray;
-                ray.start = cam_pos;
-                ray.dir = ray_dir;
+  const cMod = device.createShaderModule({ code: computeWGSL });
+  const rMod = device.createShaderModule({ code: renderWGSL });
 
-                var sphere: Sphere;
-                sphere.center = params.sphere_center;
-                sphere.radius = params.sphere_radius;
-                sphere.color = params.sphere_color;
+  const cPipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: cMod, entryPoint: 'main' },
+  });
 
-                let hit = intersect_ray_sphere(ray, sphere);
+  const sampler = device.createSampler({ magFilter: 'nearest', minFilter: 'nearest' });
 
-                // Procedural dark blue/gray space background
-                var color = vec3f(0.08, 0.08, 0.14) + vec3f(0.02) * uv.y;
+  const rPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex:   { module: rMod, entryPoint: 'vs' },
+    fragment: { module: rMod, entryPoint: 'fs', targets: [{ format: fmt }] },
+    primitive: { topology: 'triangle-list' },
+  });
 
-                if (hit.d > 0.0) {
-                    if (params.visualize_mode == 1.0) {
-                        // Mode 1: Visualize normal vector as RGB
-                        color = hit.normal * 0.5 + vec3f(0.5);
-                    } else if (params.visualize_mode == 2.0) {
-                        // Mode 2: Visualize depth / hit distance
-                        let depth_norm = clamp(1.0 - (hit.d - 0.5) / 2.0, 0.0, 1.0);
-                        color = vec3f(depth_norm);
-                    } else {
-                        // Mode 0: Shaded Lit
-                        let ambient = 0.12;
-                        
-                        let light_dir = normalize(params.light_pos - hit.point);
-                        
-                        // Lambertian diffuse
-                        let diffuse_factor = max(dot(hit.normal, light_dir), 0.0);
-                        
-                        // Blinn-Phong Specular
-                        let view_dir = normalize(cam_pos - hit.point);
-                        let half_dir = normalize(light_dir + view_dir);
-                        let specular_factor = pow(max(dot(hit.normal, half_dir), 0.0), 40.0);
-                        
-                        let diffuse = sphere.color * diffuse_factor;
-                        let specular = vec3f(0.4) * specular_factor;
-                        
-                        color = sphere.color * ambient + diffuse + specular;
-                    }
-                }
+  const cBG = device.createBindGroup({
+    layout: cPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: ub } },
+      { binding: 1, resource: tex.createView() },
+    ],
+  });
+  const rBG = device.createBindGroup({
+    layout: rPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: sampler },
+      { binding: 1, resource: tex.createView() },
+    ],
+  });
 
-                textureStore(out_tex, id.xy, vec4f(color, 1.0));
-            }
-        `;
+  // State
+  let cx=0, cy=0, cz=0.5, cr=0.4, cc=[1,1,1];
 
-        const RENDER_SHADER_CODE = `
-            struct VSOutput {
-                @builtin(position) position: vec4f,
-                @location(0) uv: vec2f,
-            }
+  function writeUniforms() {
+    const buf = new ArrayBuffer(UB_SIZE);
+    const f = new Float32Array(buf);
+    const u32 = new Uint32Array(buf);
+    f[0]=cx; f[1]=cy; f[2]=cz; f[3]=cr;
+    f[4]=cc[0]; f[5]=cc[1]; f[6]=cc[2]; f[7]=0;
+    u32[8]=W; u32[9]=H;
+    device.queue.writeBuffer(ub, 0, buf);
+  }
 
-            @vertex
-            fn vs_main(@builtin(vertex_index) idx: u32) -> VSOutput {
-                var pos = array<vec2f, 6>(
-                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
-                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
-                );
-                var uv = array<vec2f, 6>(
-                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
-                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
-                );
-                var out: VSOutput;
-                out.position = vec4f(pos[idx], 0.0, 1.0);
-                out.uv = uv[idx];
-                return out;
-            }
+  function render() {
+    writeUniforms();
+    const enc = device.createCommandEncoder();
+    const cp = enc.beginComputePass();
+    cp.setPipeline(cPipeline);
+    cp.setBindGroup(0, cBG);
+    cp.dispatchWorkgroups(Math.ceil(W/8), Math.ceil(H/8));
+    cp.end();
 
-            @group(0) @binding(0) var texSampler: sampler;
-            @group(0) @binding(1) var tex: texture_2d<f32>;
+    const rp = enc.beginRenderPass({
+      colorAttachments: [{
+        view: ctx.getCurrentTexture().createView(),
+        clearValue: {r:0,g:0,b:0,a:1}, loadOp:'clear', storeOp:'store',
+      }]
+    });
+    rp.setPipeline(rPipeline);
+    rp.setBindGroup(0, rBG);
+    rp.draw(6);
+    rp.end();
+    device.queue.submit([enc.finish()]);
 
-            @fragment
-            fn fr_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-                return textureSample(tex, texSampler, uv);
-            }
-        `;
+    // Update hit info box — center pixel (px=0, py=0), ray_dir=(0,0,1)
+    const zHint = document.getElementById('z-hint');
+    const hitInfo = document.getElementById('hit-info');
+    // diff = ray_start(0,0,0) - sphere_center = (-cx, -cy, -cz)
+    const bval = 2 * (-cz);
+    const cval = cx*cx + cy*cy + cz*cz - cr*cr;
+    const nabla = bval*bval/4 - cval;
+    if (cz < 0) {
+      zHint.className = 'info warn';
+      hitInfo.textContent = '⚠ Center Z < 0 → 구체가 카메라 뒤 → hit.d < 0 → 검정';
+    } else {
+      zHint.className = 'info';
+      if (nabla >= 0) {
+        const d1 = -bval/2 + Math.sqrt(nabla);
+        const d2 = -bval/2 - Math.sqrt(nabla);
+        const d = Math.min(d1, d2);
+        hitInfo.textContent = d >= 0
+          ? `중심 광선: nabla=${nabla.toFixed(3)}, hit.d=${d.toFixed(3)}, color=white×${d.toFixed(3)}`
+          : `중심 광선: nabla≥0이지만 hit.d=${d.toFixed(3)} < 0 → 안 그려짐`;
+      } else {
+        hitInfo.textContent = `중심 광선: nabla=${nabla.toFixed(3)} < 0 → 교차 없음`;
+      }
+    }
+  }
 
-        // -----------------------------------------------------------------------------
-        // Application State / UI Binding
-        // -----------------------------------------------------------------------------
-        const canvas = document.getElementById("webgpu-canvas");
-        const WIDTH = 800;
-        const HEIGHT = 600;
-        canvas.width = WIDTH;
-        canvas.height = HEIGHT;
+  // Sliders
+  const bindings = [
+    ['sx', v => { cx=+v; document.getElementById('vx').textContent=v; }],
+    ['sy', v => { cy=+v; document.getElementById('vy').textContent=v; }],
+    ['sz', v => { cz=+v; document.getElementById('vz').textContent=v; }],
+    ['sr', v => { cr=+v; document.getElementById('vr').textContent=v; }],
+    ['scr',v => { cc[0]=+v; document.getElementById('vcr').textContent=v; }],
+    ['scg',v => { cc[1]=+v; document.getElementById('vcg').textContent=v; }],
+    ['scb',v => { cc[2]=+v; document.getElementById('vcb').textContent=v; }],
+  ];
+  bindings.forEach(([id, fn]) => {
+    document.getElementById(id).addEventListener('input', e => { fn(e.target.value); render(); });
+  });
 
-        // UI Controls Cache
-        const controls = {
-            visualizeMode: document.getElementById("visualize-mode"),
-            cx: document.getElementById("sphere-cx"),
-            cy: document.getElementById("sphere-cy"),
-            cz: document.getElementById("sphere-cz"),
-            r: document.getElementById("sphere-r"),
-            cr: document.getElementById("color-r"),
-            cg: document.getElementById("color-g"),
-            cb: document.getElementById("color-b"),
-            lx: document.getElementById("light-x"),
-            ly: document.getElementById("light-y"),
-        };
-
-        const valDisplays = {
-            cx: document.getElementById("val-cx"),
-            cy: document.getElementById("val-cy"),
-            cz: document.getElementById("val-cz"),
-            r: document.getElementById("val-r"),
-            cr: document.getElementById("val-cr"),
-            cg: document.getElementById("val-cg"),
-            cb: document.getElementById("val-cb"),
-            lx: document.getElementById("val-lx"),
-            ly: document.getElementById("val-ly"),
-        };
-
-        // Render request scheduling
-        let renderRequested = false;
-
-        function updateUIValues() {
-            valDisplays.cx.textContent = parseFloat(controls.cx.value).toFixed(2);
-            valDisplays.cy.textContent = parseFloat(controls.cy.value).toFixed(2);
-            valDisplays.cz.textContent = parseFloat(controls.cz.value).toFixed(2);
-            valDisplays.r.textContent = parseFloat(controls.r.value).toFixed(2);
-            valDisplays.cr.textContent = parseFloat(controls.cr.value).toFixed(2);
-            valDisplays.cg.textContent = parseFloat(controls.cg.value).toFixed(2);
-            valDisplays.cb.textContent = parseFloat(controls.cb.value).toFixed(2);
-            valDisplays.lx.textContent = parseFloat(controls.lx.value).toFixed(2);
-            valDisplays.ly.textContent = parseFloat(controls.ly.value).toFixed(2);
-        }
-
-        // -----------------------------------------------------------------------------
-        // WebGPU Main Setup
-        // -----------------------------------------------------------------------------
-        async function initWebGPU() {
-            if (!navigator.gpu) {
-                showError("WebGPU API가 이 브라우저에서 차단되었거나 지원되지 않습니다.");
-                return null;
-            }
-
-            const adapter = await navigator.gpu.requestAdapter();
-            if (!adapter) {
-                showError("사용 가능한 GPU 어댑터를 찾지 못했습니다.");
-                return null;
-            }
-
-            const device = await adapter.requestDevice();
-            if (!device) {
-                showError("WebGPU 논리 디바이스 요청에 실패했습니다.");
-                return null;
-            }
-
-            const context = canvas.getContext("webgpu");
-            const format = navigator.gpu.getPreferredCanvasFormat();
-            context.configure({
-                device: device,
-                format: format,
-                alphaMode: "premultiplied"
-            });
-
-            // 1. Uniform Buffer setup
-            // Layout (total 64 bytes structure to comply with 16-byte alignment):
-            // float32 sphere_center[3]
-            // float32 sphere_radius
-            // float32 sphere_color[3]
-            // float32 aspect_ratio
-            // float32 light_pos[3] (X, Y, Z = 1.0f)
-            // float32 visualize_mode
-            const uniformBufferSize = 64; 
-            const uniformBuffer = device.createBuffer({
-                size: uniformBufferSize,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            });
-
-            // 2. Storage Texture to keep Compute Shader output
-            const renderTexture = device.createTexture({
-                size: [WIDTH, HEIGHT, 1],
-                format: "rgba8unorm",
-                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
-            });
-
-            // 3. Compute Pipeline Setup
-            const computeModule = device.createShaderModule({ code: COMPUTE_SHADER_CODE });
-            const computePipeline = device.createComputePipeline({
-                layout: "auto",
-                compute: {
-                    module: computeModule,
-                    entryPoint: "cs_main"
-                }
-            });
-
-            // Bind Group for Compute Pass
-            const computeBindGroup = device.createBindGroup({
-                layout: computePipeline.getBindGroupLayout(0),
-                entries: [
-                    { binding: 0, resource: { buffer: uniformBuffer } },
-                    { binding: 1, resource: renderTexture.createView() }
-                ]
-            });
-
-            // 4. Render Pipeline Setup (Direct copy of Storage texture to Canvas)
-            const renderModule = device.createShaderModule({ code: RENDER_SHADER_CODE });
-            const renderPipeline = device.createRenderPipeline({
-                layout: "auto",
-                vertex: {
-                    module: renderModule,
-                    entryPoint: "vs_main"
-                },
-                fragment: {
-                    module: renderModule,
-                    entryPoint: "fr_main",
-                    targets: [{ format: format }]
-                },
-                primitive: {
-                    topology: "triangle-list"
-                }
-            });
-
-            const sampler = device.createSampler({
-                magFilter: "linear",
-                minFilter: "linear"
-            });
-
-            const renderBindGroup = device.createBindGroup({
-                layout: renderPipeline.getBindGroupLayout(0),
-                entries: [
-                    { binding: 0, resource: sampler },
-                    { binding: 1, resource: renderTexture.createView() }
-                ]
-            });
-
-            return {
-                device,
-                context,
-                uniformBuffer,
-                computePipeline,
-                computeBindGroup,
-                renderPipeline,
-                renderBindGroup
-            };
-        }
-
-        function showError(msg) {
-            document.getElementById("error-message").textContent = msg;
-            document.getElementById("error-overlay").style.display = "flex";
-        }
-
-        // -----------------------------------------------------------------------------
-        // Main Loop & Interactive logic
-        // -----------------------------------------------------------------------------
-        async function main() {
-            const gpu = await initWebGPU();
-            if (!gpu) return;
-
-            function updateBuffer() {
-                const cx = parseFloat(controls.cx.value);
-                const cy = parseFloat(controls.cy.value);
-                const cz = parseFloat(controls.cz.value);
-                const radius = parseFloat(controls.r.value);
-                const cr = parseFloat(controls.cr.value);
-                const cg = parseFloat(controls.cg.value);
-                const cb = parseFloat(controls.cb.value);
-                const lx = parseFloat(controls.lx.value);
-                const ly = parseFloat(controls.ly.value);
-                const mode = parseFloat(controls.visualizeMode.value);
-
-                // Build aligned array
-                const data = new Float32Array(16);
-                
-                // offset 0: vec3f center, offset 12: float32 radius
-                data[0] = cx;
-                data[1] = cy;
-                data[2] = cz;
-                data[3] = radius;
-
-                // offset 16: vec3f color, offset 28: float32 aspect
-                data[4] = cr;
-                data[5] = cg;
-                data[6] = cb;
-                data[7] = WIDTH / HEIGHT;
-
-                // offset 32: vec3f light_pos, offset 44: float32 mode
-                data[8] = lx;
-                data[9] = ly;
-                data[10] = 1.0; // Light depth Z
-                data[11] = mode;
-
-                // Rest are padding to 64 bytes
-                gpu.device.queue.writeBuffer(gpu.uniformBuffer, 0, data);
-            }
-
-            function render() {
-                updateBuffer();
-
-                const commandEncoder = gpu.device.createCommandEncoder();
-
-                // Compute Pass
-                const computePass = commandEncoder.beginComputePass();
-                computePass.setPipeline(gpu.computePipeline);
-                computePass.setBindGroup(0, gpu.computeBindGroup);
-                computePass.dispatchWorkgroups(Math.ceil(WIDTH / 8), Math.ceil(HEIGHT / 8));
-                computePass.end();
-
-                // Render Pass
-                const renderPass = commandEncoder.beginRenderPass({
-                    colorAttachments: [{
-                        view: gpu.context.getCurrentTexture().createView(),
-                        clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
-                        loadOp: "clear",
-                        storeOp: "store"
-                    }]
-                });
-                renderPass.setPipeline(gpu.renderPipeline);
-                renderPass.setBindGroup(0, gpu.renderBindGroup);
-                renderPass.draw(6);
-                renderPass.end();
-
-                gpu.device.queue.submit([commandEncoder.finish()]);
-                renderRequested = false;
-            }
-
-            function scheduleRender() {
-                if (!renderRequested) {
-                    renderRequested = true;
-                    requestAnimationFrame(render);
-                }
-            }
-
-            // Wire UI Event Listeners
-            const uiElements = Object.values(controls);
-            uiElements.forEach(elem => {
-                elem.addEventListener("input", () => {
-                    updateUIValues();
-                    scheduleRender();
-                });
-                elem.addEventListener("change", () => {
-                    updateUIValues();
-                    scheduleRender();
-                });
-            });
-
-            // Initial Draw
-            updateUIValues();
-            render();
-        }
-
-        main();
-    </script>
+  render();
+})();
+</script>
 </body>
 </html>
