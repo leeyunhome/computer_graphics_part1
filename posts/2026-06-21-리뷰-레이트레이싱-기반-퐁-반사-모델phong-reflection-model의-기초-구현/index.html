@@ -10,13 +10,9 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-21-%EB%A6%AC%EB%B7%B0-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B8%B0%EB%B0%98-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-model%EC%9D%98-%EA%B8%B0%EC%B4%88-%EA%B5%AC%ED%98%84/">
       
       
-        <link rel="prev" href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/">
-      
-      
-        <link rel="next" href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/">
       
       
         
@@ -27,7 +23,7 @@
     
     
       
-        <title>[코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리 - Computer Graphics Portfolio</title>
+        <title>[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현 - Computer Graphics Portfolio</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#separable-5-tap-box-blur" class="md-skip">
+        <a href="#phong-reflection-model" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -112,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              [코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리
+              [리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현
             
           </span>
         </div>
@@ -242,7 +238,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../posts/" class="md-tabs__link">
+      <a href="../" class="md-tabs__link">
         
   
   
@@ -259,13 +255,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../demos/" class="md-tabs__link">
           
   
   
@@ -356,7 +350,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../posts/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -380,31 +374,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -422,7 +411,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -440,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../demos/" class="md-nav__link">
         
   
   
@@ -468,7 +457,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pixel-animation/" class="md-nav__link">
+      <a href="../../demos/pixel-animation/" class="md-nav__link">
         
   
   
@@ -496,7 +485,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../raytracer/" class="md-nav__link">
+      <a href="../../demos/raytracer/" class="md-nav__link">
         
   
   
@@ -524,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
+      <a href="../../demos/boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
         
   
   
@@ -552,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
         
   
   
@@ -580,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
         
   
   
@@ -608,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
         
   
   
@@ -636,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
+      <a href="../../demos/box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
         
   
   
@@ -664,7 +653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
+      <a href="../../demos/directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
         
   
   
@@ -692,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
         
   
   
@@ -720,7 +709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
         
   
   
@@ -748,7 +737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
         
   
   
@@ -776,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
         
   
   
@@ -804,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -832,7 +821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -860,7 +849,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
         
   
   
@@ -888,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
+      <a href="../../demos/directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
         
   
   
@@ -916,7 +905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -944,7 +933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
         
   
   
@@ -972,7 +961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
         
   
   
@@ -1000,7 +989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1028,7 +1017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1056,7 +1045,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
+      <a href="../../demos/imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
         
   
   
@@ -1084,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
+      <a href="../../demos/directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
         
   
   
@@ -1112,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
         
   
   
@@ -1140,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
         
   
   
@@ -1165,19 +1154,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/" class="md-nav__link">
         
   
   
@@ -1193,7 +1173,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1206,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
         
   
   
@@ -1234,7 +1213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
         
   
   
@@ -1262,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1290,7 +1269,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
+      <a href="../../demos/bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
         
   
   
@@ -1318,7 +1297,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
         
   
   
@@ -1346,7 +1325,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
         
   
   
@@ -1374,7 +1353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
         
   
   
@@ -1402,7 +1381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
         
   
   
@@ -1430,7 +1409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
         
   
   
@@ -1458,7 +1437,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
+      <a href="../../demos/%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
         
   
   
@@ -1486,7 +1465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/" class="md-nav__link">
+      <a href="../../demos/glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/" class="md-nav__link">
         
   
   
@@ -1514,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
         
   
   
@@ -1542,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EC%9D%B4%ED%95%B4-%EB%B0%8F-directxmath%EC%99%80%EC%9D%98-%EB%B9%84/" class="md-nav__link">
+      <a href="../../demos/glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EC%9D%B4%ED%95%B4-%EB%B0%8F-directxmath%EC%99%80%EC%9D%98-%EB%B9%84/" class="md-nav__link">
         
   
   
@@ -1570,7 +1549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-3%EC%B0%A8%EC%9B%90-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EA%B8%B0%EC%B4%88-%EB%82%B4%EC%A0%81-%EC%99%B8%EC%A0%81-%EA%B7%B8%EB%A6%AC%EA%B3%A0-directx/" class="md-nav__link">
+      <a href="../../demos/glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-3%EC%B0%A8%EC%9B%90-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EA%B8%B0%EC%B4%88-%EB%82%B4%EC%A0%81-%EC%99%B8%EC%A0%81-%EA%B7%B8%EB%A6%AC%EA%B3%A0-directx/" class="md-nav__link">
         
   
   
@@ -1598,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EB%B3%84-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-point-in-circle-t/" class="md-nav__link">
+      <a href="../../demos/%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EB%B3%84-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-point-in-circle-t/" class="md-nav__link">
         
   
   
@@ -1626,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EC%A0%95point-in-circle-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-%EB%B0%8F-/" class="md-nav__link">
+      <a href="../../demos/%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EC%A0%95point-in-circle-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-%EB%B0%8F-/" class="md-nav__link">
         
   
   
@@ -1654,7 +1633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EC%9B%94%EB%93%9C-%EC%A2%8C%ED%91%9C%EA%B3%84-%EB%B3%80%ED%99%98-%EB%B0%8F-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1bloom-%ED%95%A9%EC%84%B1-%EA%B5%AC/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EC%9B%94%EB%93%9C-%EC%A2%8C%ED%91%9C%EA%B3%84-%EB%B3%80%ED%99%98-%EB%B0%8F-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1bloom-%ED%95%A9%EC%84%B1-%EA%B5%AC/" class="md-nav__link">
         
   
   
@@ -1682,7 +1661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EA%B4%91%EC%84%A0-%EA%B5%AC%EC%B2%B4-%EA%B5%90%EC%B0%A8-%ED%8C%90%EC%A0%95%EA%B3%BC-%EB%B2%95%EC%84%A0-%EB%B2%A1%ED%84%B0-%EA%B3%84%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EA%B4%91%EC%84%A0-%EA%B5%AC%EC%B2%B4-%EA%B5%90%EC%B0%A8-%ED%8C%90%EC%A0%95%EA%B3%BC-%EB%B2%95%EC%84%A0-%EB%B2%A1%ED%84%B0-%EA%B3%84%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1710,7 +1689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B8%B0%EB%B0%98-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-mod/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B8%B0%EB%B0%98-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-mod/" class="md-nav__link">
         
   
   
@@ -1758,6 +1737,103 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-lambertian-diffuse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 커밋의 핵심 개념: 람베르트 확산광(Lambertian Diffuse)의 수학적 구현
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 커밋의 핵심 개념: 람베르트 확산광(Lambertian Diffuse)의 수학적 구현">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        기하학적 원리와 수식
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 알고리즘 추상화 (의사코드)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 학습자 코드의 구조적 특징 및 발전 단계 분석
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. WebGPU 인터랙티브 데모 제안
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. WebGPU 인터랙티브 데모 제안">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데모 구성 요소 및 시각화 효과
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인터랙티브 WebGPU 데모
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1776,9 +1852,103 @@
   
 
 
-<h1 id="separable-5-tap-box-blur">[코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리</h1>
+<h1 id="phong-reflection-model">[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현</h1>
+<p>이번 커밋은 광선 추적법(Raytracing) 환경에서 가장 기초적이면서도 강력한 로컬 조명 모델인 <strong>퐁 반사 모델(Phong Reflection Model)</strong>의 첫 단추를 꿰는 중요한 단계입니다. </p>
+<p>학습자는 단순히 물체의 유무에 따른 단색(Flat) 출력을 넘어, 빛과 표면의 기하학적 관계를 활용한 <strong>확산광(Diffuse Reflection)</strong>을 성공적으로 구현하였습니다.</p>
+<hr />
+<h2 id="1-lambertian-diffuse">1. 커밋의 핵심 개념: 람베르트 확산광(Lambertian Diffuse)의 수학적 구현</h2>
+<p>이 커밋의 핵심은 광원과 물체 표면의 법선 벡터(Normal Vector) 사이의 각도를 기반으로 빛의 세기를 결정하는 것입니다. 물리적으로 이상적인 거친 표면(Lambertian Surface)은 빛이 들어오는 각도에 따라 에너지를 흡수하고 사방으로 균일하게 반사합니다.</p>
+<h3 id="_1">기하학적 원리와 수식</h3>
+<p>학습자가 구현한 코드의 핵심 수학 공식은 다음과 같습니다.</p>
+<ol>
+<li>
+<p><strong>광원 방향 벡터 계산 (<span class="arithmatex">\(\vec{L}\)</span>)</strong><br />
+   충돌 지점(<span class="arithmatex">\(\mathbf{P}\)</span>)에서 광원의 위치(<span class="arithmatex">\(\mathbf{P}_{\text{light}}\)</span>)를 향하는 단위 벡터를 구합니다.
+   $$ \vec{L} = \frac{\mathbf{P}<em _text_light="\text{light">{\text{light}} - \mathbf{P}}{|\mathbf{P}</em> $$}} - \mathbf{P}|</p>
+</li>
+<li>
+<p><strong>내적(Dot Product)을 통한 투영과 클램핑(Clamping)</strong><br />
+   표면의 법선 벡터 <span class="arithmatex">\(\vec{N}\)</span>과 광원 방향 벡터 <span class="arithmatex">\(\vec{L}\)</span>의 내적을 통해 두 벡터가 이루는 사이각 <span class="arithmatex">\(\theta\)</span>의 코사인 값을 구합니다. 빛이 표면 뒤쪽에서 들어오는 경우(음수 값)를 방지하기 위해 <span class="arithmatex">\(\max\)</span> 함수를 사용하여 <span class="arithmatex">\(0.0\)</span>으로 하한선을 제한합니다. 이를 <strong>Half-Lambert</strong> 또는 <strong>Clamped Cosine</strong>이라고 합니다.
+   $$ I_{\text{diffuse}} = \max(\vec{N} \cdot \vec{L}, 0.0) $$</p>
+</li>
+<li>
+<p><strong>최종 색상 결정</strong><br />
+   물체의 고유 확산색(Diffuse Color, <span class="arithmatex">\(\mathbf{C}_{\text{diff}}\)</span>)에 계산된 빛의 세기를 곱하여 최종 픽셀 색상을 결정합니다.
+   $$ \mathbf{C}<em _text_diff="\text{diff">{\text{final}} = \mathbf{C}</em> $$}} \times I_{\text{diffuse}</p>
+</li>
+</ol>
+<hr />
+<h2 id="2">2. 알고리즘 추상화 (의사코드)</h2>
+<p>학습자가 작성한 <code>traceRay</code> 함수 내의 조명 계산 로직을 추상화하면 다음과 같은 흐름을 가집니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>function traceRay(ray):
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    // 1. 광선과 구체의 충돌 검사
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    hitRecord = intersect(ray, sphere)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    if hitRecord.didCollide == false:
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        return BACKGROUND_COLOR (Black)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    // 2. 조명 계산을 위한 기하학적 벡터 추출
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    N = hitRecord.normal               // 충돌 지점의 법선 벡터 (정규화됨)
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    P = hitRecord.point                // 충돌 지점의 3차원 좌표
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    L = normalize(light.position - P)  // 충돌 지점에서 광원을 향하는 단위 벡터
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    // 3. 람베르트 코사인 법칙 적용 (Diffuse)
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    diffuseIntensity = max(dot(N, L), 0.0)
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    // 4. 최종 색상 계산 (현재 단계에서는 Diffuse만 반영)
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    finalColor = sphere.diffuseColor * diffuseIntensity
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    return finalColor
+</code></pre></div>
+<hr />
+<h2 id="3">3. 학습자 코드의 구조적 특징 및 발전 단계 분석</h2>
+<ul>
+<li>
+<p><strong>점진적 구현 방식(Step-by-step) 채택</strong>:<br />
+  퐁 반사 모델은 크게 세 가지 요소인 <strong>Ambient(환경광), Diffuse(확산광), Specular(경면광)</strong>로 나뉩니다. 학습자는 이 세 가지를 한 번에 구현하지 않고, 주석 처리를 통해 <code>Diffuse</code>를 먼저 정확히 시각화하여 검증하려는 좋은 접근법을 보여주고 있습니다.</p>
+</li>
+<li>
+<p><strong>스펙큘러(Specular) 구현을 위한 준비</strong>:<br />
+  코드 내에 <code>// const vec3 reflectDir = ... // r = 2 (n dot l) n - l</code>과 같은 주석이 존재합니다. 이는 빛의 반사 벡터(<span class="arithmatex">\(\vec{R}\)</span>)를 구하여 카메라(관찰자) 방향 벡터(<span class="arithmatex">\(\vec{V}\)</span>)와의 내적을 통해 하이라이트(Highlight)를 구현하기 위한 준비 단계임을 보여줍니다.
+  $$ \vec{R} = 2(\vec{N} \cdot \vec{L})\vec{N} - \vec{L} $$</p>
+</li>
+</ul>
+<hr />
+<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모 제안</h2>
+<p>이 커밋에서 구현된 퐁 셰이딩의 확산광 이론을 웹 브라우저에서 실시간으로 테스트할 수 있도록 <strong>WebGPU Compute Shader</strong> 데모를 구성한다면 다음과 같이 설계할 수 있습니다.</p>
+<h3 id="_2">데모 구성 요소 및 시각화 효과</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>                     [ WebGPU Canvas (HTML5) ]
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>+-----------------------------------------------------------------+
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>|                                                                 |
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>|                           * (Light Source - Drag to Move)       |
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>|                                                                 |
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>|                        .-----.                                  |
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>|                      .-       -.                                |
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>|                     /  *       \  &lt;-- Real-time Diffuse Shading |
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>|                    |  (Bright)  |                               |
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>|                     \          /                                |
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>|                      &#39;-       -&#39;                                |
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>|                        &#39;-----&#39;                                  |
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>|                                                                 |
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>+-----------------------------------------------------------------+
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>[ Light Position X: --|-- ] [ Sphere Color: [Blue] ] [ Specular: On/Off ]
+</code></pre></div>
+<ol>
+<li><strong>실시간 마우스 드래그를 통한 광원 제어</strong>:</li>
+<li>브라우저 화면상에서 마우스를 움직이거나 슬라이더를 조절하면, GPU의 Uniform Buffer로 전달되는 <code>light.pos</code> 값이 실시간으로 업데이트됩니다.</li>
+<li>
+<p>사용자는 광원의 위치가 바뀜에 따라 구체 표면의 밝은 부분(음영)이 실시간으로 부드럽게 변하는 람베르트 코사인 효과를 즉각적으로 관찰할 수 있습니다.</p>
+</li>
+<li>
+<p><strong>WGSL Compute Shader 커널</strong>:</p>
+</li>
+<li>CPU에서 픽셀 루프를 돌리는 대신, WebGPU의 <code>compute</code> 스테이지를 활용하여 각 픽셀 스레드가 병렬로 Ray-Sphere Intersection과 Diffuse 연산을 수행하도록 합니다.</li>
+<li><code>TextureStorage</code>에 결과를 직접 기록하여 60fps 이상의 극도로 부드러운 인터랙티브 퐁 셰이딩을 시연할 수 있습니다.</li>
+</ol>
+<hr />
+<h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-mod/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
