@@ -269,7 +269,51 @@
                 </div>
             </div>
 
-            <!-- Parameters Adjustments -->
+            <!-- Sphere -->
+            <div class="imgui-window">
+                <div class="imgui-title">Circle (Sphere)</div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Center X</label>
+                        <input type="range" id="sphereX" min="-1.5" max="1.5" step="0.01" value="0.0">
+                        <span class="widget-value" id="sphereXVal">0.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Center Y</label>
+                        <input type="range" id="sphereY" min="-1.5" max="1.5" step="0.01" value="0.0">
+                        <span class="widget-value" id="sphereYVal">0.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Center Z</label>
+                        <input type="range" id="sphereZ" min="-1.0" max="2.0" step="0.01" value="0.5">
+                        <span class="widget-value" id="sphereZVal">0.500</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Radius</label>
+                        <input type="range" id="radius" min="0.05" max="1.5" step="0.01" value="0.5">
+                        <span class="widget-value" id="radiusVal">0.500</span>
+                    </div>
+                </div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Light X</label>
+                        <input type="range" id="lightX" min="-2.0" max="2.0" step="0.05" value="0.0">
+                        <span class="widget-value" id="lightXVal">0.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Light Y</label>
+                        <input type="range" id="lightY" min="-2.0" max="2.0" step="0.05" value="0.0">
+                        <span class="widget-value" id="lightYVal">0.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Light Z</label>
+                        <input type="range" id="lightZ" min="-2.0" max="1.5" step="0.05" value="-1.0">
+                        <span class="widget-value" id="lightZVal">-1.000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Render mode -->
             <div class="imgui-window">
                 <div class="imgui-title">Render Output Mode</div>
                 <div class="mode-selector">
@@ -280,56 +324,70 @@
                 </div>
             </div>
 
-            <div class="imgui-window">
-                <div class="imgui-title">Point Light Properties</div>
-                <div class="imgui-group">
-                    <div class="imgui-row">
-                        <label>Light Position X</label>
-                        <input type="range" id="lightX" min="-2.0" max="2.0" step="0.05" value="0.0">
-                        <span class="widget-value" id="lightXVal">0.00</span>
-                    </div>
-                    <div class="imgui-row">
-                        <label>Light Position Y</label>
-                        <input type="range" id="lightY" min="-2.0" max="2.0" step="0.05" value="0.8">
-                        <span class="widget-value" id="lightYVal">0.80</span>
-                    </div>
-                    <div class="imgui-row">
-                        <label>Light Position Z</label>
-                        <input type="range" id="lightZ" min="-2.0" max="1.5" step="0.05" value="-1.0">
-                        <span class="widget-value" id="lightZVal">-1.00</span>
-                    </div>
-                </div>
-            </div>
-
+            <!-- Material -->
             <div class="imgui-window">
                 <div class="imgui-title">Material Coefficients</div>
                 <div class="imgui-group">
                     <div class="imgui-row">
-                        <label>Shininess (α)</label>
-                        <input type="range" id="alpha" min="1.0" max="128.0" step="1.0" value="9.0">
-                        <span class="widget-value" id="alphaVal">9.00</span>
+                        <label>Ambient R</label>
+                        <input type="range" id="ambR" min="0.0" max="1.0" step="0.01" value="0.0">
+                        <span class="widget-value" id="ambRVal">0.000</span>
                     </div>
                     <div class="imgui-row">
-                        <label>Specular (ks)</label>
-                        <input type="range" id="ks" min="0.0" max="1.0" step="0.02" value="0.8">
-                        <span class="widget-value" id="ksVal">0.80</span>
+                        <label>Ambient G</label>
+                        <input type="range" id="ambG" min="0.0" max="1.0" step="0.01" value="0.0">
+                        <span class="widget-value" id="ambGVal">0.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Ambient B</label>
+                        <input type="range" id="ambB" min="0.0" max="1.0" step="0.01" value="0.0">
+                        <span class="widget-value" id="ambBVal">0.000</span>
                     </div>
                 </div>
                 <div class="imgui-group">
                     <div class="imgui-row">
                         <label>Diffuse R</label>
-                        <input type="range" id="diffR" min="0.0" max="1.0" step="0.05" value="0.0">
-                        <span class="widget-value" id="diffRVal">0.00</span>
+                        <input type="range" id="diffR" min="0.0" max="1.0" step="0.01" value="0.0">
+                        <span class="widget-value" id="diffRVal">0.000</span>
                     </div>
                     <div class="imgui-row">
                         <label>Diffuse G</label>
-                        <input type="range" id="diffG" min="0.0" max="1.0" step="0.05" value="0.4">
-                        <span class="widget-value" id="diffGVal">0.40</span>
+                        <input type="range" id="diffG" min="0.0" max="1.0" step="0.01" value="0.0">
+                        <span class="widget-value" id="diffGVal">0.000</span>
                     </div>
                     <div class="imgui-row">
                         <label>Diffuse B</label>
-                        <input type="range" id="diffB" min="0.0" max="1.0" step="0.05" value="1.0">
-                        <span class="widget-value" id="diffBVal">1.00</span>
+                        <input type="range" id="diffB" min="0.0" max="1.0" step="0.01" value="1.0">
+                        <span class="widget-value" id="diffBVal">1.000</span>
+                    </div>
+                </div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Specular R</label>
+                        <input type="range" id="specR" min="0.0" max="1.0" step="0.01" value="1.0">
+                        <span class="widget-value" id="specRVal">1.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Specular G</label>
+                        <input type="range" id="specG" min="0.0" max="1.0" step="0.01" value="1.0">
+                        <span class="widget-value" id="specGVal">1.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Specular B</label>
+                        <input type="range" id="specB" min="0.0" max="1.0" step="0.01" value="1.0">
+                        <span class="widget-value" id="specBVal">1.000</span>
+                    </div>
+                </div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Specular power (α)</label>
+                        <input type="range" id="alpha" min="1.0" max="128.0" step="1.0" value="9.0">
+                        <span class="widget-value" id="alphaVal">9.000</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Specular coeff (ks)</label>
+                        <input type="range" id="ks" min="0.0" max="1.0" step="0.01" value="0.8">
+                        <span class="widget-value" id="ksVal">0.800</span>
                     </div>
                 </div>
             </div>
@@ -503,21 +561,17 @@
         }
         `;
 
-        // --- Application State ---
+        // --- Application State (강의 기본값 기준) ---
         const state = {
-            lightX: 0.0,
-            lightY: 0.8,
-            lightZ: -1.0, // 카메라 쪽 (구의 앞면을 비추기 위해 마이너스)
-            sphereX: 0.0,
-            sphereY: 0.0,
-            sphereZ: 0.5,
+            lightX: 0.0, lightY: 0.0, lightZ: -1.0,
+            sphereX: 0.0, sphereY: 0.0, sphereZ: 0.5,
             radius: 0.5,
-            ambR: 0.02, ambG: 0.02, ambB: 0.05,
-            diffR: 0.0, diffG: 0.4, diffB: 1.0, // C++ 초기값: Blue (0, 0.4, 1) 로 매칭
-            specR: 1.0, specG: 1.0, specB: 1.0, // White
-            alpha: 9.0, // C++: 9.0
-            ks: 0.8,    // C++: 0.8
-            renderMode: 0, // 0: Full, 1: Diffuse, 2: Specular, 3: Ambient
+            ambR: 0.0, ambG: 0.0, ambB: 0.0,
+            diffR: 0.0, diffG: 0.0, diffB: 1.0,
+            specR: 1.0, specG: 1.0, specB: 1.0,
+            alpha: 9.0,
+            ks: 0.8,
+            renderMode: 0,
         };
 
         let device, context, renderPipeline, computePipeline;
@@ -685,14 +739,24 @@
         // --- Interaction UI Bindings ---
         function setupUI() {
             const sliders = [
-                { id: "lightX", stateKey: "lightX", valId: "lightXVal", decimals: 2 },
-                { id: "lightY", stateKey: "lightY", valId: "lightYVal", decimals: 2 },
-                { id: "lightZ", stateKey: "lightZ", valId: "lightZVal", decimals: 2 },
-                { id: "alpha", stateKey: "alpha", valId: "alphaVal", decimals: 0 },
-                { id: "ks", stateKey: "ks", valId: "ksVal", decimals: 2 },
-                { id: "diffR", stateKey: "diffR", valId: "diffRVal", decimals: 2 },
-                { id: "diffG", stateKey: "diffG", valId: "diffGVal", decimals: 2 },
-                { id: "diffB", stateKey: "diffB", valId: "diffBVal", decimals: 2 },
+                { id: "sphereX", stateKey: "sphereX", valId: "sphereXVal", decimals: 3 },
+                { id: "sphereY", stateKey: "sphereY", valId: "sphereYVal", decimals: 3 },
+                { id: "sphereZ", stateKey: "sphereZ", valId: "sphereZVal", decimals: 3 },
+                { id: "radius",  stateKey: "radius",  valId: "radiusVal",  decimals: 3 },
+                { id: "lightX",  stateKey: "lightX",  valId: "lightXVal",  decimals: 3 },
+                { id: "lightY",  stateKey: "lightY",  valId: "lightYVal",  decimals: 3 },
+                { id: "lightZ",  stateKey: "lightZ",  valId: "lightZVal",  decimals: 3 },
+                { id: "ambR",  stateKey: "ambR",  valId: "ambRVal",  decimals: 3 },
+                { id: "ambG",  stateKey: "ambG",  valId: "ambGVal",  decimals: 3 },
+                { id: "ambB",  stateKey: "ambB",  valId: "ambBVal",  decimals: 3 },
+                { id: "diffR", stateKey: "diffR", valId: "diffRVal", decimals: 3 },
+                { id: "diffG", stateKey: "diffG", valId: "diffGVal", decimals: 3 },
+                { id: "diffB", stateKey: "diffB", valId: "diffBVal", decimals: 3 },
+                { id: "specR", stateKey: "specR", valId: "specRVal", decimals: 3 },
+                { id: "specG", stateKey: "specG", valId: "specGVal", decimals: 3 },
+                { id: "specB", stateKey: "specB", valId: "specBVal", decimals: 3 },
+                { id: "alpha", stateKey: "alpha", valId: "alphaVal", decimals: 3 },
+                { id: "ks",    stateKey: "ks",    valId: "ksVal",    decimals: 3 },
             ];
 
             sliders.forEach(sliderInfo => {
