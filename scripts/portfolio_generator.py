@@ -276,6 +276,40 @@ def generate_webgpu_demo(commit_msg, diff_text, topic_hint, file_contents=None, 
 - 창 제목표시줄: `DirectX 11 — [주제명]` 스타일
 - 배경: `#1a1a2e`
 
+## 레이아웃 규칙 (iframe 임베딩 호환성 — 반드시 준수):
+이 HTML은 700px 높이 iframe 안에 임베딩됩니다. 아래 규칙을 정확히 따르세요.
+
+```css
+/* 필수 레이아웃 골격 */
+body {{
+  display: flex; flex-direction: column;
+  height: 100vh; overflow: hidden;  /* iframe 높이에 맞게 고정 */
+  margin: 0;
+}}
+.workspace {{
+  display: flex; flex-wrap: wrap;
+  flex: 1; min-height: 0;  /* ← min-height:0 필수: 없으면 overflow-y:auto가 동작 안함 */
+  overflow: hidden;
+}}
+.canvas-container {{
+  flex: 1; min-width: 300px; overflow: hidden;
+}}
+canvas {{
+  /* 캔버스 가로 최대 520px — 사이드바(320px)와 합쳐 840px, 일반 콘텐츠 폭에 맞음 */
+  width: 520px; height: 520px; max-width: 100%;
+}}
+.sidebar {{
+  width: 320px; flex-shrink: 0;
+  overflow-y: auto;  /* min-height:0이 있어야 스크롤 활성화됨 */
+}}
+@media (max-width: 700px) {{
+  .sidebar {{ width: 100%; max-height: 55vh; }}
+}}
+```
+
+- 캔버스는 반드시 **520×520** 이하로 유지하세요 (800×600 금지 — iframe 폭 초과).
+- `dispatchWorkgroups`는 `ceil(W/8) × ceil(H/8)`로 계산하세요.
+
 {image_section}
 
 ## 기술 요구사항:
@@ -545,7 +579,7 @@ def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo
 ## 인터랙티브 WebGPU 데모
 
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="{demo_rel_path}" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="{demo_rel_path}" width="100%" height="700" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 """
 

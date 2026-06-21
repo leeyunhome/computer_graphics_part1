@@ -24,7 +24,8 @@
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
 
         /* DirectX 11 Style Window Frame Header */
@@ -55,6 +56,8 @@
             display: flex;
             flex-wrap: wrap;
             flex: 1;
+            min-height: 0; /* flex overflow-y: auto가 동작하려면 필수 */
+            overflow: hidden;
         }
 
         .canvas-container {
@@ -67,6 +70,7 @@
             position: relative;
             padding: 12px;
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         canvas#webgpuCanvas {
@@ -86,13 +90,15 @@
             border-left: 2px solid var(--panel-border);
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
+            overflow-y: auto;   /* min-height:0 on parent makes this work */
             box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         @media (max-width: 700px) {
             .sidebar {
                 width: 100%;
+                max-height: 55vh;
                 border-left: none;
                 border-top: 2px solid var(--panel-border);
             }
