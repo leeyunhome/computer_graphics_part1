@@ -22,10 +22,9 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         /* DirectX 11 Style Window Frame Header */
@@ -54,17 +53,20 @@
         /* Main Workspace Layout */
         .workspace {
             display: flex;
+            flex-wrap: wrap;
             flex: 1;
-            overflow: hidden;
         }
 
         .canvas-container {
             flex: 1;
+            min-width: 300px;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             background-color: #0b0b10;
             position: relative;
+            padding: 12px;
+            box-sizing: border-box;
         }
 
         canvas#webgpuCanvas {
@@ -72,17 +74,28 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
             border: 1px solid var(--panel-border);
             display: block;
+            max-width: 100%;
+            height: auto;
         }
 
         /* Control Panel Sidebar (ImGui Style) */
         .sidebar {
-            width: 380px;
+            width: 320px;
+            min-width: 280px;
             background-color: var(--panel-bg);
             border-left: 2px solid var(--panel-border);
             display: flex;
             flex-direction: column;
             overflow-y: auto;
             box-sizing: border-box;
+        }
+
+        @media (max-width: 700px) {
+            .sidebar {
+                width: 100%;
+                border-left: none;
+                border-top: 2px solid var(--panel-border);
+            }
         }
 
         .imgui-window {
@@ -236,7 +249,7 @@
     <div class="workspace">
         <!-- WebGPU Render Canvas Area -->
         <div class="canvas-container">
-            <canvas id="webgpuCanvas" width="800" height="600"></canvas>
+            <canvas id="webgpuCanvas" width="520" height="520"></canvas>
         </div>
 
         <!-- Sidebar controls (ImGui Theme) -->
@@ -549,7 +562,7 @@
 
                 // Create Output Texture for Compute Writing and Render Reading
                 textureOut = device.createTexture({
-                    size: [800, 600],
+                    size: [520, 520],
                     format: 'rgba8unorm',
                     usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
                 });
@@ -626,9 +639,9 @@
             const uintView = new Uint32Array(data.buffer);
             uintView[19] = state.renderMode;
 
-            data[20] = 800.0 / 600.0; // Aspect Ratio
-            data[21] = 800.0;
-            data[22] = 600.0;
+            data[20] = 1.0; // Aspect Ratio (520x520 → 1:1)
+            data[21] = 520.0;
+            data[22] = 520.0;
             data[23] = 0.0; // pad
 
             device.queue.writeBuffer(uniformBuffer, 0, data);
@@ -640,7 +653,7 @@
             const computePass = encoder.beginComputePass();
             computePass.setPipeline(computePipeline);
             computePass.setBindGroup(0, computeBindGroup);
-            computePass.dispatchWorkgroups(100, 75, 1); // 800/8 = 100, 600/8 = 75
+            computePass.dispatchWorkgroups(65, 65, 1); // ceil(520/8) = 65
             computePass.end();
 
             // 2. Render Pass
