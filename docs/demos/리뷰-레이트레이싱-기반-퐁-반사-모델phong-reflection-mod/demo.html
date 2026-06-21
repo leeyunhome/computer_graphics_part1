@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectX 11 — Phong Shading Lecture Demo</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #16161f;
+            --panel-border: #2d2d3a;
+            --text-color: #e0e0e0;
+            --accent-color: #007acc;
+            --accent-hover: #0098ff;
+            --widget-bg: #21212b;
+            --slider-track: #3a3a4a;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* DirectX 11 Style Window Frame Header */
+        header {
+            background-color: #0f0f15;
+            border-bottom: 2px solid var(--panel-border);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            color: #a0a0b0;
+        }
+
+        header .title-badge {
+            background-color: var(--accent-color);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0b0b10;
+            position: relative;
+        }
+
+        canvas#webgpuCanvas {
+            background-color: #000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--panel-border);
+            display: block;
+        }
+
+        /* Control Panel Sidebar (ImGui Style) */
+        .sidebar {
+            width: 380px;
+            background-color: var(--panel-bg);
+            border-left: 2px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .imgui-window {
+            padding: 16px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .imgui-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #3f3f52;
+            padding-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .imgui-group {
+            margin-bottom: 16px;
+        }
+
+        .imgui-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .imgui-row label {
+            width: 130px;
+            font-size: 12px;
+            color: #b0b0c0;
+        }
+
+        .imgui-row .widget-value {
+            width: 45px;
+            font-size: 11px;
+            color: #8888aa;
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .imgui-row input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            background: var(--slider-track);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .imgui-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .imgui-row input[type="range"]::-webkit-slider-thumb:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Mode Selector Radio Styles */
+        .mode-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .mode-button {
+            background-color: var(--widget-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-color);
+            padding: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .mode-button.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-hover);
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        /* 2D Vector Diagram Overlay Style */
+        canvas#diagramCanvas {
+            background-color: #111118;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            display: block;
+            margin: 8px 0;
+            width: 100%;
+            height: 180px;
+        }
+
+        /* Error Message Overlay */
+        #error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(20, 20, 30, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            display: none;
+        }
+
+        #error-overlay .message-box {
+            background-color: #2d1c1c;
+            border: 2px solid #ff4444;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        #error-overlay h2 {
+            color: #ff4444;
+            margin-top: 0;
+        }
+
+        #error-overlay p {
+            color: #e0b0b0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <span class="title-badge">DX11 PIPELINE</span>
+            DirectX 11 — Phong Shading & Raytracing Lecture Diagram Simulator
+        </div>
+        <div style="font-size: 11px; color: #666680;">WebGPU Emulation</div>
+    </header>
+
+    <div class="workspace">
+        <!-- WebGPU Render Canvas Area -->
+        <div class="canvas-container">
+            <canvas id="webgpuCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <!-- Sidebar controls (ImGui Theme) -->
+        <div class="sidebar">
+            <!-- Lecture Diagram Area (Live Vector Chart) -->
+            <div class="imgui-window">
+                <div class="imgui-title">Phong Reflection Vector Diagram</div>
+                <canvas id="diagramCanvas" width="340" height="180"></canvas>
+                <div style="font-size: 10px; color: #8888aa; text-align: center; margin-top: 4px;">
+                    실시간 벡터 분석 시각화 (XZ Top-down View)
+                </div>
+            </div>
+
+            <!-- Parameters Adjustments -->
+            <div class="imgui-window">
+                <div class="imgui-title">Render Output Mode</div>
+                <div class="mode-selector">
+                    <div class="mode-button active" onclick="setRenderMode(0)">Full Phong</div>
+                    <div class="mode-button" onclick="setRenderMode(1)">Diffuse Only</div>
+                    <div class="mode-button" onclick="setRenderMode(2)">Specular Only</div>
+                    <div class="mode-button" onclick="setRenderMode(3)">Ambient Only</div>
+                </div>
+            </div>
+
+            <div class="imgui-window">
+                <div class="imgui-title">Point Light Properties</div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Light Position X</label>
+                        <input type="range" id="lightX" min="-2.0" max="2.0" step="0.05" value="0.0">
+                        <span class="widget-value" id="lightXVal">0.00</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Light Position Y</label>
+                        <input type="range" id="lightY" min="-2.0" max="2.0" step="0.05" value="0.8">
+                        <span class="widget-value" id="lightYVal">0.80</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Light Position Z</label>
+                        <input type="range" id="lightZ" min="-2.0" max="1.5" step="0.05" value="-1.0">
+                        <span class="widget-value" id="lightZVal">-1.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="imgui-window">
+                <div class="imgui-title">Material Coefficients</div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Shininess (α)</label>
+                        <input type="range" id="alpha" min="1.0" max="128.0" step="1.0" value="9.0">
+                        <span class="widget-value" id="alphaVal">9.00</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Specular (ks)</label>
+                        <input type="range" id="ks" min="0.0" max="1.0" step="0.02" value="0.8">
+                        <span class="widget-value" id="ksVal">0.80</span>
+                    </div>
+                </div>
+                <div class="imgui-group">
+                    <div class="imgui-row">
+                        <label>Diffuse R</label>
+                        <input type="range" id="diffR" min="0.0" max="1.0" step="0.05" value="0.0">
+                        <span class="widget-value" id="diffRVal">0.00</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Diffuse G</label>
+                        <input type="range" id="diffG" min="0.0" max="1.0" step="0.05" value="0.4">
+                        <span class="widget-value" id="diffGVal">0.40</span>
+                    </div>
+                    <div class="imgui-row">
+                        <label>Diffuse B</label>
+                        <input type="range" id="diffB" min="0.0" max="1.0" step="0.05" value="1.0">
+                        <span class="widget-value" id="diffBVal">1.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert Overlay -->
+    <div id="error-overlay">
+        <div class="message-box">
+            <h2>WebGPU 지원 실패</h2>
+            <p>이 웹 브라우저는 WebGPU API를 지원하지 않습니다. Chrome, Edge, Safari 최신 버전을 사용하거나 WebGPU 플래그가 활성화되어 있는지 확인해 주세요.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- WebGPU / WGSL Code ---
+
+        const computeShaderCode = `
+        struct Params {
+            light_pos: vec3f,
+            pad0: f32,
+            sphere_center: vec3f,
+            sphere_radius: f32,
+            sphere_amb: vec3f,
+            sphere_alpha: f32,
+            sphere_diff: vec3f,
+            sphere_ks: f32,
+            sphere_spec: vec3f,
+            render_mode: u32,
+            aspect: f32,
+            width: f32,
+            height: f32,
+            pad1: f32,
+        };
+
+        @group(0) @binding(0) var<uniform> params: Params;
+        @group(0) @binding(1) var out_tex: texture_storage_2d<rgba8unorm, write>;
+
+        struct Ray {
+            origin: vec3f,
+            direction: vec3f,
+        };
+
+        struct Hit {
+            d: f32,
+            point: vec3f,
+            normal: vec3f,
+        };
+
+        fn intersect_sphere(ray: Ray, center: vec3f, radius: f32) -> Hit {
+            var hit: Hit;
+            hit.d = -1.0;
+            
+            let oc = ray.origin - center;
+            let a = dot(ray.direction, ray.direction);
+            let b = 2.0 * dot(ray.direction, oc);
+            let c = dot(oc, oc) - radius * radius;
+            let discriminant = b * b - 4.0 * a * c;
+            
+            if (discriminant >= 0.0) {
+                let t = (-b - sqrt(discriminant)) / (2.0 * a);
+                if (t > 0.0) {
+                    hit.d = t;
+                    hit.point = ray.origin + t * ray.direction;
+                    hit.normal = normalize(hit.point - center);
+                }
+            }
+            return hit;
+        }
+
+        @compute @workgroup_size(8, 8)
+        fn main(@builtin(global_invocation_id) id: vec3u) {
+            let width = u32(params.width);
+            let height = u32(params.height);
+            if (id.x >= width || id.y >= height) {
+                return;
+            }
+            
+            // TransformScreenToWorld
+            let xScale = 2.0 / params.width;
+            let yScale = 2.0 / params.height;
+            let aspect = params.aspect;
+            
+            let screenPos = vec2f(f32(id.x), f32(id.y));
+            let x_pos = (screenPos.x * xScale - 1.0) * aspect;
+            let y_pos = -screenPos.y * yScale + 1.0;
+            
+            let ray_origin = vec3f(x_pos, y_pos, 0.0);
+            let ray_dir = vec3f(0.0, 0.0, 1.0); // 정사영/평행투영을 모방하는 C++ 코드 재현
+            
+            var ray = Ray(ray_origin, ray_dir);
+            let hit = intersect_sphere(ray, params.sphere_center, params.sphere_radius);
+            
+            var color = vec3f(0.0);
+            
+            if (hit.d >= 0.0) {
+                // Diffuse
+                let dirToLight = normalize(params.light_pos - hit.point);
+                let diff = max(dot(hit.normal, dirToLight), 0.0);
+                
+                // Specular (Phong reflection)
+                // r = 2 * (n dot l) * n - l
+                let reflectDir = normalize(2.0 * dot(hit.normal, dirToLight) * hit.normal - dirToLight);
+                let viewDir = normalize(-ray.direction); // 카메라를 향하는 방향
+                
+                let spec_angle = max(dot(reflectDir, viewDir), 0.0);
+                let specular = pow(spec_angle, params.sphere_alpha);
+                
+                let ambient_part = params.sphere_amb;
+                let diffuse_part = params.sphere_diff * diff;
+                let specular_part = params.sphere_spec * specular * params.sphere_ks;
+                
+                if (params.render_mode == 0u) {
+                    // Full Phong Reflection Model
+                    color = ambient_part + diffuse_part + specular_part;
+                } else if (params.render_mode == 1u) {
+                    // Diffuse Only (C++: return sphere->diff * diff)
+                    color = diffuse_part;
+                } else if (params.render_mode == 2u) {
+                    // Specular Highlight Only
+                    color = specular_part;
+                } else if (params.render_mode == 3u) {
+                    // Ambient Only
+                    color = ambient_part;
+                }
+            }
+            
+            textureStore(out_tex, id.xy, vec4f(clamp(color, vec3f(0.0), vec3f(1.0)), 1.0));
+        }
+        `;
+
+        const renderVertexShaderCode = `
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            @location(0) uv: vec2f,
+        };
+
+        @vertex
+        fn main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+            var pos = array<vec2f, 6>(
+                vec2f(-1.0, -1.0),
+                vec2f( 1.0, -1.0),
+                vec2f(-1.0,  1.0),
+                vec2f(-1.0,  1.0),
+                vec2f( 1.0, -1.0),
+                vec2f( 1.0,  1.0)
+            );
+            var uv = array<vec2f, 6>(
+                vec2f(0.0, 1.0),
+                vec2f(1.0, 1.0),
+                vec2f(0.0, 0.0),
+                vec2f(0.0, 0.0),
+                vec2f(1.0, 1.0),
+                vec2f(1.0, 0.0)
+            );
+            var out: VertexOutput;
+            out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+            out.uv = uv[vertexIndex];
+            return out;
+        }
+        `;
+
+        const renderFragmentShaderCode = `
+        @group(0) @binding(0) var img: texture_2d<f32>;
+
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+            let size = textureDimensions(img);
+            let coords = vec2i(uv * vec2f(size));
+            return textureLoad(img, coords, 0);
+        }
+        `;
+
+        // --- Application State ---
+        const state = {
+            lightX: 0.0,
+            lightY: 0.8,
+            lightZ: -1.0, // 카메라 쪽 (구의 앞면을 비추기 위해 마이너스)
+            sphereX: 0.0,
+            sphereY: 0.0,
+            sphereZ: 0.5,
+            radius: 0.5,
+            ambR: 0.02, ambG: 0.02, ambB: 0.05,
+            diffR: 0.0, diffG: 0.4, diffB: 1.0, // C++ 초기값: Blue (0, 0.4, 1) 로 매칭
+            specR: 1.0, specG: 1.0, specB: 1.0, // White
+            alpha: 9.0, // C++: 9.0
+            ks: 0.8,    // C++: 0.8
+            renderMode: 0, // 0: Full, 1: Diffuse, 2: Specular, 3: Ambient
+        };
+
+        let device, context, renderPipeline, computePipeline;
+        let uniformBuffer, textureOut;
+        let computeBindGroup, renderBindGroup;
+        let isPendingRender = false;
+
+        // --- Initialize WebGPU ---
+        async function init() {
+            if (!navigator.gpu) {
+                document.getElementById("error-overlay").style.display = "flex";
+                return;
+            }
+
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                device = await adapter.requestDevice();
+
+                const canvas = document.getElementById("webgpuCanvas");
+                context = canvas.getContext("webgpu");
+                const format = navigator.gpu.getPreferredCanvasFormat();
+
+                context.configure({
+                    device,
+                    format,
+                    alphaMode: 'opaque'
+                });
+
+                // Create Pipelines
+                const computeModule = device.createShaderModule({ code: computeShaderCode });
+                computePipeline = device.createComputePipeline({
+                    layout: 'auto',
+                    compute: { module: computeModule, entryPoint: 'main' }
+                });
+
+                const vsModule = device.createShaderModule({ code: renderVertexShaderCode });
+                const fsModule = device.createShaderModule({ code: renderFragmentShaderCode });
+                renderPipeline = device.createRenderPipeline({
+                    layout: 'auto',
+                    vertex: { module: vsModule, entryPoint: 'main' },
+                    fragment: {
+                        module: fsModule,
+                        entryPoint: 'main',
+                        targets: [{ format }]
+                    },
+                    primitive: { topology: 'triangle-list' }
+                });
+
+                // Create Output Texture for Compute Writing and Render Reading
+                textureOut = device.createTexture({
+                    size: [800, 600],
+                    format: 'rgba8unorm',
+                    usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+                });
+
+                // Create Uniform Buffer (96 Bytes)
+                uniformBuffer = device.createBuffer({
+                    size: 96,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                });
+
+                // Bind Groups
+                computeBindGroup = device.createBindGroup({
+                    layout: computePipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: uniformBuffer } },
+                        { binding: 1, resource: textureOut.createView() }
+                    ]
+                });
+
+                renderBindGroup = device.createBindGroup({
+                    layout: renderPipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: textureOut.createView() }
+                    ]
+                });
+
+                // Initialize events & UI
+                setupUI();
+                scheduleRender();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById("error-overlay").style.display = "flex";
+            }
+        }
+
+        // --- Render Pipeline Trigger ---
+        function scheduleRender() {
+            if (isPendingRender) return;
+            isPendingRender = true;
+            requestAnimationFrame(() => {
+                isPendingRender = false;
+                render();
+            });
+        }
+
+        function render() {
+            // Write Uniform Buffer
+            const data = new Float32Array(24);
+            data[0] = state.lightX;
+            data[1] = state.lightY;
+            data[2] = state.lightZ;
+            data[3] = 0.0; // pad
+
+            data[4] = state.sphereX;
+            data[5] = state.sphereY;
+            data[6] = state.sphereZ;
+            data[7] = state.radius;
+
+            data[8] = state.ambR;
+            data[9] = state.ambG;
+            data[10] = state.ambB;
+            data[11] = state.alpha;
+
+            data[12] = state.diffR;
+            data[13] = state.diffG;
+            data[14] = state.diffB;
+            data[15] = state.ks;
+
+            data[16] = state.specR;
+            data[17] = state.specG;
+            data[18] = state.specB;
+            
+            const uintView = new Uint32Array(data.buffer);
+            uintView[19] = state.renderMode;
+
+            data[20] = 800.0 / 600.0; // Aspect Ratio
+            data[21] = 800.0;
+            data[22] = 600.0;
+            data[23] = 0.0; // pad
+
+            device.queue.writeBuffer(uniformBuffer, 0, data);
+
+            // Command Encoding
+            const encoder = device.createCommandEncoder();
+
+            // 1. Compute Pass
+            const computePass = encoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            computePass.dispatchWorkgroups(100, 75, 1); // 800/8 = 100, 600/8 = 75
+            computePass.end();
+
+            // 2. Render Pass
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.end();
+
+            device.queue.submit([encoder.finish()]);
+
+            // Live 2D Diagram
+            updateDiagram();
+        }
+
+        // --- Interaction UI Bindings ---
+        function setupUI() {
+            const sliders = [
+                { id: "lightX", stateKey: "lightX", valId: "lightXVal", decimals: 2 },
+                { id: "lightY", stateKey: "lightY", valId: "lightYVal", decimals: 2 },
+                { id: "lightZ", stateKey: "lightZ", valId: "lightZVal", decimals: 2 },
+                { id: "alpha", stateKey: "alpha", valId: "alphaVal", decimals: 0 },
+                { id: "ks", stateKey: "ks", valId: "ksVal", decimals: 2 },
+                { id: "diffR", stateKey: "diffR", valId: "diffRVal", decimals: 2 },
+                { id: "diffG", stateKey: "diffG", valId: "diffGVal", decimals: 2 },
+                { id: "diffB", stateKey: "diffB", valId: "diffBVal", decimals: 2 },
+            ];
+
+            sliders.forEach(sliderInfo => {
+                const sliderEl = document.getElementById(sliderInfo.id);
+                const valEl = document.getElementById(sliderInfo.valId);
+
+                sliderEl.addEventListener("input", (e) => {
+                    const val = parseFloat(e.target.value);
+                    state[sliderInfo.stateKey] = val;
+                    valEl.textContent = val.toFixed(sliderInfo.decimals);
+                    scheduleRender();
+                });
+            });
+        }
+
+        function setRenderMode(mode) {
+            state.renderMode = mode;
+            const buttons = document.querySelectorAll(".mode-button");
+            buttons.forEach((btn, idx) => {
+                if (idx === mode) btn.classList.add("active");
+                else btn.classList.remove("active");
+            });
+            scheduleRender();
+        }
+
+        // --- Realtime 2D Vector Lecture Diagram ---
+        function updateDiagram() {
+            const canvas = document.getElementById("diagramCanvas");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const W = canvas.width;
+            const H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            // Center Point representing the hit position on front face of the Sphere
+            const cx = W / 2;
+            const cy = H * 0.7;
+            const size = 65; // vector scale length
+
+            // Approximate coordinates of the hit point
+            const px = state.sphereX;
+            const py = state.sphereY;
+            const pz = state.sphereZ - state.radius; // Front-most point of sphere
+
+            // 1. Light Vector L = normalize(LightPos - HitPoint)
+            const lx = state.lightX - px;
+            const ly = state.lightY - py;
+            const lz = state.lightZ - pz;
+            const lenL = Math.sqrt(lx*lx + ly*ly + lz*lz);
+            const L = { x: lx/lenL, y: ly/lenL, z: lz/lenL };
+
+            // 2. Normal Vector N (For front center, normal points to camera: [0, 0, -1])
+            const N = { x: 0, y: 0, z: -1 };
+
+            // 3. View Vector V (Points directly to camera: [0, 0, -1])
+            const V = { x: 0, y: 0, z: -1 };
+
+            // Dot Product (N·L)
+            const dotNL = N.x*L.x + N.y*L.y + N.z*L.z;
+            const clampedDotNL = Math.max(0.0, dotNL);
+
+            // 4. Reflection Vector R = 2*(N·L)*N - L
+            const R = {
+                x: 2 * dotNL * N.x - L.x,
+                y: 2 * dotNL * N.y - L.y,
+                z: 2 * dotNL * N.z - L.z
+            };
+            const lenR = Math.sqrt(R.x*R.x + R.y*R.y + R.z*R.z);
+            R.x /= lenR; R.y /= lenR; R.z /= lenR;
+
+            // Dot Product (R·V)
+            const dotRV = R.x*V.x + R.y*V.y + R.z*V.z;
+            const clampedDotRV = Math.max(0.0, dotRV);
+
+            // Specular Weight
+            const specWeight = Math.pow(clampedDotRV, state.alpha) * state.ks;
+
+            // Draw Flat Surface/Sphere Horizon (Top-down View Projection)
+            // Top-down: X is horizontal, Z is vertical. Camera is toward -Z (upwards on 2D)
+            ctx.beginPath();
+            ctx.arc(cx, cy + 30, 40, Math.PI * 1.1, Math.PI * 1.9, false);
+            ctx.strokeStyle = '#3a3a4c';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Function to draw arrow with label
+            const drawArrow = (vec, color, label) => {
+                // Mapping: 2D x = X, 2D y = Z (Top-down view)
+                // In Top-down view, -Z is upward direction
+                const tx = cx + vec.x * size;
+                const ty = cy + vec.z * size;
+
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(tx, ty);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Arrow Head
+                const angle = Math.atan2(ty - cy, tx - cx);
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx - 7 * Math.cos(angle - Math.PI/6), ty - 7 * Math.sin(angle - Math.PI/6));
+                ctx.lineTo(tx - 7 * Math.cos(angle + Math.PI/6), ty - 7 * Math.sin(angle + Math.PI/6));
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                // Text label
+                ctx.font = 'bold 11px monospace';
+                ctx.fillStyle = color;
+                ctx.fillText(label, tx + 6 * Math.cos(angle), ty + 4 * Math.sin(angle));
+            };
+
+            // Draw Vectors
+            drawArrow(N, '#00ff88', 'N'); // Normal (Green)
+            drawArrow(L, '#ffdd55', 'L'); // Light direction (Yellow)
+            drawArrow(R, '#ff55a3', 'R'); // Reflection direction (Pink)
+            drawArrow(V, '#55ccff', 'V'); // View/Camera (Sky Blue)
+
+            // Dynamic Shading Value Texts
+            ctx.font = '11px monospace';
+            ctx.fillStyle = '#8888aa';
+            ctx.fillText(`[ Top-Down X-Z Projection ]`, 10, 20);
+
+            ctx.fillStyle = '#ffdd55';
+            ctx.fillText(`cos θ (N·L)  = ${clampedDotNL.toFixed(3)}`, 10, 40);
+
+            ctx.fillStyle = '#ff55a3';
+            ctx.fillText(`cos φ (R·V)  = ${clampedDotRV.toFixed(3)}`, 10, 56);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(`Specular Int = ${specWeight.toFixed(3)}`, 10, 72);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

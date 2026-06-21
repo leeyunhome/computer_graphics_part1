@@ -188,6 +188,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현](리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-mod.md)
+
+
+[→ 데모 열기](리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-mod.md){.md-button}
+
+
+---
+
+
 ## [[리뷰 및 학습 가이드] Separable 5-Tap Box Blur 구현을 통한 2D 컨볼루션 최적화](리뷰-및-학습-가이드-separable-5-tap-box-blur-구현을.md)
 
 
