@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import shutil
 import datetime
 import argparse
 from git import Repo
@@ -17,7 +18,78 @@ DEMOS_PATH = os.path.join(DOCS_PATH, "demos")
 DATA_PATH = os.path.join(PORTFOLIO_REPO_PATH, "data")
 PROCESSED_COMMITS_FILE = os.path.join(DATA_PATH, "processed_commits.txt")
 
+# 강의에서 선택한 이미지 폴더 (private — 포트폴리오로 자동 동기화됨)
+STUDY_IMAGES_PATH = os.path.join(
+    STUDY_REPO_PATH, "HonglabComputerGraphics_part1", "images"
+)
+DOCS_IMAGES_PATH = os.path.join(DOCS_PATH, "images")
+
 SUPPORTED_EXTS = ('.cpp', '.h', '.c', '.hlsl', '.glsl', '.vert', '.frag', '.py')
+IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp')
+
+
+# ── Study image sync ──────────────────────────────────────────────────────────
+
+def sync_study_images():
+    """강의 이미지 폴더의 신규 파일을 docs/images/로 복사하고 전체 이미지 목록을 반환합니다.
+
+    Returns:
+        all_images  : docs/images/ 안의 모든 이미지 파일명 목록 (정렬)
+        newly_synced: 이번에 새로 복사된 파일명 목록
+    """
+    os.makedirs(DOCS_IMAGES_PATH, exist_ok=True)
+    newly_synced = []
+
+    if os.path.isdir(STUDY_IMAGES_PATH):
+        for fname in sorted(os.listdir(STUDY_IMAGES_PATH)):
+            if fname.lower().endswith(IMAGE_EXTS):
+                src = os.path.join(STUDY_IMAGES_PATH, fname)
+                dst = os.path.join(DOCS_IMAGES_PATH, fname)
+                if not os.path.exists(dst):
+                    shutil.copy2(src, dst)
+                    newly_synced.append(fname)
+                    print(f"  이미지 동기화: {fname}")
+
+    all_images = sorted(
+        f for f in os.listdir(DOCS_IMAGES_PATH)
+        if f.lower().endswith(IMAGE_EXTS)
+    )
+    return all_images, newly_synced
+
+
+def _build_image_prompt_section(all_images):
+    """Gemini 프롬프트에 삽입할 이미지 목록 섹션을 생성합니다."""
+    if not all_images:
+        return ""
+
+    lines = ["## 사용 가능한 이미지 (docs/images/ 폴더):"]
+    for fname in all_images:
+        lines.append(f"  - `../../images/{fname}`")
+
+    lines += [
+        "",
+        "이미지 활용 지침:",
+        "- **이미지 처리 주제** (밝기·블러·색상 변환 등): 절차적 패턴 대신 위 이미지 중 하나를 소스 텍스처로 사용하세요.",
+        "- **개념 다이어그램** (Phong, 법선벡터, 투영 등의 PNG): 데모 UI 패널에 `<img>` 태그로 표시해 이론 참고 이미지로 활용하세요.",
+        "- **이미지 로드 패턴** (텍스처 용도일 때):",
+        "```javascript",
+        "async function loadImage(url, w, h) {",
+        "  const img = new Image();",
+        "  await new Promise((resolve, reject) => {",
+        "    img.onload = resolve;",
+        "    img.onerror = () => reject(new Error(`이미지 로드 실패: ${url}`));",
+        "    img.src = url;",
+        "  });",
+        "  const c = document.createElement('canvas');",
+        "  c.width = w; c.height = h;",
+        "  c.getContext('2d').drawImage(img, 0, 0, w, h);",
+        "  return c;",
+        "}",
+        "// srcCanvas.getContext('2d').getImageData(0,0,W,H) → writeTexture()",
+        "```",
+        "- `copyExternalImageToTexture()` 사용 금지 — `RENDER_ATTACHMENT` 플래그 없이 검은 화면이 됩니다.",
+    ]
+    return "\n".join(lines)
 
 
 # ── Commit tracking ────────────────────────────────────────────────────────────
@@ -155,9 +227,10 @@ def generate_portfolio_post(commit_msg, diff_text, file_contents=None):
     return _call_gemini(prompt)
 
 
-def generate_webgpu_demo(commit_msg, diff_text, topic_hint, file_contents=None):
+def generate_webgpu_demo(commit_msg, diff_text, topic_hint, file_contents=None, all_images=None):
     """WebGPU Compute Shader 기반 self-contained HTML 데모를 생성합니다."""
     file_section = _format_file_contents(file_contents, max_chars_per_file=3000) if file_contents else "(파일 내용 없음)"
+    image_section = _build_image_prompt_section(all_images or [])
     prompt = f"""당신은 WebGPU/WGSL 전문가이며 DirectX 11 파이프라인을 WebGPU로 정확히 재현합니다.
 
 아래 DirectX 11 / C++ 컴퓨터 그래픽스 주제를 WebGPU Compute Shader 기반으로 구현하세요.
@@ -203,28 +276,7 @@ def generate_webgpu_demo(commit_msg, diff_text, topic_hint, file_contents=None):
 - 창 제목표시줄: `DirectX 11 — [주제명]` 스타일
 - 배경: `#1a1a2e`
 
-## 소스 이미지 (2D 이미지 처리 주제인 경우):
-- 밝기 조절, 블러, 색상 변환, 픽셀 조작 등의 주제에는 절차적 그라디언트/패턴 대신 반드시 실제 이미지를 사용하세요.
-- 이미지 URL은 반드시 `../../images/colosseum.jpg` 입니다 (`colosseum.jpg`만 쓰면 경로가 틀립니다).
-- `copyExternalImageToTexture()` 사용 금지 — `RENDER_ATTACHMENT` 플래그가 없으면 검은 화면이 됩니다.
-- Buffer 생성 시 반드시 `GPUBufferUsage.UNIFORM`, `GPUBufferUsage.COPY_DST` 사용 — `GPUTextureUsage.UNIFORM`은 존재하지 않습니다.
-- 반드시 아래 패턴으로 로드하세요:
-```javascript
-async function loadImage(url, w, h) {{
-  const img = new Image();
-  await new Promise((resolve, reject) => {{
-    img.onload = resolve;
-    img.onerror = () => reject(new Error(`이미지 로드 실패: ${{url}}`));
-    img.src = url;
-  }});
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  c.getContext('2d').drawImage(img, 0, 0, w, h);
-  return c;
-}}
-// 사용: const srcCanvas = await loadImage('../../images/colosseum.jpg', W, H);
-// 이후: srcCanvas.getContext('2d').getImageData(0, 0, W, H) → writeTexture()
-```
+{image_section}
 
 ## 기술 요구사항:
 - 단일 HTML 파일 (외부 라이브러리 금지 — WebGPU는 브라우저 내장)
@@ -532,6 +584,13 @@ def process_commit(commit_hash=None, skip_if_processed=True):
     label = commit_hash[:7] if commit_hash else 'HEAD'
     print(f"커밋 처리 중: {label}")
 
+    # 강의 이미지 동기화 (신규 이미지가 있으면 docs/images/로 복사)
+    all_images, newly_synced = sync_study_images()
+    if newly_synced:
+        print(f"  이미지 {len(newly_synced)}개 새로 동기화: {newly_synced}")
+    if all_images:
+        print(f"  사용 가능한 이미지: {all_images}")
+
     hexsha, commit_msg, diff_text, file_contents = get_commit_diff(STUDY_REPO_PATH, commit_hash)
     if not diff_text.strip():
         print("  주의: 지원되는 파일 형식의 코드 변경이 없습니다.")
@@ -546,7 +605,7 @@ def process_commit(commit_hash=None, skip_if_processed=True):
         title = first_line[2:].strip()
 
     demo_slug = _make_slug(title)[:40]
-    js_html = generate_webgpu_demo(commit_msg, diff_text, commit_msg, file_contents)
+    js_html = generate_webgpu_demo(commit_msg, diff_text, commit_msg, file_contents, all_images)
 
     save_and_commit(
         title, md_content,
