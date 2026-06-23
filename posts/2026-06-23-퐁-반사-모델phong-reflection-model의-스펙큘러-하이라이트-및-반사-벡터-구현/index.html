@@ -10,13 +10,9 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/demos/glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-23-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-model%EC%9D%98-%EC%8A%A4%ED%8E%99%ED%81%98%EB%9F%AC-%ED%95%98%EC%9D%B4%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%B0%8F-%EB%B0%98%EC%82%AC-%EB%B2%A1%ED%84%B0-%EA%B5%AC%ED%98%84/">
       
       
-        <link rel="prev" href="../%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/">
-      
-      
-        <link rel="next" href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/">
       
       
         
@@ -27,7 +23,7 @@
     
     
       
-        <title>GLM 실험적 확장 활성화를 통한 C++ 그래픽스 디버깅 환경 구축 - Computer Graphics Portfolio</title>
+        <title>퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현 - Computer Graphics Portfolio</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#glm-c" class="md-skip">
+        <a href="#phong-reflection-model" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -112,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              GLM 실험적 확장 활성화를 통한 C++ 그래픽스 디버깅 환경 구축
+              퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현
             
           </span>
         </div>
@@ -242,7 +238,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../posts/" class="md-tabs__link">
+      <a href="../" class="md-tabs__link">
         
   
   
@@ -259,13 +255,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../demos/" class="md-tabs__link">
           
   
   
@@ -356,7 +350,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../posts/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -380,31 +374,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -422,7 +411,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -440,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../demos/" class="md-nav__link">
         
   
   
@@ -468,7 +457,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pixel-animation/" class="md-nav__link">
+      <a href="../../demos/pixel-animation/" class="md-nav__link">
         
   
   
@@ -496,7 +485,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../raytracer/" class="md-nav__link">
+      <a href="../../demos/raytracer/" class="md-nav__link">
         
   
   
@@ -524,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
+      <a href="../../demos/boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
         
   
   
@@ -552,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
         
   
   
@@ -580,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
         
   
   
@@ -608,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
         
   
   
@@ -636,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
+      <a href="../../demos/box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
         
   
   
@@ -664,7 +653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
+      <a href="../../demos/directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
         
   
   
@@ -692,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
         
   
   
@@ -720,7 +709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
         
   
   
@@ -748,7 +737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
         
   
   
@@ -776,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
         
   
   
@@ -804,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -832,7 +821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -860,7 +849,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
         
   
   
@@ -888,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
+      <a href="../../demos/directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
         
   
   
@@ -916,7 +905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -944,7 +933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
         
   
   
@@ -972,7 +961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
         
   
   
@@ -1000,7 +989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1028,7 +1017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1056,7 +1045,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
+      <a href="../../demos/imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
         
   
   
@@ -1084,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
+      <a href="../../demos/directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
         
   
   
@@ -1112,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
         
   
   
@@ -1140,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
         
   
   
@@ -1168,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/" class="md-nav__link">
         
   
   
@@ -1196,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
         
   
   
@@ -1224,7 +1213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
         
   
   
@@ -1252,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1280,7 +1269,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
+      <a href="../../demos/bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
         
   
   
@@ -1308,7 +1297,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
         
   
   
@@ -1336,7 +1325,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
         
   
   
@@ -1364,7 +1353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
+      <a href="../../demos/%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
         
   
   
@@ -1392,7 +1381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
         
   
   
@@ -1420,7 +1409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
         
   
   
@@ -1448,7 +1437,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
+      <a href="../../demos/%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
         
   
   
@@ -1473,19 +1462,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../demos/glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/" class="md-nav__link">
         
   
   
@@ -1501,7 +1481,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1514,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
         
   
   
@@ -1542,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EC%9D%B4%ED%95%B4-%EB%B0%8F-directxmath%EC%99%80%EC%9D%98-%EB%B9%84/" class="md-nav__link">
+      <a href="../../demos/glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EC%9D%B4%ED%95%B4-%EB%B0%8F-directxmath%EC%99%80%EC%9D%98-%EB%B9%84/" class="md-nav__link">
         
   
   
@@ -1570,7 +1549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-3%EC%B0%A8%EC%9B%90-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EA%B8%B0%EC%B4%88-%EB%82%B4%EC%A0%81-%EC%99%B8%EC%A0%81-%EA%B7%B8%EB%A6%AC%EA%B3%A0-directx/" class="md-nav__link">
+      <a href="../../demos/glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-3%EC%B0%A8%EC%9B%90-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EA%B8%B0%EC%B4%88-%EB%82%B4%EC%A0%81-%EC%99%B8%EC%A0%81-%EA%B7%B8%EB%A6%AC%EA%B3%A0-directx/" class="md-nav__link">
         
   
   
@@ -1598,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EB%B3%84-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-point-in-circle-t/" class="md-nav__link">
+      <a href="../../demos/%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EB%B3%84-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-point-in-circle-t/" class="md-nav__link">
         
   
   
@@ -1626,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EC%A0%95point-in-circle-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-%EB%B0%8F-/" class="md-nav__link">
+      <a href="../../demos/%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EC%A0%95point-in-circle-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-%EB%B0%8F-/" class="md-nav__link">
         
   
   
@@ -1654,7 +1633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EC%9B%94%EB%93%9C-%EC%A2%8C%ED%91%9C%EA%B3%84-%EB%B3%80%ED%99%98-%EB%B0%8F-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1bloom-%ED%95%A9%EC%84%B1-%EA%B5%AC/" class="md-nav__link">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EC%9B%94%EB%93%9C-%EC%A2%8C%ED%91%9C%EA%B3%84-%EB%B3%80%ED%99%98-%EB%B0%8F-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1bloom-%ED%95%A9%EC%84%B1-%EA%B5%AC/" class="md-nav__link">
         
   
   
@@ -1682,7 +1661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EA%B4%91%EC%84%A0-%EA%B5%AC%EC%B2%B4-%EA%B5%90%EC%B0%A8-%ED%8C%90%EC%A0%95%EA%B3%BC-%EB%B2%95%EC%84%A0-%EB%B2%A1%ED%84%B0-%EA%B3%84%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+      <a href="../../demos/%EA%B4%91%EC%84%A0-%EA%B5%AC%EC%B2%B4-%EA%B5%90%EC%B0%A8-%ED%8C%90%EC%A0%95%EA%B3%BC-%EB%B2%95%EC%84%A0-%EB%B2%A1%ED%84%B0-%EA%B3%84%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EA%B5%AC%ED%98%84/" class="md-nav__link">
         
   
   
@@ -1710,7 +1689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%EB%A6%AC%EB%B7%B0-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B8%B0%EB%B0%98-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-mod/" class="md-nav__link">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B8%B0%EB%B0%98-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-mod/" class="md-nav__link">
         
   
   
@@ -1738,7 +1717,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-model%EC%9D%98-%EC%8A%A4%ED%8E%99%ED%81%98%EB%9F%AC-%ED%95%98%EC%9D%B4%EB%9D%BC%EC%9D%B4/" class="md-nav__link">
+      <a href="../../demos/%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-model%EC%9D%98-%EC%8A%A4%ED%8E%99%ED%81%98%EB%9F%AC-%ED%95%98%EC%9D%B4%EB%9D%BC%EC%9D%B4/" class="md-nav__link">
         
   
   
@@ -1786,6 +1765,142 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 핵심 수학적 개념 및 물리적 모델
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 핵심 수학적 개념 및 물리적 모델">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#r" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        반사 벡터(\(r\))의 유도
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i_specular" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스펙큘러 하이라이트(\(I_{specular}\)) 공식
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 학습자가 직접 구현하며 이해한 개념
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 학습자가 직접 구현하며 이해한 개념">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-v" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ① 레이트레이싱 환경에서의 시선 벡터(\(v\)) 정의
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-debugging-technique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ② 스펙큘러 하이라이트 개별 시각화 (Debugging technique)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 핵심 알고리즘 구조 (추상화 및 의사코드)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. WebGPU 인터랙티브 데모로의 확장 구상
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. WebGPU 인터랙티브 데모로의 확장 구상">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        웹 브라우저에서의 시각화 효과
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인터랙티브 WebGPU 데모
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1804,9 +1919,71 @@
   
 
 
-<h1 id="glm-c">GLM 실험적 확장 활성화를 통한 C++ 그래픽스 디버깅 환경 구축</h1>
+<h1 id="phong-reflection-model">퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현</h1>
+<p>본 커밋은 3차원 컴퓨터 그래픽스에서 물체의 입체감과 질감을 표현하는 데 핵심적인 <strong>퐁 반사 모델(Phong Reflection Model)</strong> 중, 광택 효과를 담당하는 <strong>스펙큘러 하이라이트(Specular Highlight)</strong>를 물리적 벡터 연산을 통해 구현한 단계입니다. </p>
+<p>학습자는 단순히 라이브러리 함수에 의존하지 않고, 빛의 입사각과 표면의 법선 벡터 사이의 기하학적 관계를 직접 정의하여 반사 벡터를 계산하고 이를 픽셀 셰이딩(여기서는 레이트레이싱 기법)에 적용하였습니다.</p>
+<hr />
+<h2 id="1">1. 핵심 수학적 개념 및 물리적 모델</h2>
+<p>퐁 반사 모델에서 스펙큘러 하이라이트는 관찰자의 시선이 빛의 정반사 경로와 얼마나 일치하는지에 따라 결정됩니다. 이 커밋의 핵심은 <strong>반사 벡터(Reflection Vector)</strong> <span class="arithmatex">\(r\)</span>과 <strong>시선 벡터(View Vector)</strong> <span class="arithmatex">\(v\)</span> 사이의 관계를 수학적으로 정의하고 구현한 것입니다.</p>
+<h3 id="r">반사 벡터(<span class="arithmatex">\(r\)</span>)의 유도</h3>
+<p>광원 방향 벡터를 <span class="arithmatex">\(l\)</span> (물체 표면에서 광원을 향하는 벡터), 표면의 법선 벡터를 <span class="arithmatex">\(n\)</span>이라고 할 때, 정반사 방향으로 나아가는 벡터 <span class="arithmatex">\(r\)</span>은 다음과 같은 대칭 관계를 가집니다.</p>
+<div class="arithmatex">\[ r = 2(n \cdot l)n - l \]</div>
+<ul>
+<li><strong><span class="arithmatex">\(n \cdot l\)</span> (내적):</strong> 법선 벡터와 광원 벡터가 이루는 각도의 코사인 값으로, 표면이 광원을 얼마나 정면으로 마주보고 있는지를 나타냅니다.</li>
+<li><strong><span class="arithmatex">\(2(n \cdot l)n\)</span>:</strong> 광원 벡터 <span class="arithmatex">\(l\)</span>을 법선 벡터 <span class="arithmatex">\(n\)</span>에 투영한 길이의 2배만큼 법선 방향으로 늘린 벡터입니다. 여기서 <span class="arithmatex">\(l\)</span>을 빼줌으로써 정반사 벡터 <span class="arithmatex">\(r\)</span>이 도출됩니다.</li>
+</ul>
+<h3 id="i_specular">스펙큘러 하이라이트(<span class="arithmatex">\(I_{specular}\)</span>) 공식</h3>
+<p>반사 벡터 <span class="arithmatex">\(r\)</span>이 구해지면, 카메라(시선) 방향 벡터 <span class="arithmatex">\(v\)</span>와의 정렬 상태를 계산하여 스펙큘러 강도를 결정합니다.</p>
+<div class="arithmatex">\[ I_{specular} = k_s \cdot C_{specular} \cdot (\max(v \cdot r, 0))^{\alpha} \]</div>
+<ul>
+<li><strong><span class="arithmatex">\(v\)</span> (시선 벡터):</strong> 물체 표면에서 카메라를 향하는 벡터입니다. 코드에서는 광선의 역방향인 <code>-ray.dir</code>로 정의됩니다.</li>
+<li><strong><span class="arithmatex">\(\alpha\)</span> (Shininess, 광택도):</strong> 하이라이트의 집중도를 조절하는 지수(Exponent)입니다. 값이 커질수록 하이라이트 영역이 좁고 강렬해져 금속이나 유리 같은 매끄러운 질감을 표현하고, 작을수록 플라스틱처럼 넓게 퍼지는 질감을 표현합니다. (본 구현에서는 <code>alpha = 9.0f</code> 사용)</li>
+<li><strong><span class="arithmatex">\(k_s\)</span> (스펙큘러 계수):</strong> 반사광의 세기를 조절하는 인자입니다. (본 구현에서는 <code>ks = 0.8f</code> 사용)</li>
+</ul>
+<hr />
+<h2 id="2">2. 학습자가 직접 구현하며 이해한 개념</h2>
+<h3 id="1-v">① 레이트레이싱 환경에서의 시선 벡터(<span class="arithmatex">\(v\)</span>) 정의</h3>
+<p>일반적으로 래스터라이저(Rasterizer) 기반 렌더링 파이프라인에서는 카메라 위치와 픽셀 위치의 차를 이용해 시선 벡터를 구합니다. 하지만 레이트레이싱에서는 픽셀로 쏘아 보낸 광선(Ray)의 방향 벡터 <code>ray.dir</code>이 존재하므로, 카메라를 향하는 벡터 <span class="arithmatex">\(v\)</span>는 광선 방향의 반대 방향인 <code>-ray.dir</code>이 된다는 기하학적 사실을 명확히 이해하고 코드로 구현했습니다.</p>
+<h3 id="2-debugging-technique">② 스펙큘러 하이라이트 개별 시각화 (Debugging technique)</h3>
+<p>학습자는 전체 조명(Ambient + Diffuse + Specular)을 한 번에 합쳐서 출력하지 않고, 최종 반환값으로 스펙큘러 성분만 단독 반환(<code>return sphere-&gt;spec * specular * sphere-&gt;ks;</code>)하도록 설정하였습니다. 이는 구현한 수학적 수식이 화면에 정확한 하이라이트 원형 범위를 만들어내는지 직관적으로 검증하기 위한 훌륭한 디버깅 접근법입니다.</p>
+<hr />
+<h2 id="3">3. 핵심 알고리즘 구조 (추상화 및 의사코드)</h2>
+<p>학습자가 작성한 <code>traceRay</code> 함수의 핵심 구조는 다음과 같이 추상화할 수 있습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">Color</span><span class="w"> </span><span class="nf">traceRay</span><span class="p">(</span><span class="n">Ray</span><span class="w"> </span><span class="n">ray</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="c1">// 1. 광선과 구체의 충돌 검사</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="n">HitRecord</span><span class="w"> </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">intersect</span><span class="p">(</span><span class="n">ray</span><span class="p">,</span><span class="w"> </span><span class="n">sphere</span><span class="p">);</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">hit</span><span class="p">.</span><span class="n">hasIntersected</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// 배경색 (검은색)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="c1">// 2. 표면 속성 및 기하 정보 정의</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">normal</span><span class="p">;</span><span class="w">                      </span><span class="c1">// 법선 벡터</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">L</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalize</span><span class="p">(</span><span class="n">Light</span><span class="p">.</span><span class="n">pos</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">point</span><span class="p">);</span><span class="w"> </span><span class="c1">// 광원 벡터</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalize</span><span class="p">(</span><span class="o">-</span><span class="n">ray</span><span class="p">.</span><span class="n">dir</span><span class="p">);</span><span class="w">             </span><span class="c1">// 시선 벡터 (카메라 방향)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="c1">// 3. 반사 벡터 계산 (r = 2(n·l)n - l)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">R</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dot</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">L</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">L</span><span class="p">;</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="c1">// 4. 스펙큘러 강도 계산 (pow(max(v·r, 0), alpha))</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">specFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pow</span><span class="p">(</span><span class="n">max</span><span class="p">(</span><span class="n">dot</span><span class="p">(</span><span class="n">V</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="p">),</span><span class="w"> </span><span class="mf">0.0</span><span class="p">),</span><span class="w"> </span><span class="n">sphere</span><span class="p">.</span><span class="n">alpha</span><span class="p">);</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="c1">// 5. 최종 스펙큘러 색상 반환</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">sphere</span><span class="p">.</span><span class="n">specularColor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">specFactor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sphere</span><span class="p">.</span><span class="n">specularIntensity</span><span class="p">;</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모로의 확장 구상</h2>
+<p>이 알고리즘을 최신 웹 그래픽스 API인 <strong>WebGPU</strong>의 Compute Shader 또는 Fragment Shader로 이식한다면 훨씬 동적이고 뛰어난 성능의 시각화를 구현할 수 있습니다.</p>
+<h3 id="_1">웹 브라우저에서의 시각화 효과</h3>
+<ul>
+<li><strong>실시간 광원 제어:</strong> 사용자가 마우스를 브라우저 화면 위에서 움직이면, 마우스의 <span class="arithmatex">\(xy\)</span> 좌표가 WebGPU Uniform Buffer를 통해 실시간으로 셰이더의 <code>light.pos</code>로 전달됩니다. 사용자는 마우스 이동에 따라 구체 표면의 반짝이는 하이라이트(Specular Highlight)가 실시간으로 부드럽게 궤적을 그리며 이동하는 모습을 관찰할 수 있습니다.</li>
+<li><strong>실시간 파라미터 조절 GUI:</strong> 웹 페이지에 슬라이더 조절 바를 배치하여 <code>alpha</code>(광택도) 값을 1.0에서 100.0까지, <code>ks</code> 값을 0.0에서 1.0까지 실시간으로 조절할 수 있습니다. <code>alpha</code>가 커질수록 하이라이트 점이 극도로 작고 밝아지며 구체가 점차 크롬 공처럼 단단하고 매끄러운 질감으로 변하는 과정을 GPU 가속을 통해 초당 60프레임 이상으로 즉각 확인하게 됩니다.</li>
+</ul>
+<hr />
+<h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이/demo.html" width="100%" height="700" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 

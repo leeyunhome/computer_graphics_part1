@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DirectX 11 — Specular Reflection Vector</title>
+  <style>
+    /* 기본 다크 테마 스타일링 */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      background-color: #1a1a2e;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* 헤더 / 타이틀 바 */
+    .title-bar {
+      background-color: #0f0f1b;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #2e2e4f;
+    }
+    .title-bar h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #61afef;
+    }
+    .status-badge {
+      font-size: 11px;
+      background-color: #2e3c56;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #a0aec0;
+      font-family: monospace;
+    }
+
+    /* 메인 레이아웃 */
+    .workspace {
+      display: flex;
+      flex-wrap: wrap;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* 캔버스 컨테이너 */
+    .canvas-container {
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #11111b;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+    }
+    canvas {
+      width: 520px;
+      height: 520px;
+      max-width: 100%;
+      max-height: 100%;
+      border: 4px solid #2e2e4f;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    /* 사이드바 스타일 (ImGui 다크 테마 느낌) */
+    .sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      background-color: #161625;
+      border-left: 2px solid #2e2e4f;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .panel {
+      padding: 16px;
+      border-bottom: 1px solid #2e2e4f;
+    }
+    .panel-title {
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      color: #98c379;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    /* 폼 요소 */
+    .control-group {
+      margin-bottom: 12px;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: #abb2bf;
+    }
+    .control-value {
+      color: #61afef;
+      font-family: monospace;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: #61afef;
+      background: #2e2e4f;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #61afef;
+      cursor: pointer;
+    }
+    
+    select {
+      width: 100%;
+      background-color: #212135;
+      color: #e2e8f0;
+      border: 1px solid #4b4b75;
+      padding: 6px;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* 이미지 및 이론 가이드 */
+    .diagram-container {
+      text-align: center;
+      margin-top: 10px;
+      background: #0f0f1b;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #2e2e4f;
+    }
+    .diagram-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+    .math-expr {
+      font-family: 'Cambria', serif;
+      font-style: italic;
+      color: #e5c07b;
+      font-size: 14px;
+      margin: 8px 0;
+    }
+
+    /* 에러 표시기 */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20, 20, 35, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #f87171;
+      text-align: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    #error-overlay h3 { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 타이틀 바 -->
+  <div class="title-bar">
+    <h1>DirectX 11 — Specular Reflection (Phong Shading)</h1>
+    <div class="status-badge" id="gpu-status">Initializing WebGPU...</div>
+  </div>
+
+  <!-- 메인 작업 공간 -->
+  <div class="workspace">
+    
+    <!-- 뷰포트 영역 -->
+    <div class="canvas-container">
+      <canvas id="webgpu-canvas" width="512" height="512"></canvas>
+      <div id="error-overlay" style="display: none;">
+        <h3>WebGPU 미지원 환경</h3>
+        <p id="error-message">WebGPU가 비활성화되어 있거나 지원되지 않는 브라우저입니다.</p>
+      </div>
+    </div>
+
+    <!-- UI 및 파라미터 조작 사이드바 -->
+    <div class="sidebar">
+      
+      <!-- 렌더링 모드 패널 -->
+      <div class="panel">
+        <div class="panel-title">⭐ Render Target Mode</div>
+        <div class="control-group">
+          <select id="render-mode">
+            <option value="0">Specular Highlight Only (Ks * specular)</option>
+            <option value="1">Diffuse Term Only (Kd * cos_theta)</option>
+            <option value="2">Phong Shading Combined (Ambient + Diffuse + Specular)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Specular Reflection 파라미터 패널 -->
+      <div class="panel">
+        <div class="panel-title">✨ Specular Properties</div>
+        
+        <div class="control-group">
+          <div class="control-label">
+            <span>Shininess (Alpha / Exponent)</span>
+            <span class="control-value" id="val-alpha">9.0</span>
+          </div>
+          <input type="range" id="slider-alpha" min="1" max="128" step="1" value="9">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Specular Strength (Ks)</span>
+            <span class="control-value" id="val-ks">0.80</span>
+          </div>
+          <input type="range" id="slider-ks" min="0" max="1" step="0.05" value="0.8">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Specular Color (R, G, B)</span>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <input type="range" id="slider-spec-r" min="0" max="1" step="0.05" value="1" title="Red">
+            <input type="range" id="slider-spec-g" min="0" max="1" step="0.05" value="1" title="Green">
+            <input type="range" id="slider-spec-b" min="0" max="1" step="0.05" value="1" title="Blue">
+          </div>
+        </div>
+      </div>
+
+      <!-- 기하학 및 광원 설정 패널 -->
+      <div class="panel">
+        <div class="panel-title">💡 Light & Scene Settings</div>
+        
+        <div class="control-group">
+          <div class="control-label">
+            <span>Light Position X</span>
+            <span class="control-value" id="val-light-x">0.0</span>
+          </div>
+          <input type="range" id="slider-light-x" min="-2" max="2" step="0.1" value="0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Light Position Y</span>
+            <span class="control-value" id="val-light-y">0.0</span>
+          </div>
+          <input type="range" id="slider-light-y" min="-2" max="2" step="0.1" value="0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Light Position Z</span>
+            <span class="control-value" id="val-light-z">-1.0</span>
+          </div>
+          <input type="range" id="slider-light-z" min="-3" max="0" step="0.1" value="-1">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sphere Radius</span>
+            <span class="control-value" id="val-radius">0.5</span>
+          </div>
+          <input type="range" id="slider-radius" min="0.1" max="0.9" step="0.05" value="0.5">
+        </div>
+      </div>
+
+      <!-- 이론 및 다이어그램 패널 -->
+      <div class="panel">
+        <div class="panel-title">📖 Reference & Vector Formula</div>
+        <div class="diagram-container">
+          <div class="math-expr">r = 2(n · l)n - l</div>
+          <img src="../../images/03_Raytracing_Step5_PhongShading_specular_reflection_vector_r_from_l_and_n.png" alt="Phong Reflection Diagram" class="diagram-img">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- WebGPU 어플리케이션 구현 ---
+
+    // 전역 파라미터 객체
+    const params = {
+      alpha: 9.0,
+      ks: 0.8,
+      specColor: [1.0, 1.0, 1.0],
+      lightPos: [0.0, 0.0, -1.0],
+      sphereRadius: 0.5,
+      renderMode: 0, // 0: Specular, 1: Diffuse, 2: Combined
+      sphereCenter: [0.0, 0.0, 0.5],
+      diffColor: [0.0, 0.0, 1.0],
+      ambColor: [0.0, 0.0, 0.0]
+    };
+
+    let device, context;
+    let computePipeline, renderPipeline;
+    let storageTexture, textureView;
+    let paramsBuffer;
+    let computeBindGroup, renderBindGroup;
+    let isPendingRender = false;
+
+    // 에러 표시 헬퍼
+    function showError(msg) {
+      document.getElementById('error-overlay').style.display = 'flex';
+      document.getElementById('error-message').textContent = msg;
+      document.getElementById('gpu-status').textContent = "Initialization Failed";
+      document.getElementById('gpu-status').style.backgroundColor = "#722323";
+    }
+
+    // WebGPU 초기화
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        showError("WebGPU를 지원하지 않는 브라우저입니다. Chrome/Edge/Firefox 최신 버전을 사용하세요.");
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        showError("호환되는 GPU 어댑터를 찾을 수 없습니다.");
+        return false;
+      }
+
+      device = await adapter.requestDevice();
+      if (!device) {
+        showError("WebGPU 디바이스 요청에 실패했습니다.");
+        return false;
+      }
+
+      const canvas = document.getElementById('webgpu-canvas');
+      context = canvas.getContext('webgpu');
+      
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format,
+        alphaMode: 'opaque'
+      });
+
+      document.getElementById('gpu-status').textContent = "WebGPU (DirectX 11 emulation) Active";
+      document.getElementById('gpu-status').style.backgroundColor = "#24422e";
+      return true;
+    }
+
+    // WGSL 셰이더 코드 정의
+    const computeShaderWGSL = `
+      struct Params {
+        lightPos: vec3f,
+        alpha: f32,
+        sphereCenter: vec3f,
+        sphereRadius: f32,
+        diffColor: vec3f,
+        ks: f32,
+        specColor: vec3f,
+        renderMode: u32,
+        ambColor: vec3f,
+        padding: f32,
+      };
+
+      @group(0) @binding(0) var outTexture: texture_storage_2d<rgba8unorm, write>;
+      @group(0) @binding(1) var<uniform> params: Params;
+
+      struct Ray {
+        origin: vec3f,
+        direction: vec3f,
+      };
+
+      struct Hit {
+        d: f32,
+        point: vec3f,
+        normal: vec3f,
+      };
+
+      fn intersectRaySphere(ray: Ray, center: vec3f, radius: f32) -> Hit {
+        var hit: Hit;
+        hit.d = -1.0;
+
+        let oc = ray.origin - center;
+        let b = 2.0 * dot(ray.direction, oc);
+        let c = dot(oc, oc) - (radius * radius);
+        let discriminant = b * b - 4.0 * c;
+
+        if (discriminant < 0.0) {
+          return hit;
+        }
+
+        let t = (-b - sqrt(discriminant)) / 2.0;
+        if (t > 0.0) {
+          hit.d = t;
+          hit.point = ray.origin + t * ray.direction;
+          hit.normal = normalize(hit.point - center);
+        }
+        return hit;
+      }
+
+      @compute @workgroup_size(8, 8)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(outTexture);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        let width = f32(size.x);
+        let height = f32(size.y);
+        let aspect = width / height;
+
+        // Screen to World 좌표 변환
+        let xScale = 2.0 / width;
+        let yScale = 2.0 / height;
+        let px = (f32(id.x) * xScale - 1.0) * aspect;
+        let py = -(f32(id.y) * yScale - 1.0);
+
+        let rayDir = vec3f(0.0, 0.0, 1.0);
+        var ray: Ray;
+        ray.origin = vec3f(px, py, 0.0);
+        ray.direction = rayDir;
+
+        let hit = intersectRaySphere(ray, params.sphereCenter, params.sphereRadius);
+
+        if (hit.d < 0.0) {
+          textureStore(outTexture, id.xy, vec4f(0.0, 0.0, 0.0, 1.0));
+        } else {
+          // Diffuse Term 계산
+          let dirToLight = normalize(params.lightPos - hit.point);
+          let diff = max(dot(hit.normal, dirToLight), 0.0);
+
+          // Specular Term 계산: r = 2*(n·l)*n - l 공식 적용
+          let reflectDir = 2.0 * dot(hit.normal, dirToLight) * hit.normal - dirToLight;
+          let specular = pow(max(dot(-ray.direction, reflectDir), 0.0), params.alpha);
+
+          var outColor = vec3f(0.0);
+          
+          if (params.renderMode == 0u) {
+            // Specular Only
+            outColor = params.specColor * specular * params.ks;
+          } else if (params.renderMode == 1u) {
+            // Diffuse Only
+            outColor = params.diffColor * diff;
+          } else {
+            // Phong Combined
+            outColor = params.ambColor + params.diffColor * diff + params.specColor * specular * params.ks;
+          }
+
+          outColor = clamp(outColor, vec3f(0.0), vec3f(1.0));
+          textureStore(outTexture, id.xy, vec4f(outColor, 1.0));
+        }
+      }
+    `;
+
+    const renderShaderWGSL = `
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+      };
+
+      @vertex
+      fn vs_main(@builtin(vertex_index) index: u32) -> VertexOutput {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0,  1.0),
+          vec2f(-1.0,  1.0), vec2f(1.0, -1.0), vec2f(1.0,  1.0)
+        );
+        var uv = array<vec2f, 6>(
+          vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+          vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+        );
+        var output: VertexOutput;
+        output.position = vec4f(pos[index], 0.0, 1.0);
+        output.uv = uv[index];
+        return output;
+      }
+
+      @group(0) @binding(0) var t: texture_2d<f32>;
+      @group(0) @binding(1) var s: sampler;
+
+      @fragment
+      fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        return textureSample(t, s, uv);
+      }
+    `;
+
+    // 파이프라인 자원 생성
+    function setupPipelines() {
+      const W = 512, H = 512;
+
+      // Storage Texture 생성 (컴퓨트 셰이더의 결과물)
+      storageTexture = device.createTexture({
+        size: [W, H],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+      textureView = storageTexture.createView();
+
+      // Uniform 버퍼 생성 (메모리 정렬 구조 준수)
+      // 크기: 80 bytes
+      paramsBuffer = device.createBuffer({
+        size: 80,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // --- Compute Pipeline 구성 ---
+      const computeModule = device.createShaderModule({ code: computeShaderWGSL });
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: { module: computeModule, entryPoint: 'main' }
+      });
+
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: textureView },
+          { binding: 1, resource: { buffer: paramsBuffer } }
+        ]
+      });
+
+      // --- Render Pipeline 구성 ---
+      const renderModule = device.createShaderModule({ code: renderShaderWGSL });
+      const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+      });
+
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: { module: renderModule, entryPoint: 'vs_main' },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+        }
+      });
+
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: textureView },
+          { binding: 1, resource: sampler }
+        ]
+      });
+    }
+
+    // 버퍼에 파라미터 복사
+    function updateUniforms() {
+      const bufferData = new ArrayBuffer(80);
+      const floatView = new Float32Array(bufferData);
+      const uintView = new Uint32Array(bufferData);
+
+      // lightPos: vec3f -> align 16 (elements 0, 1, 2)
+      floatView[0] = params.lightPos[0];
+      floatView[1] = params.lightPos[1];
+      floatView[2] = params.lightPos[2];
+      
+      // alpha: f32 -> element 3
+      floatView[3] = params.alpha;
+
+      // sphereCenter: vec3f -> align 16 (elements 4, 5, 6)
+      floatView[4] = params.sphereCenter[0];
+      floatView[5] = params.sphereCenter[1];
+      floatView[6] = params.sphereCenter[2];
+
+      // sphereRadius: f32 -> element 7
+      floatView[7] = params.sphereRadius;
+
+      // diffColor: vec3f -> align 16 (elements 8, 9, 10)
+      floatView[8] = params.diffColor[0];
+      floatView[9] = params.diffColor[1];
+      floatView[10] = params.diffColor[2];
+
+      // ks: f32 -> element 11
+      floatView[11] = params.ks;
+
+      // specColor: vec3f -> align 16 (elements 12, 13, 14)
+      floatView[12] = params.specColor[0];
+      floatView[13] = params.specColor[1];
+      floatView[14] = params.specColor[2];
+
+      // renderMode: u32 -> element 15
+      uintView[15] = params.renderMode;
+
+      // ambColor: vec3f -> align 16 (elements 16, 17, 18)
+      floatView[16] = params.ambColor[0];
+      floatView[17] = params.ambColor[1];
+      floatView[18] = params.ambColor[2];
+
+      // padding -> element 19
+      floatView[19] = 0.0;
+
+      device.queue.writeBuffer(paramsBuffer, 0, bufferData);
+    }
+
+    // 화면 그리기
+    function render() {
+      updateUniforms();
+
+      const encoder = device.createCommandEncoder();
+
+      // 1. Compute Pass
+      const computePass = encoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      // 512x512 해상도를 8x8 워크그룹 사이즈로 디스패치
+      computePass.dispatchWorkgroups(Math.ceil(512 / 8), Math.ceil(512 / 8));
+      computePass.end();
+
+      // 2. Render Pass
+      const renderPass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6); // Fullscreen Quad (6 Vertices)
+      renderPass.end();
+
+      device.queue.submit([encoder.finish()]);
+      isPendingRender = false;
+    }
+
+    // 중복 호출 방지를 위한 렌더링 스케줄러
+    function scheduleRender() {
+      if (isPendingRender) return;
+      isPendingRender = true;
+      requestAnimationFrame(render);
+    }
+
+    // UI 동기화 및 이벤트 처리기 등록
+    function setupUI() {
+      const sliderAlpha = document.getElementById('slider-alpha');
+      const valAlpha = document.getElementById('val-alpha');
+      sliderAlpha.addEventListener('input', (e) => {
+        params.alpha = parseFloat(e.target.value);
+        valAlpha.textContent = params.alpha.toFixed(1);
+        scheduleRender();
+      });
+
+      const sliderKs = document.getElementById('slider-ks');
+      const valKs = document.getElementById('val-ks');
+      sliderKs.addEventListener('input', (e) => {
+        params.ks = parseFloat(e.target.value);
+        valKs.textContent = params.ks.toFixed(2);
+        scheduleRender();
+      });
+
+      const sliderSpecR = document.getElementById('slider-spec-r');
+      const sliderSpecG = document.getElementById('slider-spec-g');
+      const sliderSpecB = document.getElementById('slider-spec-b');
+      const updateSpecColor = () => {
+        params.specColor = [
+          parseFloat(sliderSpecR.value),
+          parseFloat(sliderSpecG.value),
+          parseFloat(sliderSpecB.value)
+        ];
+        scheduleRender();
+      };
+      sliderSpecR.addEventListener('input', updateSpecColor);
+      sliderSpecG.addEventListener('input', updateSpecColor);
+      sliderSpecB.addEventListener('input', updateSpecColor);
+
+      const sliderLightX = document.getElementById('slider-light-x');
+      const valLightX = document.getElementById('val-light-x');
+      sliderLightX.addEventListener('input', (e) => {
+        params.lightPos[0] = parseFloat(e.target.value);
+        valLightX.textContent = params.lightPos[0].toFixed(1);
+        scheduleRender();
+      });
+
+      const sliderLightY = document.getElementById('slider-light-y');
+      const valLightY = document.getElementById('val-light-y');
+      sliderLightY.addEventListener('input', (e) => {
+        params.lightPos[1] = parseFloat(e.target.value);
+        valLightY.textContent = params.lightPos[1].toFixed(1);
+        scheduleRender();
+      });
+
+      const sliderLightZ = document.getElementById('slider-light-z');
+      const valLightZ = document.getElementById('val-light-z');
+      sliderLightZ.addEventListener('input', (e) => {
+        params.lightPos[2] = parseFloat(e.target.value);
+        valLightZ.textContent = params.lightPos[2].toFixed(1);
+        scheduleRender();
+      });
+
+      const sliderRadius = document.getElementById('slider-radius');
+      const valRadius = document.getElementById('val-radius');
+      sliderRadius.addEventListener('input', (e) => {
+        params.sphereRadius = parseFloat(e.target.value);
+        valRadius.textContent = params.sphereRadius.toFixed(2);
+        scheduleRender();
+      });
+
+      const renderModeSelect = document.getElementById('render-mode');
+      renderModeSelect.addEventListener('change', (e) => {
+        params.renderMode = parseInt(e.target.value, 10);
+        scheduleRender();
+      });
+    }
+
+    // 메인 흐름 제어
+    async function main() {
+      const ok = await initWebGPU();
+      if (!ok) return;
+
+      setupPipelines();
+      setupUI();
+      scheduleRender();
+    }
+
+    window.addEventListener('DOMContentLoaded', main);
+  </script>
+</body>
+</html>
