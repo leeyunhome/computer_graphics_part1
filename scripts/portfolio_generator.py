@@ -269,9 +269,30 @@ def generate_webgpu_demo(commit_msg, diff_text, topic_hint, file_contents=None, 
 4. Render Pipeline + Render Pass — Storage Texture를 fullscreen quad로 표시
 5. 슬라이더 변경 → `device.queue.writeBuffer` → scheduleRender()
 
+## GUI 라벨 규칙 (최우선 — 반드시 준수):
+위 C++ 소스 코드에서 ImGui 호출을 찾아 아래 규칙을 따르세요:
+
+1. **패널 제목** — `ImGui::Begin("Circle")` → 사이드바 섹션 제목을 `"Circle"` 그대로 사용
+2. **슬라이더 레이블** — `ImGui::SliderFloat("Radius", ...)` → HTML label을 `"Radius"` 그대로 사용
+3. **슬라이더 범위** — `ImGui::SliderFloat("Radius", &val, 0.0f, 1.0f)` → `min="0" max="1"` 그대로 사용
+4. **슬라이더3** — `ImGui::SliderFloat3("Center", ...)` → X/Y/Z 세 슬라이더로 분리하되 레이블은 `"Center X"`, `"Center Y"`, `"Center Z"`
+5. **기본값** — C++ 소스의 초기값(`sphere->center = vec3(0,0,0.5)` 등)을 슬라이더 `value` 속성에 반영
+6. ImGui 호출이 소스에 없으면 주제에 맞는 직관적인 영문 레이블 사용
+
+예시 (Step5 PhongShading의 ImGui 코드 → HTML 변환):
+```
+// C++                                           // HTML
+ImGui::Begin("Circle");                       →  <div class="section-title">Circle</div>
+ImGui::SliderFloat3("Center", &c.x, -1, 1);  →  <label>Center X</label><input min="-1" max="1">
+ImGui::SliderFloat("Radius", &r, 0, 1);      →  <label>Radius</label><input min="0" max="1">
+ImGui::SliderFloat3("Light", &l.x, -2, 2);   →  <label>Light X/Y/Z</label><input min="-2" max="2">
+ImGui::SliderFloat3("Ambient color",...);     →  <label>Ambient color R/G/B</label>
+ImGui::SliderFloat("Specular power",...,100); →  <label>Specular power</label><input max="100">
+```
+
 ## UI 요구사항:
 - ImGui 스타일 다크 테마 (창 프레임 포함, DirectX 11 앱 느낌)
-- 파라미터 조작 슬라이더 (한국어 레이블)
+- 파라미터 조작 슬라이더 (레이블은 위 GUI 라벨 규칙 우선, 없으면 영문)
 - 실시간 업데이트 (`scheduleRender` 패턴 — RAF 중복 방지)
 - 창 제목표시줄: `DirectX 11 — [주제명]` 스타일
 - 배경: `#1a1a2e`
