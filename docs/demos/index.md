@@ -350,6 +350,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현](퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이.md)
+
+
+[→ 데모 열기](퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이.md){.md-button}
+
+
+---
+
+
 ## [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](피드백-separable-5-tap-gaussian-blur-구현-분석-.md)
 
 
