@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Phong Specular Reflection Vector</title>
+  <style>
+    /* 필수 레이아웃 골격 */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      background-color: #1a1a2e;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+    
+    /* ImGui 스타일 타이틀 바 */
+    .title-bar {
+      background-color: #0f0f1b;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #2e2e4f;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #a78bfa;
+    }
+    .title-bar .status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background-color: #1e1b4b;
+      color: #818cf8;
+      border: 1px solid #312e81;
+    }
+
+    .workspace {
+      display: flex;
+      flex-wrap: wrap;
+      flex: 1;
+      min-height: 0; /* min-height: 0 필수 */
+      overflow: hidden;
+    }
+
+    .canvas-container {
+      flex: 1;
+      min-width: 300px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0d0d16;
+      position: relative;
+    }
+
+    canvas {
+      width: 512px;
+      height: 512px;
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      background-color: #000;
+      border-radius: 4px;
+    }
+
+    /* 사이드바 스타일 (ImGui 다크 테마) */
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      overflow-y: auto; /* 스크롤 활성화 */
+      background-color: #121222;
+      border-left: 1px solid #2e2e4f;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (max-width: 700px) {
+      .sidebar {
+        width: 100%;
+        max-height: 55vh;
+        border-left: none;
+        border-top: 1px solid #2e2e4f;
+      }
+    }
+
+    .panel {
+      padding: 16px;
+      border-bottom: 1px solid #1e1e38;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-group {
+      margin-bottom: 14px;
+    }
+
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+
+    .control-group label span.value {
+      font-family: monospace;
+      color: #38bdf8;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #1e1e38;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      accent-color: #a78bfa;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 28px;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+
+    /* 이미지 스타일 */
+    .concept-img-container {
+      margin-top: 10px;
+      background: #0f0f1b;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #2e2e4f;
+      text-align: center;
+    }
+
+    .concept-img-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 2px;
+    }
+
+    .concept-img-title {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* 수식 공식 박스 */
+    .formula-box {
+      background-color: #0f0f1b;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #2e2e4f;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #34d399;
+      margin-bottom: 12px;
+    }
+
+    /* WebGPU 에러 알림 */
+    .error-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 100;
+    }
+
+    .error-title {
+      font-size: 18px;
+      color: #ef4444;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .error-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      max-width: 400px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 제목 표시줄 (DirectX 11 컨셉) -->
+  <div class="title-bar">
+    <div>DirectX 11 — Phong Specular Reflection Vector [Raytracing]</div>
+    <div class="status">GPU COMPUTE PIPELINE</div>
+  </div>
+
+  <div class="workspace">
+    <!-- 메인 캔버스 뷰포트 -->
+    <div class="canvas-container">
+      <div id="errorOverlay" class="error-overlay">
+        <div class="error-title">WebGPU 미지원 브라우저</div>
+        <div class="error-desc">
+          현재 브라우저가 WebGPU를 지원하지 않거나 활성화되지 않았습니다. Chrome, Edge, Opera 최신 버전 또는 Safari 기술 미리보기를 사용해 주세요.
+        </div>
+      </div>
+      <canvas id="webgpuCanvas" width="512" height="512"></canvas>
+    </div>
+
+    <!-- 사이드바 컨트롤 패널 -->
+    <div class="sidebar">
+      
+      <!-- 수학적 수식 패널 -->
+      <div class="panel">
+        <div class="panel-title">수학적 정의 (Phong Specular)</div>
+        <div class="formula-box">
+          // 반사 벡터 수식<br>
+          reflectDir = 2*(n · l)*n - l<br><br>
+          // Phong Specular 계산<br>
+          specular = pow(max(dot(-rayDir, reflectDir), 0), alpha)
+        </div>
+      </div>
+
+      <!-- 구체 파라미터 조작 -->
+      <div class="panel">
+        <div class="panel-title">Sphere Properties</div>
+        
+        <div class="control-group">
+          <label>Shininess (Alpha) <span class="value" id="valAlpha">9.0</span></label>
+          <input type="range" id="inputAlpha" min="1.0" max="100.0" step="0.5" value="9.0">
+        </div>
+
+        <div class="control-group">
+          <label>Specular Intensity (ks) <span class="value" id="valKs">0.8</span></label>
+          <input type="range" id="inputKs" min="0.0" max="1.0" step="0.05" value="0.8">
+        </div>
+
+        <div class="control-group">
+          <label>Radius <span class="value" id="valRadius">0.5</span></label>
+          <input type="range" id="inputRadius" min="0.1" max="1.0" step="0.01" value="0.5">
+        </div>
+
+        <div class="control-group">
+          <label>Center Z <span class="value" id="valSphereZ">0.5</span></label>
+          <input type="range" id="inputSphereZ" min="0.1" max="1.5" step="0.01" value="0.5">
+        </div>
+      </div>
+
+      <!-- 광원 파라미터 조작 -->
+      <div class="panel">
+        <div class="panel-title">Light Properties</div>
+
+        <div class="control-group">
+          <label>Light Pos X <span class="value" id="valLightX">0.00</span></label>
+          <input type="range" id="inputLightX" min="-2.0" max="2.0" step="0.05" value="0.0">
+        </div>
+
+        <div class="control-group">
+          <label>Light Pos Y <span class="value" id="valLightY">0.00</span></label>
+          <input type="range" id="inputLightY" min="-2.0" max="2.0" step="0.05" value="0.0">
+        </div>
+
+        <div class="control-group">
+          <label>Light Pos Z <span class="value" id="valLightZ">-1.00</span></label>
+          <input type="range" id="inputLightZ" min="-3.0" max="-0.1" step="0.05" value="-1.0">
+        </div>
+      </div>
+
+      <!-- 색상 제어 -->
+      <div class="panel">
+        <div class="panel-title">Material Colors</div>
+        
+        <div class="control-group">
+          <label>Diffuse Color (diff)</label>
+          <input type="color" id="inputColorDiff" value="#0000ff">
+        </div>
+
+        <div class="control-group">
+          <label>Specular Color (spec)</label>
+          <input type="color" id="inputColorSpec" value="#ffffff">
+        </div>
+
+        <div class="control-group">
+          <label>Ambient Color (amb)</label>
+          <input type="color" id="inputColorAmb" value="#000000">
+        </div>
+      </div>
+
+      <!-- 개념 참고 다이어그램 -->
+      <div class="panel">
+        <div class="panel-title">이론 참고도</div>
+        <div class="concept-img-container">
+          <img src="../../images/03_Raytracing_Step5_PhongShading_specular_reflection_vector_r_from_l_and_n.png" alt="Phong Reflection Diagram" onerror="this.style.display='none'">
+          <div class="concept-img-title">반사 벡터 r = 2(n·l)n - l 과 시야 벡터 v</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- WGSL Shaders ---
+
+    // Compute Shader
+    const computeShaderWGSL = `
+      struct Params {
+        lightPos: vec4f,       // xyz: pos, w: reserved
+        sphereCenter: vec4f,   // xyz: center, w: radius
+        sphereAmb: vec4f,      // xyz: ambient
+        sphereDiff: vec4f,     // xyz: diffuse
+        sphereSpec: vec4f,     // xyz: specular
+        props: vec4f,          // x: alpha, y: ks, z: width, w: height
+      };
+
+      @group(0) @binding(0) var outTex: texture_storage_2d<rgba8unorm, write>;
+      @group(0) @binding(1) var<uniform> params: Params;
+
+      fn intersectSphere(rayOrigin: vec3f, rayDir: vec3f, center: vec3f, radius: f32) -> f32 {
+          let oc = rayOrigin - center;
+          let b = 2.0 * dot(rayDir, oc);
+          let c = dot(oc, oc) - radius * radius;
+          let discriminant = b * b - 4.0 * c;
+          if (discriminant < 0.0) {
+              return -1.0;
+          }
+          let t1 = (-b - sqrt(discriminant)) / 2.0;
+          let t2 = (-b + sqrt(discriminant)) / 2.0;
+          if (t1 > 0.0) { return t1; }
+          if (t2 > 0.0) { return t2; }
+          return -1.0;
+      }
+
+      fn transformScreenToWorld(posScreen: vec2f, width: f32, height: f32) -> vec3f {
+          let xScale = 2.0 / width;
+          let yScale = 2.0 / height;
+          let aspect = width / height;
+          return vec3f((posScreen.x * xScale - 1.0) * aspect, -posScreen.y * yScale + 1.0, 0.0);
+      }
+
+      @compute @workgroup_size(8, 8)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+          let width = params.props.z;
+          let height = params.props.w;
+          if (f32(id.x) >= width || f32(id.y) >= height) { return; }
+
+          let pixelPosWorld = transformScreenToWorld(vec2f(f32(id.x), f32(id.y)), width, height);
+          
+          // DirectX 11 C++ 코드의 Orthographic Ray 세팅과 동일하게 적용
+          let rayDir = vec3f(0.0, 0.0, 1.0); 
+          let rayOrigin = pixelPosWorld;
+
+          let center = params.sphereCenter.xyz;
+          let radius = params.sphereCenter.w;
+          
+          let hitT = intersectSphere(rayOrigin, rayDir, center, radius);
+
+          var finalColor = vec3f(0.0);
+
+          if (hitT >= 0.0) {
+              let hitPoint = rayOrigin + hitT * rayDir;
+              let normal = normalize(hitPoint - center);
+
+              // Diffuse 계산
+              let lightPos = params.lightPos.xyz;
+              let dirToLight = normalize(lightPos - hitPoint);
+              let diffFactor = max(dot(normal, dirToLight), 0.0);
+
+              // Specular 계산: r = 2*(n·l)*n - l 수식 그대로 구현
+              let reflectDir = 2.0 * dot(normal, dirToLight) * normal - dirToLight;
+              
+              let alpha = params.props.x;
+              let ks = params.props.y;
+              let specularFactor = pow(max(dot(-rayDir, reflectDir), 0.0), alpha);
+
+              let amb = params.sphereAmb.xyz;
+              let diffColor = params.sphereDiff.xyz;
+              let specColor = params.sphereSpec.xyz;
+
+              // Phong 반사 모델 완성식
+              finalColor = amb + diffColor * diffFactor + specColor * specularFactor * ks;
+              finalColor = clamp(finalColor, vec3f(0.0), vec3f(1.0));
+          }
+
+          textureStore(outTex, id.xy, vec4f(finalColor, 1.0));
+      }
+    `;
+
+    // Fullscreen Quad Render Shader
+    const renderShaderWGSL = `
+      @group(0) @binding(0) var t: texture_2d<f32>;
+
+      struct VSOut {
+          @builtin(position) pos: vec4f,
+      };
+
+      @vertex
+      fn vs(@builtin(vertex_index) idx: u32) -> VSOut {
+          var pos = array<vec2f, 6>(
+              vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+              vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+          );
+          var out: VSOut;
+          out.pos = vec4f(pos[idx], 0.0, 1.0);
+          return out;
+      }
+
+      @fragment
+      fn fs(in: VSOut) -> @location(0) vec4f {
+          let coord = vec2i(in.pos.xy);
+          return textureLoad(t, coord, 0);
+      }
+    `;
+
+    // --- WebGPU 및 UI 연동 로직 ---
+
+    let device, context;
+    let computePipeline, renderPipeline;
+    let storageTexture, uniformBuffer;
+    let computeBindGroup, renderBindGroup;
+
+    const canvas = document.getElementById("webgpuCanvas");
+    const width = 512;
+    const height = 512;
+
+    // UI elements
+    const inputs = {
+      alpha: document.getElementById("inputAlpha"),
+      ks: document.getElementById("inputKs"),
+      radius: document.getElementById("inputRadius"),
+      sphereZ: document.getElementById("inputSphereZ"),
+      lightX: document.getElementById("inputLightX"),
+      lightY: document.getElementById("inputLightY"),
+      lightZ: document.getElementById("inputLightZ"),
+      colorDiff: document.getElementById("inputColorDiff"),
+      colorSpec: document.getElementById("inputColorSpec"),
+      colorAmb: document.getElementById("inputColorAmb")
+    };
+
+    const displays = {
+      alpha: document.getElementById("valAlpha"),
+      ks: document.getElementById("valKs"),
+      radius: document.getElementById("valRadius"),
+      sphereZ: document.getElementById("valSphereZ"),
+      lightX: document.getElementById("valLightX"),
+      lightY: document.getElementById("valLightY"),
+      lightZ: document.getElementById("valLightZ")
+    };
+
+    function hexToRgb(hex) {
+      const bigint = parseInt(hex.slice(1), 16);
+      return [
+        ((bigint >> 16) & 255) / 255.0,
+        ((bigint >> 8) & 255) / 255.0,
+        (bigint & 255) / 255.0
+      ];
+    }
+
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        document.getElementById("errorOverlay").style.display = "flex";
+        return false;
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        document.getElementById("errorOverlay").style.display = "flex";
+        return false;
+      }
+
+      device = await adapter.requestDevice();
+      context = canvas.getContext("webgpu");
+
+      const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format: canvasFormat,
+        alphaMode: "premultiplied"
+      });
+
+      // Storage Texture 생성 (rgba8unorm format)
+      storageTexture = device.createTexture({
+        size: [width, height],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+
+      // Uniform Buffer 생성 (96 bytes)
+      uniformBuffer = device.createBuffer({
+        size: 96,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // Compute Shader Module 및 Pipeline
+      const compModule = device.createShaderModule({ code: computeShaderWGSL });
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: { module: compModule, entryPoint: 'main' }
+      });
+
+      // Render Shader Module 및 Pipeline
+      const renderModule = device.createShaderModule({ code: renderShaderWGSL });
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: { module: renderModule, entryPoint: 'vs' },
+        fragment: { 
+          module: renderModule, 
+          entryPoint: 'fs',
+          targets: [{ format: canvasFormat }]
+        },
+        primitive: { topology: 'triangle-list' }
+      });
+
+      // Bind Groups 설정
+      computeBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: storageTexture.createView() },
+          { binding: 1, resource: { buffer: uniformBuffer } }
+        ]
+      });
+
+      renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: storageTexture.createView() }
+        ]
+      });
+
+      return true;
+    }
+
+    function updateUniformBuffer() {
+      // Input 값 파싱 및 화면 업데이트
+      const alpha = parseFloat(inputs.alpha.value);
+      const ks = parseFloat(inputs.ks.value);
+      const radius = parseFloat(inputs.radius.value);
+      const sphereZ = parseFloat(inputs.sphereZ.value);
+      const lightX = parseFloat(inputs.lightX.value);
+      const lightY = parseFloat(inputs.lightY.value);
+      const lightZ = parseFloat(inputs.lightZ.value);
+
+      displays.alpha.textContent = alpha.toFixed(1);
+      displays.ks.textContent = ks.toFixed(2);
+      displays.radius.textContent = radius.toFixed(2);
+      displays.sphereZ.textContent = sphereZ.toFixed(2);
+      displays.lightX.textContent = lightX.toFixed(2);
+      displays.lightY.textContent = lightY.toFixed(2);
+      displays.lightZ.textContent = lightZ.toFixed(2);
+
+      const colorDiff = hexToRgb(inputs.colorDiff.value);
+      const colorSpec = hexToRgb(inputs.colorSpec.value);
+      const colorAmb = hexToRgb(inputs.colorAmb.value);
+
+      // Uniform Struct 정렬 레이아웃 구성
+      const arrayBuffer = new Float32Array(24);
+      
+      // params.lightPos: vec4f
+      arrayBuffer[0] = lightX;
+      arrayBuffer[1] = lightY;
+      arrayBuffer[2] = lightZ;
+      arrayBuffer[3] = 0.0;
+
+      // params.sphereCenter: vec4f (xyz: pos, w: radius)
+      arrayBuffer[4] = 0.0; // sphere X
+      arrayBuffer[5] = 0.0; // sphere Y
+      arrayBuffer[6] = sphereZ;
+      arrayBuffer[7] = radius;
+
+      // params.sphereAmb: vec4f
+      arrayBuffer[8] = colorAmb[0];
+      arrayBuffer[9] = colorAmb[1];
+      arrayBuffer[10] = colorAmb[2];
+      arrayBuffer[11] = 0.0;
+
+      // params.sphereDiff: vec4f
+      arrayBuffer[12] = colorDiff[0];
+      arrayBuffer[13] = colorDiff[1];
+      arrayBuffer[14] = colorDiff[2];
+      arrayBuffer[15] = 0.0;
+
+      // params.sphereSpec: vec4f
+      arrayBuffer[16] = colorSpec[0];
+      arrayBuffer[17] = colorSpec[1];
+      arrayBuffer[18] = colorSpec[2];
+      arrayBuffer[19] = 0.0;
+
+      // params.props: vec4f (alpha, ks, width, height)
+      arrayBuffer[20] = alpha;
+      arrayBuffer[21] = ks;
+      arrayBuffer[22] = width;
+      arrayBuffer[23] = height;
+
+      device.queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+    }
+
+    function render() {
+      const commandEncoder = device.createCommandEncoder();
+
+      // Compute Pass
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, computeBindGroup);
+      const workgroupCountX = Math.ceil(width / 8);
+      const workgroupCountY = Math.ceil(height / 8);
+      computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+      computePass.end();
+
+      // Render Pass (DirectX 11 Present 기법과 동일한 BackBuffer 출력 과정)
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      });
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, renderBindGroup);
+      renderPass.draw(6); // Fullscreen Quad (6 Vertices)
+      renderPass.end();
+
+      device.queue.submit([commandEncoder.finish()]);
+    }
+
+    // 변경사항 발생 시 중복 RAF 방지를 위한 업데이트 패턴
+    let renderRequested = false;
+    function scheduleRender() {
+      if (renderRequested) return;
+      renderRequested = true;
+      requestAnimationFrame(() => {
+        updateUniformBuffer();
+        render();
+        renderRequested = false;
+      });
+    }
+
+    // Event Listeners
+    Object.values(inputs).forEach(input => {
+      input.addEventListener("input", scheduleRender);
+    });
+
+    // 앱 실행 구동
+    async function start() {
+      const success = await initWebGPU();
+      if (success) {
+        scheduleRender();
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>
