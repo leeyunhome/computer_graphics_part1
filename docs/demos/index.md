@@ -188,6 +188,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성](리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-.md)
+
+
+[→ 데모 열기](리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-.md){.md-button}
+
+
+---
+
+
 ## [[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현](리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-mod.md)
 
 

@@ -98,3 +98,4 @@ nav:
     - 광선-구체 교차 판정과 법선 벡터 계산의 수학적 구현: demos/광선-구체-교차-판정과-법선-벡터-계산의-수학적-구현.md
     - "[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현": demos/리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-mod.md
     - 퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현: demos/퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이.md
+    - "[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성": demos/리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-.md

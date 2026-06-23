@@ -15,6 +15,15 @@
 ---
 
 
+## [[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성](2026-06-23-리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-구현-및-조명-모델-완성.md)
+
+
+📅 2026-06-23
+
+
+---
+
+
 ## [[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현](2026-06-21-리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-model의-기초-구현.md)
 
 

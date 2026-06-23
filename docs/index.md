@@ -267,6 +267,11 @@ graph LR
 <a href="demos/퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성</strong><br><br>
+<a href="demos/리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
@@ -276,9 +281,9 @@ graph LR
 ## 최근 학습 포스트
 
 - [퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현](posts/2026-06-23-퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이트-및-반사-벡터-구현.md) <small style='color:#64748b'>(2026-06-23)</small>
+- [[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성](posts/2026-06-23-리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-구현-및-조명-모델-완성.md) <small style='color:#64748b'>(2026-06-23)</small>
 - [[리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현](posts/2026-06-21-리뷰-레이트레이싱-기반-퐁-반사-모델phong-reflection-model의-기초-구현.md) <small style='color:#64748b'>(2026-06-21)</small>
 - [광선-구체 교차 판정과 법선 벡터 계산의 수학적 구현](posts/2026-06-20-광선-구체-교차-판정과-법선-벡터-계산의-수학적-구현.md) <small style='color:#64748b'>(2026-06-20)</small>
 - [[코드 리뷰] 스크린-월드 좌표계 변환 및 포스트 프로세싱(Bloom) 합성 구현](posts/2026-06-16-코드-리뷰-스크린-월드-좌표계-변환-및-포스트-프로세싱bloom-합성-구현.md) <small style='color:#64748b'>(2026-06-16)</small>
-- [[피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안](posts/2026-06-14-피드백-separable-5-tap-gaussian-blur-구현-분석-및-최적화-제안.md) <small style='color:#64748b'>(2026-06-14)</small>
 
 [모든 포스트 보기 →](posts/index.md)
