@@ -308,9 +308,14 @@ body {{
   margin: 0;
 }}
 .workspace {{
-  display: flex; flex-wrap: wrap;
-  flex: 1; min-height: 0;  /* ← min-height:0 필수: 없으면 overflow-y:auto가 동작 안함 */
+  display: flex; flex-direction: row;  /* flex-wrap:wrap 금지 — wrap하면 sidebar의 overflow-y:auto가 동작 안함 */
+  flex: 1; min-height: 0;             /* ← min-height:0 필수: 없으면 overflow-y:auto가 동작 안함 */
   overflow: hidden;
+}}
+/* 모바일 대응: wrap 대신 flex-direction 전환 사용 */
+@media (max-width: 680px) {{
+  .workspace {{ flex-direction: column; }}
+  .sidebar {{ width: 100% !important; max-height: 50vh; }}
 }}
 .canvas-container {{
   flex: 1; min-width: 300px; overflow: hidden;
