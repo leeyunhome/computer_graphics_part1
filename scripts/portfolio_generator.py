@@ -222,6 +222,11 @@ def generate_portfolio_post(commit_msg, diff_text, file_contents=None):
 6. 강의 소스코드를 그대로 붙여넣지 말고, 핵심 알고리즘을 의사코드(pseudo-code) 또는 추상화된 형태로 설명하세요.
 7. 마지막에 **WebGPU 인터랙티브 데모** 섹션을 추가하세요 — 이 내용을 브라우저 WebGPU Compute Shader로 시각화하면 어떤 모습인지 간략히 설명하세요.
 8. ```markdown 블록으로 감싸지 말고 바로 Markdown을 출력하세요.
+
+## 용어 정확성 규칙 (반드시 준수):
+- **Phong Reflection Model (퐁 반사 모델)**: Ambient + Diffuse + Specular로 조명을 표현하는 모델. 파트1 레이트레이싱에서 구현하는 것. 조명이 반사되어 눈에 보이는 방식을 단순화한 모델.
+- **Phong Shading (퐁 셰이딩)**: 파트2 래스터화에서 등장하는 개념. 정점의 노멀 벡터를 픽셀 단위로 인터폴레이션해서 픽셀별 노멀로 셰이딩하는 기법.
+- 이 레포지토리는 파트1이므로, 조명 모델을 설명할 때는 "Phong Shading" 대신 "Phong Reflection Model" 또는 "퐁 반사 모델"을 사용하세요.
 """
     print("  포스트 생성 중 (Gemini)...")
     return _call_gemini(prompt)
