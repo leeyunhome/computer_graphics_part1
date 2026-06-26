@@ -6,6 +6,15 @@
 ---
 
 
+## [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 검사(Closest Hit) 구현](2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-검사closest-hit-구현.md)
+
+
+📅 2026-06-26
+
+
+---
+
+
 ## [퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현](2026-06-23-퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이트-및-반사-벡터-구현.md)
 
 

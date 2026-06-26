@@ -354,11 +354,15 @@ HTML 코드만 출력하고, 다른 설명 텍스트는 절대 넣지 마세요.
 """
     print("  WebGPU 데모 생성 중 (Gemini)...")
     result = _call_gemini(prompt)
-    if result.strip().upper() == "SKIP":
+    if not result:
+        print("  경고: WebGPU 데모 생성 결과가 비어 있거나 차단되었습니다.")
         return None
-    result = re.sub(r'^```html\s*', '', result.strip(), flags=re.IGNORECASE)
-    result = re.sub(r'\s*```$', '', result.strip())
-    return result.strip()
+    trimmed = result.strip()
+    if trimmed.upper() == "SKIP":
+        return None
+    trimmed = re.sub(r'^```html\s*', '', trimmed, flags=re.IGNORECASE)
+    trimmed = re.sub(r'\s*```$', '', trimmed)
+    return trimmed.strip()
 
 
 # Keep alias for backward compatibility
@@ -630,11 +634,23 @@ def save_and_commit(title, md_content, commit_hash=None, js_demo_html=None, demo
     portfolio_repo = Repo(PORTFOLIO_REPO_PATH)
     portfolio_repo.git.add(A=True)
     portfolio_repo.index.commit(f"Add portfolio post: {title}")
+    
+    # Git push 시 대화형 인증창이나 대기 상태로 인해 프로세스가 중단되는 것을 방지합니다.
+    env_backup = os.environ.copy()
+    os.environ['GIT_TERMINAL_PROMPT'] = '0'
+    os.environ['GIT_SSH_COMMAND'] = 'ssh -o BatchMode=yes'
     try:
         portfolio_repo.remote('origin').push()
         print("  GitHub 푸시 완료.")
     except Exception as e:
         print(f"  자동 푸시 실패 (수동 push 필요): {e}")
+    finally:
+        # 환경 변수 복원
+        for key in ['GIT_TERMINAL_PROMPT', 'GIT_SSH_COMMAND']:
+            if key in env_backup:
+                os.environ[key] = env_backup[key]
+            else:
+                os.environ.pop(key, None)
 
 
 # ── High-level entry point ─────────────────────────────────────────────────────
@@ -663,6 +679,9 @@ def process_commit(commit_hash=None, skip_if_processed=True):
         print(f"  파일 내용 로드: {list(file_contents.keys())}")
 
     md_content = generate_portfolio_post(commit_msg, diff_text, file_contents)
+    if not md_content:
+        print("  오류: 포스트 생성 결과가 비어 있거나 차단되었습니다.")
+        return False
 
     title = commit_msg.split('\n')[0]
     first_line = md_content.split('\n')[0].strip()
