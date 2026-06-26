@@ -278,6 +278,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현](원근-투영perspective-projection과-최단-거리-충돌-판정.md)
+
+
+[→ 데모 열기](원근-투영perspective-projection과-최단-거리-충돌-판정.md){.md-button}
+
+
+---
+
+
 ## [이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작](이미지-밝기-조절-로직-추가-픽셀-단위-연산의-시작.md)
 
 

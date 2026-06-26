@@ -272,6 +272,11 @@ graph LR
 <a href="demos/리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현</strong><br><br>
+<a href="demos/원근-투영perspective-projection과-최단-거리-충돌-판정/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
@@ -282,8 +287,8 @@ graph LR
 
 - [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 판정 구현](posts/2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-판정-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 검사(Closest Hit) 구현](posts/2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-검사closest-hit-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
+- [원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현](posts/2026-06-26-원근-투영perspective-projection과-최단-거리-충돌-판정closest-collision의-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [원근 투영(Perspective Projection) 및 가림 해결(Occlusion Sorting) 구현 분석](posts/2026-06-26-원근-투영perspective-projection-및-가림-해결occlusion-sorting-구현-분석.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현](posts/2026-06-23-퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이트-및-반사-벡터-구현.md) <small style='color:#64748b'>(2026-06-23)</small>
-- [[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성](posts/2026-06-23-리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-구현-및-조명-모델-완성.md) <small style='color:#64748b'>(2026-06-23)</small>
 
 [모든 포스트 보기 →](posts/index.md)

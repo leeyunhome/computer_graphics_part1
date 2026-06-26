@@ -24,6 +24,15 @@
 ---
 
 
+## [원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현](2026-06-26-원근-투영perspective-projection과-최단-거리-충돌-판정closest-collision의-구현.md)
+
+
+📅 2026-06-26
+
+
+---
+
+
 ## [원근 투영(Perspective Projection) 및 가림 해결(Occlusion Sorting) 구현 분석](2026-06-26-원근-투영perspective-projection-및-가림-해결occlusion-sorting-구현-분석.md)
 
 
