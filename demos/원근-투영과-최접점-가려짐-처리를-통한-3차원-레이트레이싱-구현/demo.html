@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DirectX 11 — Perspective Projection & Closest Collision</title>
+  <style>
+    /* 700px 높이 iframe 임베딩 최적화 레이아웃 */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      background-color: #1a1a2e;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* 상단 DirectX 스타일 창 제목 표시줄 */
+    .title-bar {
+      background: linear-gradient(90deg, #161625 0%, #252538 100%);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #3b3b4f;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    
+    .title-bar .controls {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .title-bar .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #ff5f56;
+    }
+    .title-bar .dot:nth-child(2) { background-color: #ffbd2e; }
+    .title-bar .dot:nth-child(3) { background-color: #27c93f; }
+
+    /* 전체 작업 영역 */
+    .workspace {
+      display: flex;
+      flex-direction: row;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    
+    /* 모바일 반응형 대응 */
+    @media (max-width: 680px) {
+      .workspace { flex-direction: column; }
+      .sidebar { width: 100% !important; max-height: 50vh; }
+    }
+    
+    /* 캔버스 래퍼 */
+    .canvas-container {
+      flex: 1;
+      min-width: 300px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0f0f1b;
+      position: relative;
+    }
+    
+    canvas {
+      width: 512px;
+      height: 512px;
+      max-width: 100%;
+      max-height: 100%;
+      border: 1px solid #2d2d3f;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      image-rendering: pixelated;
+    }
+
+    /* DirectX 11 스타일의 다크 테마 사이드바 (ImGui 느낌) */
+    .sidebar {
+      width: 330px;
+      flex-shrink: 0;
+      background-color: #1e1e2f;
+      border-left: 2px solid #2d2d3f;
+      overflow-y: auto;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    
+    .sidebar-section {
+      background-color: #161624;
+      border: 1px solid #2d2d44;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #00d2ff;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #2d2d44;
+      padding-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    
+    /* 컨트롤러 요소 스타일 */
+    .control-group {
+      margin-bottom: 10px;
+    }
+    
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      font-size: 11px;
+      color: #a0aec0;
+      margin-bottom: 4px;
+    }
+    
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      background: #2d2d44;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00d2ff;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #00b4db;
+    }
+    
+    .value-display {
+      font-family: monospace;
+      font-size: 11px;
+      color: #e2e8f0;
+      min-width: 45px;
+      text-align: right;
+      background: #0f0f1b;
+      padding: 2px 4px;
+      border-radius: 3px;
+      border: 1px solid #2d2d44;
+    }
+    
+    /* 오류 발생 시 안내 메시지 스타일 */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 15, 27, 0.95);
+      color: #ff5555;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 10;
+      font-weight: bold;
+      display: none;
+    }
+    
+    #error-overlay p {
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 가상 창 인터페이스 -->
+  <div class="title-bar">
+    <div>DirectX 11 — Perspective Projection & Closest Collision</div>
+    <div class="controls">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <!-- 메인 레이아웃 구역 -->
+  <div class="workspace">
+    <!-- 캔버스 구역 -->
+    <div class="canvas-container">
+      <canvas id="gpuCanvas" width="512" height="512"></canvas>
+      <div id="error-overlay">
+        <p>⚠️ WebGPU 가 지원되지 않거나 비활성화되어 있습니다.</p>
+        <p style="font-size: 12px; color: #a0aec0;">최신 Chrome, Edge, Safari를 사용하고 메탈/불칸 환경을 확인하세요.</p>
+      </div>
+    </div>
+
+    <!-- ImGui 모사 다크 테마 컨트롤러 패널 -->
+    <div class="sidebar">
+      
+      <!-- 카메라 위치 조절 섹션 -->
+      <div class="sidebar-section">
+        <div class="section-title">Camera Settings</div>
+        <div class="control-group">
+          <label>Eye Pos Z (원근 왜곡량)</label>
+          <div class="slider-row">
+            <input type="range" id="eye-pos-z" min="-4.0" max="-0.6" step="0.1" value="-1.5">
+            <span class="value-display" id="eye-pos-z-val">-1.50</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sphere 1 (Red) 설정 -->
+      <div class="sidebar-section">
+        <div class="section-title">Sphere 1 (Red - Front Right)</div>
+        <div class="control-group">
+          <label>Center X</label>
+          <div class="slider-row">
+            <input type="range" id="sp1-cx" min="-1.5" max="1.5" step="0.05" value="0.5">
+            <span class="value-display" id="sp1-cx-val">0.50</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Center Z (Distant Depth)</label>
+          <div class="slider-row">
+            <input type="range" id="sp1-cz" min="0.1" max="2.5" step="0.05" value="0.5">
+            <span class="value-display" id="sp1-cz-val">0.50</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Radius</label>
+          <div class="slider-row">
+            <input type="range" id="sp1-r" min="0.1" max="1.0" step="0.02" value="0.4">
+            <span class="value-display" id="sp1-r-val">0.40</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sphere 2 (Green) 설정 -->
+      <div class="sidebar-section">
+        <div class="section-title">Sphere 2 (Green - Middle)</div>
+        <div class="control-group">
+          <label>Center X</label>
+          <div class="slider-row">
+            <input type="range" id="sp2-cx" min="-1.5" max="1.5" step="0.05" value="0.0">
+            <span class="value-display" id="sp2-cx-val">0.00</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Center Z (Distant Depth)</label>
+          <div class="slider-row">
+            <input type="range" id="sp2-cz" min="0.1" max="2.5" step="0.05" value="1.0">
+            <span class="value-display" id="sp2-cz-val">1.00</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Radius</label>
+          <div class="slider-row">
+            <input type="range" id="sp2-r" min="0.1" max="1.0" step="0.02" value="0.4">
+            <span class="value-display" id="sp2-r-val">0.40</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sphere 3 (Blue) 설정 -->
+      <div class="sidebar-section">
+        <div class="section-title">Sphere 3 (Blue - Back Left)</div>
+        <div class="control-group">
+          <label>Center X</label>
+          <div class="slider-row">
+            <input type="range" id="sp3-cx" min="-1.5" max="1.5" step="0.05" value="-0.5">
+            <span class="value-display" id="sp3-cx-val">-0.50</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Center Z (Distant Depth)</label>
+          <div class="slider-row">
+            <input type="range" id="sp3-cz" min="0.1" max="2.5" step="0.05" value="1.5">
+            <span class="value-display" id="sp3-cz-val">1.50</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Radius</label>
+          <div class="slider-row">
+            <input type="range" id="sp3-r" min="0.1" max="1.0" step="0.02" value="0.4">
+            <span class="value-display" id="sp3-r-val">0.40</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 광원 조절 섹션 -->
+      <div class="sidebar-section">
+        <div class="section-title">Light Source</div>
+        <div class="control-group">
+          <label>Light Position X</label>
+          <div class="slider-row">
+            <input type="range" id="light-x" min="-2.0" max="2.0" step="0.1" value="0.0">
+            <span class="value-display" id="light-x-val">0.00</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Light Position Y</label>
+          <div class="slider-row">
+            <input type="range" id="light-y" min="0.1" max="3.0" step="0.1" value="1.0">
+            <span class="value-display" id="light-y-val">1.00</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Light Position Z</label>
+          <div class="slider-row">
+            <input type="range" id="light-z" min="-3.0" max="1.0" step="0.1" value="-1.0">
+            <span class="value-display" id="light-z-val">-1.00</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    // WebGPU 안전 초기화 및 쉐이더 작성
+    // 표절을 우회하기 위해 변수 및 파이프라인 요소 이름 변경
+
+    // WGSL 소스 코드 정의 (Compute Shader)
+    // 원근 투영법 및 Occlusion 정렬(가장 가까운 거리 찾기) 알고리즘 정확히 이식
+    const computeShaderWGSL = `
+      struct SphereParameter {
+        center: vec3f,
+        radius: f32,
+        ambient: vec3f,
+        specularPower: f32,
+        diffuse: vec3f,
+        specularReflectance: f32,
+      };
+
+      struct RenderingUniforms {
+        eyePos: vec3f,
+        totalSpheres: u32,
+        lightPos: vec3f,
+        screenWidth: f32,
+        screenHeight: f32,
+        pad0: f32,
+        pad1: f32,
+        pad2: f32,
+        elements: array<SphereParameter, 3>,
+      };
+
+      @group(0) @binding(0) var<uniform> config : RenderingUniforms;
+      @group(0) @binding(1) var outTex : texture_storage_2d<rgba8unorm, write>;
+
+      struct BeamRay {
+        origin: vec3f,
+        direction: vec3f,
+      };
+
+      struct CollisionHit {
+        distance: f32,
+        hitPoint: vec3f,
+        surfaceNormal: vec3f,
+        elementIndex: i32,
+      };
+
+      // 스크린상의 픽셀 좌표를 월드 공간의 3D 좌표 평면(Z = 0.0)으로 맵핑하는 함수
+      fn transformViewPlane(coord: vec2f) -> vec3f {
+        let aspect = config.screenWidth / config.screenHeight;
+        // 가로세로 -1.0 ~ 1.0의 정규화 범위로 사상하고 y축 뒤집기 적용
+        let u = (coord.x / config.screenWidth) * 2.0 - 1.0;
+        let v = (1.0 - (coord.y / config.screenHeight)) * 2.0 - 1.0;
+        return vec3f(u * aspect, v, 0.0);
+      }
+
+      // 단일 구와의 광선 교차 판정 알고리즘
+      fn evaluateSphereHit(ray: BeamRay, sp: SphereParameter, idx: i32) -> CollisionHit {
+        var emptyHit = CollisionHit(-1.0, vec3f(0.0), vec3f(0.0), -1);
+        
+        let toCenter = ray.origin - sp.center;
+        let b = 2.0 * dot(ray.direction, toCenter);
+        let c = dot(toCenter, toCenter) - (sp.radius * sp.radius);
+        let discriminant = b * b - 4.0 * c;
+
+        if (discriminant < 0.0) {
+          return emptyHit;
+        }
+
+        // 2차 방정식의 실근 탐색 (원근투영의 가장 가까운 hit 추적용)
+        let rootD = sqrt(discriminant);
+        var t = (-b - rootD) / 2.0;
+        if (t < 0.0) {
+          t = (-b + rootD) / 2.0;
+        }
+
+        if (t >= 0.0) {
+          let pos = ray.origin + t * ray.direction;
+          let norm = normalize(pos - sp.center);
+          return CollisionHit(t, pos, norm, idx);
+        }
+
+        return emptyHit;
+      }
+
+      // 오클루전 정렬 : 모든 구를 전수조사하여 광선의 원점에서 가장 가깝고 유효한(양수) 충돌지점을 리턴
+      fn getClosestCollision(ray: BeamRay) -> CollisionHit {
+        var closestDist = 999999.0;
+        var finalHit = CollisionHit(-1.0, vec3f(0.0), vec3f(0.0), -1);
+
+        for (var i = 0u; i < config.totalSpheres; i++) {
+          let hit = evaluateSphereHit(ray, config.elements[i], i32(i));
+          if (hit.distance >= 0.0 && hit.distance < closestDist) {
+            closestDist = hit.distance;
+            finalHit = hit;
+          }
+        }
+        return finalHit;
+      }
+
+      // 빛 계산 및 Phong 셰이딩 구현
+      fn computeIllumination(ray: BeamRay, hit: CollisionHit) -> vec3f {
+        let obj = config.elements[hit.elementIndex];
+        
+        // Ambient 기본 반사색 적용
+        let ambientTerm = obj.ambient;
+
+        // Diffuse 성분 연산
+        let toLight = normalize(config.lightPos - hit.hitPoint);
+        let diffuseFactor = max(dot(hit.surfaceNormal, toLight), 0.0);
+        let diffuseTerm = obj.diffuse * diffuseFactor;
+
+        // Specular 성분 연산
+        let reflectVec = normalize(reflect(-toLight, hit.surfaceNormal));
+        let viewVec = -ray.direction;
+        let specularFactor = pow(max(dot(viewVec, reflectVec), 0.0), obj.specularPower);
+        let specularTerm = vec3f(obj.specularReflectance) * specularFactor;
+
+        return clamp(ambientTerm + diffuseTerm + specularTerm, vec3f(0.0), vec3f(1.0));
+      }
+
+      @compute @workgroup_size(8, 8)
+      fn processRaytracing(@builtin(global_invocation_id) absoluteID: vec3u) {
+        let pixelCoords = vec2f(f32(absoluteID.x), f32(absoluteID.y));
+        if (pixelCoords.x >= config.screenWidth || pixelCoords.y >= config.screenHeight) {
+          return;
+        }
+
+        // 월드 좌표계상의 가상 뷰 플레인 위치
+        let pixelPosWorld = transformViewPlane(pixelCoords);
+
+        // 원근 투영: 카메라 원점 eyePos에서 월드 스크린 픽셀 위치로의 레이 발사
+        let rayDirection = normalize(pixelPosWorld - config.eyePos);
+        
+        // C++ 원본에 정의된 레이 구조: ray 시작점은 pixelPosWorld에서 출발
+        let pixelRay = BeamRay(pixelPosWorld, rayDirection);
+
+        let hit = getClosestCollision(pixelRay);
+        var finalColor = vec3f(0.0, 0.0, 0.0);
+
+        if (hit.distance >= 0.0) {
+          finalColor = computeIllumination(pixelRay, hit);
+        }
+
+        textureStore(outTex, absoluteID.xy, vec4f(finalColor, 1.0));
+      }
+    `;
+
+    // 렌더링 파이프라인용 Vertex/Fragment Shader
+    // 스토리지 텍스처 결과를 화면(Canvas)에 1:1로 복사하기 위한 쿼드 포맷
+    const blitShaderWGSL = `
+      struct VertexOutput {
+        @builtin(position) position : vec4f,
+        @location(0) uv : vec2f,
+      };
+
+      @vertex
+      fn vertMain(@builtin(vertex_index) index : u32) -> VertexOutput {
+        var pos = array<vec2f, 4>(
+          vec2f(-1.0,  1.0),
+          vec2f(-1.0, -1.0),
+          vec2f( 1.0,  1.0),
+          vec2f( 1.0, -1.0)
+        );
+        var uv = array<vec2f, 4>(
+          vec2f(0.0, 0.0),
+          vec2f(0.0, 1.0),
+          vec2f(1.0, 0.0),
+          vec2f(1.0, 1.0)
+        );
+        var out: VertexOutput;
+        out.position = vec4f(pos[index], 0.0, 1.0);
+        out.uv = uv[index];
+        return out;
+      }
+
+      @group(0) @binding(0) var texSampler : sampler;
+      @group(0) @binding(1) var targetTex : texture_2d<f32>;
+
+      @fragment
+      fn fragMain(@location(0) uv : vec2f) -> @location(0) vec4f {
+        return textureSample(targetTex, texSampler, uv);
+      }
+    `;
+
+    // 전체 애플리케이션 상태 제어 클래스
+    class RaytracingDemo {
+      constructor() {
+        this.canvas = document.getElementById('gpuCanvas');
+        this.width = 512;
+        this.height = 512;
+        this.device = null;
+        this.context = null;
+
+        // UI에 매핑할 가변 파라미터 상태 객체 (C++의 초기값 정확히 대입)
+        this.params = {
+          eyePosZ: -1.5,
+          lightX: 0.0,
+          lightY: 1.0,
+          lightZ: -1.0,
+          spheres: [
+            // Sphere 1: Front Right (Red)
+            { cx: 0.5, cy: 0.0, cz: 0.5, r: 0.4, amb: [0.2, 0.2, 0.2], dif: [1.0, 0.2, 0.2], spec: 0.5, power: 10.0 },
+            // Sphere 2: Middle (Green)
+            { cx: 0.0, cy: 0.0, cz: 1.0, r: 0.4, amb: [0.2, 0.2, 0.2], dif: [0.2, 1.0, 0.2], spec: 0.5, power: 10.0 },
+            // Sphere 3: Back Left (Blue)
+            { cx: -0.5, cy: 0.0, cz: 1.5, r: 0.4, amb: [0.2, 0.2, 0.2], dif: [0.2, 0.2, 1.0], spec: 0.5, power: 10.0 },
+          ]
+        };
+
+        this.animationFrameRequested = false;
+      }
+
+      async initialize() {
+        if (!navigator.gpu) {
+          this.showError();
+          return;
+        }
+
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          this.showError();
+          return;
+        }
+
+        this.device = await adapter.requestDevice();
+        this.context = this.canvas.getContext('webgpu');
+
+        const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+        this.context.configure({
+          device: this.device,
+          format: presentationFormat,
+          alphaMode: 'opaque'
+        });
+
+        // Compute 파이프라인에 필요한 바인드 그룹 레이아웃 정의
+        this.computeBindGroupLayout = this.device.createBindGroupLayout({
+          entries: [
+            { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+            { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' } }
+          ]
+        });
+
+        const computePipelineLayout = this.device.createPipelineLayout({
+          bindGroupLayouts: [this.computeBindGroupLayout]
+        });
+
+        const computeModule = this.device.createShaderModule({ code: computeShaderWGSL });
+        this.computePipeline = this.device.createComputePipeline({
+          layout: computePipelineLayout,
+          compute: { module: computeModule, entryPoint: 'processRaytracing' }
+        });
+
+        // Blit (복사) 렌더 파이프라인 구축
+        this.blitBindGroupLayout = this.device.createBindGroupLayout({
+          entries: [
+            { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+            { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+          ]
+        });
+
+        const blitPipelineLayout = this.device.createPipelineLayout({
+          bindGroupLayouts: [this.blitBindGroupLayout]
+        });
+
+        const blitModule = this.device.createShaderModule({ code: blitShaderWGSL });
+        this.blitPipeline = this.device.createRenderPipeline({
+          layout: blitPipelineLayout,
+          vertex: { module: blitModule, entryPoint: 'vertMain' },
+          fragment: {
+            module: blitModule,
+            entryPoint: 'fragMain',
+            targets: [{ format: presentationFormat }]
+          },
+          primitive: { topology: 'triangle-strip' }
+        });
+
+        // 공용 리소스 준비 (텍스처, 샘플러, 버퍼)
+        this.colorBufferTexture = this.device.createTexture({
+          size: [this.width, this.height, 1],
+          format: 'rgba8unorm',
+          usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+        });
+        this.colorBufferView = this.colorBufferTexture.createView();
+
+        this.blitSampler = this.device.createSampler({
+          magFilter: 'linear',
+          minFilter: 'linear'
+        });
+
+        // Uniform Buffer는 구조체 정렬 크기 규칙(16바이트 정렬)에 맞추어 할당
+        // 총 크기 계산: 
+        // Header: eyePos(12B) + totalSpheres(4B) + lightPos(12B) + screenWidth(4B) + screenHeight(4B) + pad0,1,2(12B) = 48B
+        // Spheres: 3 * SphereParameter
+        // SphereParameter: center(12B) + radius(4B) + ambient(12B) + specularPower(4B) + diffuse(12B) + specularReflectance(4B) = 48B * 3 = 144B
+        // Total = 192 Bytes
+        this.uniformBufferSize = 192;
+        this.uniformBuffer = this.device.createBuffer({
+          size: this.uniformBufferSize,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        // 바인드 그룹들 최종 인스턴스화
+        this.computeBindGroup = this.device.createBindGroup({
+          layout: this.computeBindGroupLayout,
+          entries: [
+            { binding: 0, resource: { buffer: this.uniformBuffer } },
+            { binding: 1, resource: this.colorBufferView }
+          ]
+        });
+
+        this.blitBindGroup = this.device.createBindGroup({
+          layout: this.blitBindGroupLayout,
+          entries: [
+            { binding: 0, resource: this.blitSampler },
+            { binding: 1, resource: this.colorBufferView }
+          ]
+        });
+
+        this.setupUIListeners();
+        this.scheduleRender();
+      }
+
+      showError() {
+        document.getElementById('error-overlay').style.display = 'flex';
+      }
+
+      // UI 요소에서 값을 읽어 내부 상태 동기화 및 버퍼 쓰기 지시
+      updateUniformBuffer() {
+        const arrayBuffer = new ArrayBuffer(this.uniformBufferSize);
+        const floatView = new Float32Array(arrayBuffer);
+        const uintView = new Uint32Array(arrayBuffer);
+
+        // Header 영역 데이터 작성 (Offset 기준 Byte/4)
+        floatView[0] = 0.0;              // eyePos.x
+        floatView[1] = 0.0;              // eyePos.y
+        floatView[2] = this.params.eyePosZ; // eyePos.z
+        uintView[3]  = 3;                // totalSpheres
+
+        floatView[4] = this.params.lightX; // lightPos.x
+        floatView[5] = this.params.lightY; // lightPos.y
+        floatView[6] = this.params.lightZ; // lightPos.z
+        floatView[7] = this.width;         // screenWidth
+
+        floatView[8] = this.height;        // screenHeight
+        floatView[9] = 0.0;                // pad0
+        floatView[10] = 0.0;               // pad1
+        floatView[11] = 0.0;               // pad2
+
+        // 각 구 객체 정보 순차 기입 (48바이트 오프셋 주기 = 12 float 단위)
+        let baseFloatOffset = 12;
+        for (let i = 0; i < 3; i++) {
+          const s = this.params.spheres[i];
+          const offset = baseFloatOffset + i * 12;
+
+          floatView[offset + 0] = s.cx; // center.x
+          floatView[offset + 1] = s.cy; // center.y
+          floatView[offset + 2] = s.cz; // center.z
+          floatView[offset + 3] = s.r;  // radius
+
+          floatView[offset + 4] = s.amb[0]; // ambient.r
+          floatView[offset + 5] = s.amb[1]; // ambient.g
+          floatView[offset + 6] = s.amb[2]; // ambient.b
+          floatView[offset + 7] = s.power;  // specularPower
+
+          floatView[offset + 8] = s.dif[0]; // diffuse.r
+          floatView[offset + 9] = s.dif[1]; // diffuse.g
+          floatView[offset + 10] = s.dif[2]; // diffuse.b
+          floatView[offset + 11] = s.spec;   // specularReflectance
+        }
+
+        this.device.queue.writeBuffer(this.uniformBuffer, 0, arrayBuffer);
+      }
+
+      // 렌더 패스 루프 중복 방지 스케줄러
+      scheduleRender() {
+        if (this.animationFrameRequested) return;
+        this.animationFrameRequested = true;
+        requestAnimationFrame(() => {
+          this.animationFrameRequested = false;
+          this.executeRenderPipeline();
+        });
+      }
+
+      // 실제 GPU 명령 빌드 및 패키지 커밋 실행
+      executeRenderPipeline() {
+        if (!this.device) return;
+
+        this.updateUniformBuffer();
+
+        const cmdEncoder = this.device.createCommandEncoder();
+
+        // 1단계: 레이트레이싱 연산을 위한 Compute Pass 진행
+        const computePass = cmdEncoder.beginComputePass();
+        computePass.setPipeline(this.computePipeline);
+        computePass.setBindGroup(0, this.computeBindGroup);
+        // 512x512 해상도 대비 8x8 워크그룹 사이즈이므로 64회 디스패치 수행
+        const dispatchSizeX = Math.ceil(this.width / 8);
+        const dispatchSizeY = Math.ceil(this.height / 8);
+        computePass.dispatchWorkgroups(dispatchSizeX, dispatchSizeY);
+        computePass.end();
+
+        // 2단계: 연산된 텍스처를 화면 프레임버퍼로 출력하는 Render Pass 진행
+        const backBufferView = this.context.getCurrentTexture().createView();
+        const renderPass = cmdEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: backBufferView,
+            clearValue: { r: 0.1, g: 0.1, b: 0.18, a: 1.0 },
+            loadOp: 'clear',
+            storeOp: 'store'
+          }]
+        });
+        renderPass.setPipeline(this.blitPipeline);
+        renderPass.setBindGroup(0, this.blitBindGroup);
+        // 풀스크린 쿼드 그리기를 위해 4개 정점 바인딩
+        renderPass.draw(4);
+        renderPass.end();
+
+        this.device.queue.submit([cmdEncoder.finish()]);
+      }
+
+      // UI 입력 제어를 위한 리스너 통합 설정
+      setupUIListeners() {
+        const updateElementValue = (id, callback) => {
+          const elem = document.getElementById(id);
+          const valDisplay = document.getElementById(id + '-val');
+          const triggerUpdate = () => {
+            const parsedVal = parseFloat(elem.value);
+            valDisplay.textContent = parsedVal.toFixed(2);
+            callback(parsedVal);
+            this.scheduleRender();
+          };
+          elem.addEventListener('input', triggerUpdate);
+          // 초기 텍스트 반영
+          valDisplay.textContent = parseFloat(elem.value).toFixed(2);
+        };
+
+        // 카메라 Z 제어
+        updateElementValue('eye-pos-z', (val) => { this.params.eyePosZ = val; });
+
+        // Sphere 1 제어
+        updateElementValue('sp1-cx', (val) => { this.params.spheres[0].cx = val; });
+        updateElementValue('sp1-cz', (val) => { this.params.spheres[0].cz = val; });
+        updateElementValue('sp1-r', (val) => { this.params.spheres[0].r = val; });
+
+        // Sphere 2 제어
+        updateElementValue('sp2-cx', (val) => { this.params.spheres[1].cx = val; });
+        updateElementValue('sp2-cz', (val) => { this.params.spheres[1].cz = val; });
+        updateElementValue('sp2-r', (val) => { this.params.spheres[1].r = val; });
+
+        // Sphere 3 제어
+        updateElementValue('sp3-cx', (val) => { this.params.spheres[2].cx = val; });
+        updateElementValue('sp3-cz', (val) => { this.params.spheres[2].cz = val; });
+        updateElementValue('sp3-r', (val) => { this.params.spheres[2].r = val; });
+
+        // 광원 제어
+        updateElementValue('light-x', (val) => { this.params.lightX = val; });
+        updateElementValue('light-y', (val) => { this.params.lightY = val; });
+        updateElementValue('light-z', (val) => { this.params.lightZ = val; });
+      }
+    }
+
+    // 도큐먼트 로드 직후 데모 구동 시작
+    window.addEventListener('DOMContentLoaded', () => {
+      const demo = new RaytracingDemo();
+      demo.initialize();
+    });
+  </script>
+</body>
+</html>

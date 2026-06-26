@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-14-%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-%EB%B0%8F-%EC%B5%9C%EC%A0%81%ED%99%94/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-26-%EC%9B%90%EA%B7%BC-%ED%88%AC%EC%98%81%EA%B3%BC-%EC%B5%9C%EC%A0%91%EC%A0%90-%EA%B0%80%EB%A0%A4%EC%A7%90-%EC%B2%98%EB%A6%AC%EB%A5%BC-%ED%86%B5%ED%95%9C-3%EC%B0%A8%EC%9B%90-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B5%AC%ED%98%84/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화 - Computer Graphics Portfolio</title>
+        <title>원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현 - Computer Graphics Portfolio</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#separable-5-tap-gaussian-blur" class="md-skip">
+        <a href="#3" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              [코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화
+              원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현
             
           </span>
         </div>
@@ -1859,19 +1859,19 @@
   <a href="#1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. 학습자가 직접 구현하며 이해한 핵심 그래픽스 개념
+        1. 핵심 개념 및 수학적 원리
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. 학습자가 직접 구현하며 이해한 핵심 그래픽스 개념">
+    <nav class="md-nav" aria-label="1. 핵심 개념 및 수학적 원리">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#11-separable-convolution" class="md-nav__link">
+  <a href="#1-perspective-projection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1.1 분할 가능한 컨볼루션 (Separable Convolution)
+        1) 원근 투영 (Perspective Projection)과 광선 생성
       
     </span>
   </a>
@@ -1879,10 +1879,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#12" class="md-nav__link">
+  <a href="#2-occlusion-sorting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1.2 가우시안 가중치와 에너지 보존
+        2) 가려짐 처리 (Occlusion Sorting)
       
     </span>
   </a>
@@ -1898,30 +1898,19 @@
   <a href="#2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. 알고리즘 파이프라인 분석 및 추상화
+        2. 코드 구조 분석 및 구현의 의의
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. 알고리즘 파이프라인 분석 및 추상화">
+    <nav class="md-nav" aria-label="2. 코드 구조 분석 및 구현의 의의">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#phong-reflection-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [가우시안 블러 실행 흐름도]
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        [핵심 알고리즘 의사코드]
+        퐁 반사 모델 (Phong Reflection Model)의 완성도 유지
       
     </span>
   </a>
@@ -1934,10 +1923,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-dx11" class="md-nav__link">
+  <a href="#3-bug" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. 코드의 그래픽스적 한계와 개선 방향 (DX11 관점)
+        3. 코드 코멘트 및 치명적인 버그(Bug) 분석
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 코드 코멘트 및 치명적인 버그(Bug) 분석">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문제 코드 분석
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 이 버그가 발생했는가?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultpng" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        그럼에도 결과(result.png)가 정상처럼 보였던 이유 (우연의 일치)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 올바른 최접점 알고리즘 (의사코드)
       
     </span>
   </a>
@@ -1945,13 +1984,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-webgpu" class="md-nav__link">
+  <a href="#5-webgpu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. WebGPU 인터랙티브 데모 미리보기
+        5. WebGPU 인터랙티브 데모로의 확장 시각화
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="5. WebGPU 인터랙티브 데모로의 확장 시각화">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1) 구조 설계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-wgsl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2) WGSL 셰이더 핵심 파이프라인 예시
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1986,100 +2053,144 @@
   
 
 
-<h1 id="separable-5-tap-gaussian-blur">[코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화</h1>
-<p>축하합니다! 이번 커밋은 2D 이미지 처리에서 성능 최적화의 핵심 분기점이 되는 <strong>분할 가능한 컨볼루션(Separable Convolution)</strong> 기법을 성공적으로 구현한 중요한 단계입니다. </p>
-<p>기존의 단순한 박스 블러(Box Blur)에서 벗어나, 가우시안 분포(Gaussian Distribution)를 따르는 가중치를 적용하여 훨씬 자연스럽고 부드러운 블러 효과를 구현하셨습니다. 작성하신 코드를 바탕으로 컴퓨터 그래픽스 관점에서의 핵심 개념과 구현 디테일, 그리고 향후 GPU 이전을 위한 조언을 정리해 드립니다.</p>
+<h1 id="3">원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현</h1>
+<p>이번 커밋은 정투영(Orthographic Projection)에서 <strong>원근 투영(Perspective Projection)</strong>으로 전환하고, 여러 오브젝트가 레이 상에 겹쳐 있을 때 가장 가까운 오브젝트만 화면에 그리는 <strong>최접점 판정(Occlusion Sorting/Depth Testing)</strong> 알고리즘을 도입한 중요한 단계입니다. </p>
+<p>컴퓨터 그래픽스 전문가의 시각에서 이 커밋의 핵심 개념과 수학적 배경, 그리고 코드 상의 중요한 개선점을 심층 분석합니다.</p>
 <hr />
-<h2 id="1">1. 학습자가 직접 구현하며 이해한 핵심 그래픽스 개념</h2>
-<h3 id="11-separable-convolution">1.1 분할 가능한 컨볼루션 (Separable Convolution)</h3>
-<p>일반적으로 <span class="arithmatex">\(K \times K\)</span> 크기의 2D 필터 커널을 이미지에 직접 적용하려면 픽셀당 <span class="arithmatex">\(K^2\)</span> 번의 텍스처 샘플링(연산)이 필요합니다. 5-tap 커널의 경우 픽셀당 25번의 연산이 필요합니다.</p>
-<p>하지만 가우시안 필터처럼 수학적으로 가로와 세로 축으로 분리 가능한(Separable) 커널은 다음과 같이 두 번의 1차원 패스(Pass)로 나누어 처리할 수 있습니다.
-* <strong>Pass 1 (가로 블러):</strong> 가로 방향 1D 가우시안 필터 적용 (<span class="arithmatex">\(K\)</span> 번 연산)
-* <strong>Pass 2 (세로 블러):</strong> 세로 방향 1D 가우시안 필터 적용 (<span class="arithmatex">\(K\)</span> 번 연산)</p>
-<p>결과적으로 연산량이 <span class="arithmatex">\(K^2\)</span>에서 <span class="arithmatex">\(2K\)</span>로 감소합니다. 이번 구현에서 선택한 5-tap의 경우, <strong>25번의 연산이 단 10번의 연산으로 감소</strong>하여 성능이 약 2.5배 향상되는 효과를 얻었습니다. 100회의 반복 연산(Iterations)이 지정되어 있으므로, 이 최적화가 전체 프레임 레이트에 미치는 영향은 지대합니다.</p>
-<h3 id="12">1.2 가우시안 가중치와 에너지 보존</h3>
-<p>수학적으로 1차원 가우시안 분포는 다음과 같이 정의됩니다.</p>
-<div class="arithmatex">\[G(x) = \frac{1}{\sigma \sqrt{2\pi}} e^{-\frac{x^2}{2\sigma^2}}\]</div>
-<p>커밋에 사용된 가중치 벡터 <span class="arithmatex">\(W = [0.0545, 0.2442, 0.4026, 0.2442, 0.0545]\)</span>는 <span class="arithmatex">\(\sigma \approx 1.0\)</span>인 가우시안 함수를 이산화(Discretize)한 결과물입니다. 이 가중치들의 합을 구해보면 다음과 같습니다.</p>
-<div class="arithmatex">\[\sum_{i=0}^{4} W_i = 0.0545 + 0.2442 + 0.4026 + 0.2442 + 0.0545 = 1.0\]</div>
-<p>가중치의 합이 정확히 <span class="arithmatex">\(1.0\)</span>이 되는 것은 그래픽스에서 매우 중요합니다. 이 합이 1보다 크면 블러를 반복할수록 이미지가 점점 밝아지며(Saturation), 1보다 작으면 이미지가 어두워지게 됩니다. 가중치 합을 1로 유지함으로써 <strong>에너지 보존(Energy Conservation)</strong> 법칙을 만족하여 이미지 고유의 밝기를 유지할 수 있습니다.</p>
+<h2 id="1">1. 핵심 개념 및 수학적 원리</h2>
+<h3 id="1-perspective-projection">1) 원근 투영 (Perspective Projection)과 광선 생성</h3>
+<p>기존의 정투영 방식은 스크린의 모든 픽셀에서 동일한 방향 $<span class="arithmatex">\((0, 0, 1)\)</span>$로 평행한 광선을 투사했습니다. 반면, 원근 투영은 하나의 관찰 위치(눈/카메라)인 $<span class="arithmatex">\(\mathbf{E}\)</span>$ (여기서는 <code>eyePos = (0, 0, -1.5)</code>)로부터 스크린 상의 픽셀 위치 $<span class="arithmatex">\(\mathbf{P}_w\)</span>$를 향해 사방으로 퍼져나가는 광선을 생성합니다.</p>
+<p>수식으로 표현하면, 카메라 위치 $<span class="arithmatex">\(\mathbf{E}\)</span>$와 월드 공간의 픽셀 위치 $<span class="arithmatex">\(\mathbf{P}_w\)</span>$가 주어졌을 때, 픽셀을 통과하는 광선의 방향 벡터 $<span class="arithmatex">\(\mathbf{d}\)</span>$는 다음과 같이 정의됩니다.</p>
+<div class="arithmatex">\[ \mathbf{d} = \frac{\mathbf{P}_w - \mathbf{E}}{\|\mathbf{P}_w - \mathbf{E}\|} \]</div>
+<p>학습자는 스크린 평면(z=0) 상의 점인 <code>pixelPosWorld</code>를 광선의 시작점(Origin)으로 설정하고, 위에서 계산한 방향 벡터 <code>rayDir</code>을 부여하여 광선 $<span class="arithmatex">\(\mathbf{R}(t)\)</span>$를 정의했습니다.</p>
+<div class="arithmatex">\[ \mathbf{R}(t) = \mathbf{P}_w + t\mathbf{d} \quad (t \ge 0) \]</div>
+<p><em>(참고: 카메라 위치 $<span class="arithmatex">\(\mathbf{E}\)</span>$를 광선의 시작점으로 잡고 $<span class="arithmatex">\(\mathbf{P}_w\)</span>$ 방향으로 투사해도 수학적으로 동일한 방향을 얻을 수 있지만, 스크린 이전의 불필요한 연산을 줄이기 위해 스크린 상의 점을 시작점으로 잡는 기법을 사용했습니다.)</em></p>
+<h3 id="2-occlusion-sorting">2) 가려짐 처리 (Occlusion Sorting)</h3>
+<p>3차원 공간에서 광선이 진행할 때 여러 개의 물체와 충돌할 수 있습니다. 화면에 올바른 깊이감을 표현하려면 카메라와 가장 가까운 위치에서 발생한 충돌(최소 양수값 $<span class="arithmatex">\(t\)</span>$)을 선택해야 합니다.</p>
+<div class="arithmatex">\[ t_{\text{closest}} = \min \{ t_i \mid t_i \ge 0 \} \]</div>
 <hr />
-<h2 id="2">2. 알고리즘 파이프라인 분석 및 추상화</h2>
-<p>구현하신 가우시안 블러 알고리즘은 아래와 같은 2단계 파이프라인 구조를 가집니다. 원본 이미지 버퍼와 임시 버퍼 사이의 관계에 유의해야 합니다.</p>
-<h3 id="_1">[가우시안 블러 실행 흐름도]</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>[원본 이미지 (this-&gt;pixels)]
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>       │
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>       ▼ (Pass 1: 가로 방향 가중치 누적)
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>[가로 블러 완료 임시 버퍼 (pixelsBuffer)]
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>       │
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>       ▼ (버퍼 스왑 및 동기화: pixelsBuffer -&gt; pixels)
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>[중간 결과 이미지 (this-&gt;pixels)]
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>       │
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>       ▼ (Pass 2: 세로 방향 가중치 누적)
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>[최종 가우시안 블러 완료 (pixelsBuffer)]
+<h2 id="2">2. 코드 구조 분석 및 구현의 의의</h2>
+<p>기존 렌더러는 레이가 구체 하나에 부딪히자마자 즉시 탐색을 종료하고 색상을 반환했습니다. 그러나 이번 변경을 통해 장면 내 모든 오브젝트(<code>objects</code>)를 순회하며 충돌 거리를 비교 분석하는 구조로 확장되었습니다.</p>
+<h3 id="phong-reflection-model">퐁 반사 모델 (Phong Reflection Model)의 완성도 유지</h3>
+<p>충돌점에서의 색상을 계산할 때는 정교한 <strong>퐁 반사 모델(Phong Reflection Model)</strong>이 적용되었습니다. 
+* <strong>Ambient (환경광)</strong>: 빛이 직접 닿지 않아도 존재하는 기본적인 밝기.
+* <strong>Diffuse (난반사광)</strong>: 표면의 법선 벡터 $<span class="arithmatex">\(\mathbf{N}\)</span>$과 광원 방향 벡터 $<span class="arithmatex">\(\mathbf{L}\)</span><span class="arithmatex">\(의 내적을 이용해 빛을 받는 각도에 따른 밝기 표현 (\)</span><span class="arithmatex">\(\mathbf{N} \cdot \mathbf{L}\)</span>$).
+* <strong>Specular (경면반사광)</strong>: 반사 벡터 $<span class="arithmatex">\(\mathbf{R}\)</span>$과 시선 반대 방향 벡터 $<span class="arithmatex">\(\mathbf{V}\)</span><span class="arithmatex">\(의 내적 및 신코사인 지수(\)</span><span class="arithmatex">\(\alpha\)</span><span class="arithmatex">\()를 활용한 하이라이트 표현 (\)</span><span class="arithmatex">\((\mathbf{R} \cdot \mathbf{V})^\alpha\)</span>$).</p>
+<p>이 일련의 조명 공식은 <code>traceRay</code> 함수 내에서 가장 가까운 충돌 정보(<code>Hit</code>)를 바탕으로 정확하게 계산됩니다.</p>
+<hr />
+<h2 id="3-bug">3. 코드 코멘트 및 치명적인 버그(Bug) 분석</h2>
+<p>학습자의 코드에서 매우 흥미롭고 교육적인 <strong>논리적 오류(Bug)</strong>가 발견되었습니다. 학습자는 최접점을 구하기 위해 <code>closestD</code> 변수를 선언했으나, 정작 루프 내에서 <strong>새로 구한 충돌 거리가 기존 최단 거리보다 짧은지 검사하는 조건식</strong>을 누락했습니다.</p>
+<h3 id="_1">문제 코드 분석</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// Raytracer.h - FindClosestCollision 중 일부</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kt">float</span><span class="w"> </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">;</span><span class="w"> </span><span class="c1">// inf</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">Hit</span><span class="w"> </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Hit</span><span class="p">{</span><span class="w"> </span><span class="mf">-1.0</span><span class="p">,</span><span class="w"> </span><span class="n">dvec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span><span class="w"> </span><span class="n">dvec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">objects</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="n">l</span><span class="o">++</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">{</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">objects</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">CheckRayCollision</span><span class="p">(</span><span class="n">ray</span><span class="p">);</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">)</span><span class="w"> </span><span class="c1">// &lt;- 버그 발생 지점! hit.d &lt; closestD 조건이 빠져 있음</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">        </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="p">;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="n">closestHit</span><span class="p">.</span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">objects</span><span class="p">[</span><span class="n">l</span><span class="p">];</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
 </code></pre></div>
-<h3 id="_2">[핵심 알고리즘 의사코드]</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// 1D 가우시안 커널 가중치 정의</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weights</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mf">0.0545f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2442f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.4026f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2442f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0545f</span><span class="w"> </span><span class="p">};</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1">// Pass 1: Horizontal Blur</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">height</span><span class="p">;</span><span class="w"> </span><span class="n">y</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">width</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="n">float4</span><span class="w"> </span><span class="n">accumulatedColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">float4</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">);</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="n">step</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">            </span><span class="c1">// 가로 방향 이웃 픽셀 샘플링 (x + step - 2)</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">            </span><span class="n">float4</span><span class="w"> </span><span class="n">neighbor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SamplePixel</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">            </span><span class="n">accumulatedColor</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">neighbor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">weights</span><span class="p">[</span><span class="n">step</span><span class="p">];</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">        </span><span class="n">tempBuffer</span><span class="p">[</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accumulatedColor</span><span class="p">;</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">}</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1">// 중요: Pass 1의 결과가 Pass 2의 입력이 되도록 버퍼를 갱신해야 합니다.</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="n">SyncBuffers</span><span class="p">(</span><span class="n">sourceBuffer</span><span class="p">,</span><span class="w"> </span><span class="n">tempBuffer</span><span class="p">);</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1">// Pass 2: Vertical Blur</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">height</span><span class="p">;</span><span class="w"> </span><span class="n">y</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">width</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">        </span><span class="n">float4</span><span class="w"> </span><span class="n">accumulatedColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">float4</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">);</span>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="n">step</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">            </span><span class="c1">// 세로 방향 이웃 픽셀 샘플링 (y + step - 2)</span>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">            </span><span class="n">float4</span><span class="w"> </span><span class="n">neighbor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SamplePixel</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">step</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">            </span><span class="n">accumulatedColor</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">neighbor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">weights</span><span class="p">[</span><span class="n">step</span><span class="p">];</span>
-<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">        </span><span class="n">tempBuffer</span><span class="p">[</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accumulatedColor</span><span class="p">;</span>
-<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="p">}</span>
+<h3 id="_2">왜 이 버그가 발생했는가?</h3>
+<p>이 조건문은 단순히 충돌 여부(<code>hit.d &gt;= 0.0f</code>)만 판단하고 있습니다. 즉, 루프를 돌면서 충돌하는 물체가 발견될 때마다 <code>closestD</code>를 그냥 덮어씌워 버립니다. 결과적으로 <strong>가장 가까운 오브젝트가 아니라, 리스트에서 가장 마지막에 위치하며 충돌이 감지된 오브젝트</strong>가 최종 선택됩니다.</p>
+<h3 id="resultpng">그럼에도 결과(result.png)가 정상처럼 보였던 이유 (우연의 일치)</h3>
+<p>생성자에서 오브젝트를 추가한 순서를 보면 이 의문이 풀립니다.
+1. <code>sphere3</code> (Blue, <span class="arithmatex">\(z = 1.5\)</span>)
+2. <code>sphere2</code> (Green, <span class="arithmatex">\(z = 1.0\)</span>)
+3. <code>sphere1</code> (Red, <span class="arithmatex">\(z = 0.5\)</span>) - 가장 가까움</p>
+<p>루프는 index 0(<code>sphere3</code>)부터 2(<code>sphere1</code>)까지 순서대로 돕니다.
+* <span class="arithmatex">\(l=0\)</span> 일 때: <code>sphere3</code>과 충돌 감지 <span class="arithmatex">\(\rightarrow\)</span> <code>closestHit</code>은 <code>sphere3</code>이 됨.
+* <span class="arithmatex">\(l=1\)</span> 일 때: <code>sphere2</code>와 충돌 감지 <span class="arithmatex">\(\rightarrow\)</span> <code>closestHit</code>은 <code>sphere2</code>로 덮어씌워짐.
+* <span class="arithmatex">\(l=2\)</span> 일 때: <code>sphere1</code>과 충돌 감지 <span class="arithmatex">\(\rightarrow\)</span> <code>closestHit</code>은 <code>sphere1</code>로 최종 덮어씌워짐.</p>
+<p>공교롭게도 <strong>가장 가까운 구체가 리스트의 가장 마지막에 처리되었기 때문에</strong> 화면에는 정상적으로 붉은색 구체가 가장 앞에 그려진 것처럼 보였던 것입니다. 만약 구체의 추가 순서를 바꾸거나 동적으로 움직인다면 렌더링이 깨지게 됩니다.</p>
+<hr />
+<h2 id="4">4. 올바른 최접점 알고리즘 (의사코드)</h2>
+<p>이를 올바르게 수정하려면 충돌 거리인 <code>hit.d</code>가 양수이면서 동시에 <strong>현재까지 저장된 <code>closestD</code>보다 작을 때만</strong> 값을 갱신해야 합니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// 올바른 최접점 탐색 의사코드 (Pseudo-code)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">function</span><span class="w"> </span><span class="nf">FindClosestCollision</span><span class="p">(</span><span class="n">ray</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">infinity</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">empty_hit</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">each</span><span class="w"> </span><span class="n">object</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">objects</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">object</span><span class="p">.</span><span class="n">CheckRayCollision</span><span class="p">(</span><span class="n">ray</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="c1">// 0보다 크고(전방 충돌), 현재 저장된 최단 거리보다 짧은 경우에만 갱신</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hit</span><span class="p">.</span><span class="n">distance</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">distance</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">closestD</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">            </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">distance</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">            </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">            </span><span class="n">closestHit</span><span class="p">.</span><span class="n">object</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">object</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">closestHit</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="p">}</span>
 </code></pre></div>
-<blockquote>
-<p><strong>전문가 가이드:</strong> 코드 변경사항의 생략된 부분(<code>...</code>)에서 첫 번째 패스(Horizontal)가 끝난 후 <code>pixelsBuffer</code>의 내용을 반드시 <code>this-&gt;pixels</code>로 복사하거나 포인터를 교체(Swap)해주어야 합니다. 그렇지 않으면 두 번째 패스(Vertical)가 가로 블러가 적용되지 않은 원본 이미지를 다시 참조하게 되어 올바른 2D 가우시안 블러가 완성되지 않습니다.</p>
-</blockquote>
 <hr />
-<h2 id="3-dx11">3. 코드의 그래픽스적 한계와 개선 방향 (DX11 관점)</h2>
-<p>현재 구현은 CPU 루프를 통해 픽셀을 하나씩 제어하고 있습니다. 가로 세로 100회 반복 처리는 CPU에게 매우 가혹한 연산이며, 실시간 렌더링(60fps 이상) 환경에서는 메인 스레드 병목의 주원인이 됩니다. 이 코드를 DirectX 11 하드웨어 가속으로 이전할 때 고려해야 할 두 가지 팁을 드립니다.</p>
-<ol>
-<li><strong>컴퓨트 셰이더(Compute Shader) 활용:</strong>
-   DX11의 <code>ID3D11ComputeShader</code>를 사용하여 이 가로/세로 패스를 GPGPU 연산으로 전환할 수 있습니다. 스레드 그룹 공유 메모리(Group Shared Memory, <code>groupshared</code>)를 활용하면 텍스처 샘플링 횟수를 획기적으로 줄일 수 있습니다.</li>
-<li><strong>선형 필터링 하드웨어 활용 (Bilinear Filtering Trick):</strong>
-   GPU의 텍스처 샘플러는 하드웨어 수준에서 선형 보간(Bilinear Interpolation)을 지원합니다. 정수 좌표가 아닌 픽셀 사이의 소수점 좌표를 샘플링하면, 단 한 번의 샘플링으로 두 픽셀의 가중치 평균값을 얻을 수 있습니다. 이를 이용하면 <strong>5-tap 가우시안 블러를 단 3번의 텍스처 샘플링(3-tap)으로 완벽하게 최적화</strong>할 수 있습니다.</li>
-</ol>
-<hr />
-<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모 미리보기</h2>
-<p>이 최적화된 Separable 가우시안 블러 알고리즘을 모던 웹 그래픽스 API인 <strong>WebGPU의 Compute Shader</strong>로 구현한다면 다음과 같이 매우 빠르고 대화식인 시각화 데모를 구성할 수 있습니다.</p>
+<h2 id="5-webgpu">5. WebGPU 인터랙티브 데모로의 확장 시각화</h2>
+<p>이 원근 투영 레이트레이싱 알고리즘을 최신 웹 그래픽스 표준인 <strong>WebGPU</strong> 기반의 <strong>Compute Shader</strong>로 마이그레이션하면, CPU 병렬 처리(OpenMP)를 압도하는 실시간 60fps 인터랙티브 렌더링을 구현할 수 있습니다.</p>
+<h3 id="1_1">1) 구조 설계</h3>
 <ul>
-<li><strong>동작 원리:</strong> 
-  웹 브라우저 상에서 GPU 메모리에 이미지를 텍스처로 업로드한 뒤, WGSL(WebGPU Shading Language)로 작성된 두 개의 Compute Pass(<code>horizontal_blur</code>, <code>vertical_blur</code>)를 실행합니다. </li>
-<li><strong>워크그룹(Workgroup) 구성:</strong>
-  각 픽셀을 1:1로 매핑하는 가로 <span class="arithmatex">\(16 \times 1\)</span>, 세로 <span class="arithmatex">\(1 \times 16\)</span> 형태의 1차원 워크그룹 스레드를 구성하여 GPU 병렬 처리를 극대화합니다.</li>
-<li><strong>실시간 인터랙티브 UI:</strong></li>
-<li><strong>Sigma (<span class="arithmatex">\(\sigma\)</span>) 슬라이더:</strong> 실시간으로 가우시안 가중치 공식을 계산하여 커널 값을 업데이트하고 블러의 반경을 조절합니다.</li>
-<li><strong>Iteration 카운터:</strong> CPU에서는 100회 반복 시 수 초 동안 멈추던 연산이, WebGPU 환경에서는 매 프레임(60fps)마다 100회 이상의 패스를 누적 연산해도 전혀 끊김 없이 실시간으로 부드럽게 흐려지는 모습을 관찰할 수 있습니다.</li>
-<li><strong>텍스처 디버그 뷰:</strong> 원본 이미지, 가로 패스만 적용된 중간 단계(Motion blur 느낌), 그리고 최종 가우시안 블러가 완성된 결과를 마우스 드래그를 통해 실시간 Split View로 비교할 수 있습니다.</li>
+<li><strong>Storage Buffer</strong>: 구체들의 데이터(위치, 반지름, 퐁 반사 계수 등)를 GPU 버퍼에 업로드합니다.</li>
+<li><strong>Storage Texture</strong>: 계산된 픽셀 색상을 직접 쓸 수 있는 쓰기 가능 텍스처(Write-only texture)를 바인딩합니다.</li>
+<li><strong>Compute Shader (WGSL)</strong>: CPU에서 수행하던 <code>Render()</code>의 이중 루프를 GPU의 수천 개 스레드로 분할 처리합니다.</li>
 </ul>
+<h3 id="2-wgsl">2) WGSL 셰이더 핵심 파이프라인 예시</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">struct</span><span class="w"> </span><span class="n">Sphere</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="n">pos</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="n">radius</span><span class="p">:</span><span class="w"> </span><span class="nb">f32</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="n">ambient</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="n">diffuse</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="n">specular</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="n">alpha</span><span class="p">:</span><span class="w"> </span><span class="nb">f32</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">};</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="o">&lt;</span><span class="nb">storage</span><span class="p">,</span><span class="w"> </span><span class="nb">read</span><span class="o">&gt;</span><span class="w"> </span><span class="n">spheres</span><span class="p">:</span><span class="w"> </span><span class="nb">array</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="n">outputTex</span><span class="p">:</span><span class="w"> </span><span class="nb">texture_storage_2d</span><span class="o">&lt;</span><span class="nb">rgba8unorm</span><span class="p">,</span><span class="w"> </span><span class="nb">write</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nd">@compute</span><span class="w"> </span><span class="nd">@workgroup_size</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p">)</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">fn</span><span class="w"> </span><span class="n">cs_main</span><span class="p">(</span><span class="nd">@builtin</span><span class="p">(</span><span class="nb">global_invocation_id</span><span class="p">)</span><span class="w"> </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">u32</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">textureDimensions</span><span class="p">(</span><span class="n">outputTex</span><span class="p">);</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">size</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">id</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">size</span><span class="p">.</span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="c1">// 1. Screen to World Space 변환 (정규화된 디바이스 좌표계 적용)</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">uv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">id</span><span class="p">.</span><span class="n">xy</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">pixelPosWorld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">((</span><span class="n">uv</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">aspect</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="n">uv</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="p">),</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="c1">// 2. 원근 투영 광선 생성</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">eyePos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.5</span><span class="p">);</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">rayDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalize</span><span class="p">(</span><span class="n">pixelPosWorld</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">eyePos</span><span class="p">);</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="c1">// 3. 최접점 판정 루프 (버그 수정 버전 적용)</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10000.0</span><span class="p">;</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="n">closestHitIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">var</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0u</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">arrayLength</span><span class="p">(</span><span class="o">&amp;</span><span class="n">spheres</span><span class="p">);</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">checkRaySphereCollision</span><span class="p">(</span><span class="n">pixelPosWorld</span><span class="p">,</span><span class="w"> </span><span class="n">rayDir</span><span class="p">,</span><span class="w"> </span><span class="n">spheres</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">closestD</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">            </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">d</span><span class="p">;</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">            </span><span class="n">closestHitIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="w">    </span><span class="c1">// 4. 퐁 반사 모델 조명 계산 및 텍스처 출력</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">closestHitIndex</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a><span class="w">        </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">calculatePhongReflection</span><span class="p">(</span><span class="n">closestHitIndex</span><span class="p">,</span><span class="w"> </span><span class="n">closestD</span><span class="p">,</span><span class="w"> </span><span class="n">pixelPosWorld</span><span class="p">,</span><span class="w"> </span><span class="n">rayDir</span><span class="p">);</span>
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a>
+<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a><span class="w">    </span><span class="n">textureStore</span><span class="p">(</span><span class="n">outputTex</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">.</span><span class="n">xy</span><span class="p">,</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">color</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">));</span>
+<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a><span class="p">}</span>
+</code></pre></div>
+<p>WebGPU 데모에서는 사용자가 웹브라우저 상에서 마우스를 드래그하여 카메라(<code>eyePos</code>)의 위치를 실시간으로 바꿀 수 있습니다. 카메라가 움직임에 따라 구체들의 겹침 관계(Occlusion)가 부드럽고 정확하게 실시간으로 변하는 원근감을 직접 체험할 수 있게 됩니다.</p>
 <hr />
 <h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="../../demos/코드-리뷰-separable-5-tap-gaussian-blur-구현-분/demo.html" width="100%" height="640" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/원근-투영과-최접점-가려짐-처리를-통한-3차원-레이트레이싱-구현/demo.html" width="100%" height="700" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
