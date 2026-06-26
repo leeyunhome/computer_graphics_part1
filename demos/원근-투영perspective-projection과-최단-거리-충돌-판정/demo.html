@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>DirectX 11 — Perspective Projection & Closest Collision Detection</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --sidebar-bg: #111122;
+            --panel-bg: #16162a;
+            --accent-color: #5865f2;
+            --accent-hover: #4752c4;
+            --text-color: #e0e0e0;
+            --text-muted: #888899;
+            --border-color: #2b2b40;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* 윈도우 타이틀바 구성 — DirectX 11 앱 스타일 */
+        .window-header {
+            background-color: var(--sidebar-bg);
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--text-muted);
+            user-select: none;
+        }
+
+        .window-title {
+            color: #ffffff;
+        }
+
+        .window-controls {
+            letter-spacing: 4px;
+        }
+
+        /* 메인 레이아웃 구성 (iframe 호환용 핵심 마크업 규칙 준수) */
+        .workspace {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            min-height: 0; /* overflow-y 동작을 위한 필수 세팅 */
+            overflow: hidden;
+        }
+
+        @media (max-width: 680px) {
+            .workspace {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100% !important;
+                max-height: 50vh;
+            }
+        }
+
+        /* 사이드바 UI 패널 영역 */
+        .sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        /* 캔버스 뷰포트 컨테이너 */
+        .canvas-container {
+            flex: 1;
+            min-width: 300px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0c0c14;
+            position: relative;
+        }
+
+        canvas#webgpuCanvas {
+            width: 512px;
+            height: 512px;
+            max-width: 100%;
+            aspect-ratio: 1/1;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            background-color: #000;
+        }
+
+        /* 개별 ImGui 스타일 섹션 패널 */
+        .panel-section {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 8px;
+            color: #ffffff;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-row input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-color);
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .control-row span {
+            font-size: 11px;
+            font-family: monospace;
+            width: 40px;
+            text-align: right;
+            color: var(--accent-color);
+        }
+
+        select {
+            background-color: #252538;
+            color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            width: 100%;
+            cursor: pointer;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--accent-color);
+        }
+
+        #diagramCanvas {
+            border: 1px solid var(--border-color);
+            background-color: #090911;
+            width: 100%;
+            display: block;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        #webgpu-error {
+            position: absolute;
+            color: #ff4a4a;
+            font-weight: bold;
+            text-align: center;
+            background: rgba(0,0,0,0.85);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ff4a4a;
+            max-width: 80%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 윈도우 제어 바 -->
+    <div class="window-header">
+        <span class="window-title">DirectX 11 — Perspective Projection & Closest Collision Detection</span>
+        <span class="window-controls">✕ 🗖 🗕</span>
+    </div>
+
+    <!-- 작업 공간 영역 -->
+    <div class="workspace">
+        <!-- 사이드바 입력 컨트롤 제어 판넬 -->
+        <div class="sidebar">
+            <!-- 투영 기법 및 가려짐 정렬 제어부 -->
+            <div class="panel-section">
+                <div class="section-title">Projection & Occlusion</div>
+                <div class="control-group">
+                    <label>Projection Mode</label>
+                    <select id="proj_mode">
+                        <option value="1.0" selected>Perspective (원근 투영)</option>
+                        <option value="0.0">Orthographic (직교 투영)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Occlusion Sorting</label>
+                    <select id="enable_sorting">
+                        <option value="1.0" selected>Enabled (가장 가까운 충돌 검출)</option>
+                        <option value="0.0">Disabled (루프 기반 첫 충돌 즉시 차용)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 카메라 관찰자 및 광원 제어부 -->
+            <div class="panel-section">
+                <div class="section-title">Camera & Light</div>
+                <div class="control-group">
+                    <label>Eye Position Z</label>
+                    <div class="control-row">
+                        <input type="range" id="eye_pos_z" min="-3.0" max="-0.5" step="0.1" value="-1.5">
+                        <span id="eye_pos_z_val">-1.50</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Light Position X</label>
+                    <div class="control-row">
+                        <input type="range" id="light_pos_x" min="-4.0" max="4.0" step="0.1" value="0.0">
+                        <span id="light_pos_x_val">0.00</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Light Position Y</label>
+                    <div class="control-row">
+                        <input type="range" id="light_pos_y" min="-4.0" max="4.0" step="0.1" value="1.0">
+                        <span id="light_pos_y_val">1.00</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Light Position Z</label>
+                    <div class="control-row">
+                        <input type="range" id="light_pos_z" min="-4.0" max="4.0" step="0.1" value="-1.0">
+                        <span id="light_pos_z_val">-1.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 구체 개별 물리 변수 세팅 영역 (기본값 설정은 C++ 소스 코드를 근거함) -->
+            <!-- 구체 1 (가장 전면 배치 / 적색) -->
+            <div class="panel-section">
+                <div class="section-title">Sphere 1 (Red, Front)</div>
+                <div class="control-group">
+                    <label>Center X</label>
+                    <div class="control-row">
+                        <input type="range" id="s1_cx" min="-1.5" max="1.5" step="0.05" value="0.5">
+                        <span id="s1_cx_val">0.50</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Center Z</label>
+                    <div class="control-row">
+                        <input type="range" id="s1_cz" min="0.1" max="2.5" step="0.05" value="0.5">
+                        <span id="s1_cz_val">0.50</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Radius</label>
+                    <div class="control-row">
+                        <input type="range" id="s1_r" min="0.1" max="0.8" step="0.02" value="0.4">
+                        <span id="s1_r_val">0.40</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 구체 2 (중간 깊이 배치 / 녹색) -->
+            <div class="panel-section">
+                <div class="section-title">Sphere 2 (Green, Middle)</div>
+                <div class="control-group">
+                    <label>Center X</label>
+                    <div class="control-row">
+                        <input type="range" id="s2_cx" min="-1.5" max="1.5" step="0.05" value="0.0">
+                        <span id="s2_cx_val">0.00</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Center Z</label>
+                    <div class="control-row">
+                        <input type="range" id="s2_cz" min="0.1" max="2.5" step="0.05" value="1.0">
+                        <span id="s2_cz_val">1.00</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Radius</label>
+                    <div class="control-row">
+                        <input type="range" id="s2_r" min="0.1" max="0.8" step="0.02" value="0.4">
+                        <span id="s2_r_val">0.40</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 구체 3 (최후방 깊이 배치 / 청색) -->
+            <div class="panel-section">
+                <div class="section-title">Sphere 3 (Blue, Back)</div>
+                <div class="control-group">
+                    <label>Center X</label>
+                    <div class="control-row">
+                        <input type="range" id="s3_cx" min="-1.5" max="1.5" step="0.05" value="-0.5">
+                        <span id="s3_cx_val">-0.50</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Center Z</label>
+                    <div class="control-row">
+                        <input type="range" id="s3_cz" min="0.1" max="2.5" step="0.05" value="1.5">
+                        <span id="s3_cz_val">1.50</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Radius</label>
+                    <div class="control-row">
+                        <input type="range" id="s3_r" min="0.1" max="0.8" step="0.02" value="0.4">
+                        <span id="s3_r_val">0.40</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 광학 기하학 실시간 모식도 드로잉 섹션 -->
+            <div class="panel-section">
+                <div class="section-title">Projection Geometry Diagram (Top-View)</div>
+                <canvas id="diagramCanvas" width="280" height="180"></canvas>
+            </div>
+        </div>
+
+        <!-- 3D 광선추적 연산 캔버스 렌더 영역 -->
+        <div class="canvas-container">
+            <canvas id="webgpuCanvas" width="512" height="512"></canvas>
+            <div id="webgpu-error" class="hidden">
+                WebGPU 지원 레이어가 활성화되지 않았습니다.<br>
+                WebGPU 활성화 및 호환 브라우저(Chrome 113+, Edge)인지 확인하세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- WebGPU 및 보조 기하학 시각화 모사 스크립트 실행 -->
+    <script>
+        // 글로벌 실행 상태 관리 컨테이너
+        const raytracerAppState = {
+            proj_mode: 1.0,         // 0.0: 직교, 1.0: 원근
+            enable_sorting: 1.0,    // 0.0: 가려짐 무시, 1.0: 거리 계산 정렬
+            eye_pos: [0.0, 0.0, -1.5],
+            light_pos: [0.0, 1.0, -1.0],
+            // 셰이더 내 루프 처리와의 정확한 인덱스 동기화:
+            // C++ 소스 상 순서 (구체 3 -> 구체 2 -> 구체 1) 순으로 버퍼 기록
+            spheres: [
+                { // S3 (최후방 청색 구체)
+                    center: [-0.5, 0.0, 1.5],
+                    radius: 0.4,
+                    ambient: [0.2, 0.2, 0.2],
+                    specular: 0.5,
+                    diffuse: [0.2, 0.2, 1.0],
+                    shininess: 10.0
+                },
+                { // S2 (중간 녹색 구체)
+                    center: [0.0, 0.0, 1.0],
+                    radius: 0.4,
+                    ambient: [0.2, 0.2, 0.2],
+                    specular: 0.5,
+                    diffuse: [0.2, 1.0, 0.2],
+                    shininess: 10.0
+                },
+                { // S1 (가장 전방 적색 구체)
+                    center: [0.5, 0.0, 0.5],
+                    radius: 0.4,
+                    ambient: [0.2, 0.2, 0.2],
+                    specular: 0.5,
+                    diffuse: [1.0, 0.2, 0.2],
+                    shininess: 10.0
+                }
+            ]
+        };
+
+        let webgpuRendererResources = null;
+        let isFrameRenderPending = false;
+
+        // 2D 투영 기하 관계 모식도 시각화 함수
+        const diagCanvas = document.getElementById('diagramCanvas');
+        const diagCtx = diagCanvas.getContext('2d');
+
+        function drawCameraRayDiagram(state) {
+            diagCtx.clearRect(0, 0, diagCanvas.width, diagCanvas.height);
+            
+            // XZ 탑뷰 매핑 함수 정의
+            // x축 범위 [-1.2, 1.2] => [20, 260] 픽셀
+            // z축 범위 [-1.8, 2.2] => [160, 20] 픽셀 (z가 커질수록 월드상 전방, 화면의 상단)
+            function transX(x) {
+                return 20 + ((x + 1.2) / 2.4) * 240;
+            }
+            function transZ(z) {
+                return 160 - ((z + 1.8) / 4.0) * 140;
+            }
+
+            // 1. 시각 보조 격자선 (Grid) 연출
+            diagCtx.strokeStyle = '#22223a';
+            diagCtx.lineWidth = 1;
+            for (let x = -1.0; x <= 1.0; x += 0.5) {
+                diagCtx.beginPath();
+                diagCtx.moveTo(transX(x), 0);
+                diagCtx.lineTo(transX(x), diagCanvas.height);
+                diagCtx.stroke();
+            }
+            for (let z = -1.5; z <= 2.0; z += 0.5) {
+                diagCtx.beginPath();
+                diagCtx.moveTo(0, transZ(z));
+                diagCtx.lineTo(diagCanvas.width, transZ(z));
+                diagCtx.stroke();
+            }
+
+            // 2. 가상의 스크린 평면 가로선 (Z = 0.0) 표시
+            diagCtx.strokeStyle = '#e2cc24';
+            diagCtx.lineWidth = 2;
+            diagCtx.beginPath();
+            diagCtx.moveTo(transX(-1.0), transZ(0));
+            diagCtx.lineTo(transX(1.0), transZ(0));
+            diagCtx.stroke();
+            diagCtx.fillStyle = '#e2cc24';
+            diagCtx.font = '9px monospace';
+            diagCtx.fillText('Screen Plane (Z=0)', transX(-1.0), transZ(0) - 6);
+
+            // 3. 카메라 / 관찰자 눈 시각화
+            if (state.proj_mode > 0.5) {
+                const ex = transX(state.eye_pos[0]);
+                const ez = transZ(state.eye_pos[2]);
+                diagCtx.fillStyle = '#e858f2';
+                diagCtx.beginPath();
+                diagCtx.arc(ex, ez, 5, 0, Math.PI * 2);
+                diagCtx.fill();
+                diagCtx.fillText('Eye (Camera)', ex + 8, ez + 3);
+
+                // 방사형으로 퍼져 나가는 원근 투영 광선 모사
+                diagCtx.strokeStyle = 'rgba(232, 88, 242, 0.2)';
+                diagCtx.lineWidth = 1;
+                const sampleScreenXs = [-0.8, -0.4, 0.0, 0.4, 0.8];
+                sampleScreenXs.forEach(sx => {
+                    diagCtx.beginPath();
+                    diagCtx.moveTo(ex, ez);
+                    const dx = sx - state.eye_pos[0];
+                    const dz = 0.0 - state.eye_pos[2];
+                    const len = Math.sqrt(dx * dx + dz * dz);
+                    const ndx = dx / len;
+                    const ndz = dz / len;
+                    diagCtx.lineTo(transX(state.eye_pos[0] + ndx * 4.0), transZ(state.eye_pos[2] + ndz * 4.0));
+                    diagCtx.stroke();
+                });
+            } else {
+                diagCtx.fillStyle = '#8888aa';
+                diagCtx.font = '9px monospace';
+                diagCtx.fillText('Ortho Rays (Parallel Z+)', 10, 168);
+
+                // 정방향으로 평행하게 연출되는 직교 광선 모사
+                diagCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                diagCtx.lineWidth = 1;
+                const sampleScreenXs = [-0.8, -0.4, 0.0, 0.4, 0.8];
+                sampleScreenXs.forEach(sx => {
+                    diagCtx.beginPath();
+                    diagCtx.moveTo(transX(sx), transZ(-1.0));
+                    diagCtx.lineTo(transX(sx), transZ(3.0));
+                    diagCtx.stroke();
+                });
+            }
+
+            // 4. 구체들의 탑뷰 투영 실시간 표현
+            // S3(블루), S2(그린), S1(레드) 순으로 배치
+            const sphereColors = ['#5555ff', '#55ff55', '#ff5555'];
+            for (let i = 0; i < 3; i++) {
+                const s = state.spheres[i];
+                const cx = transX(s.center[0]);
+                const cz = transZ(s.center[2]);
+                const pixelRadius = (s.radius / 2.4) * 240;
+
+                diagCtx.fillStyle = sphereColors[i] + '33'; // 반투명 채우기
+                diagCtx.beginPath();
+                diagCtx.arc(cx, cz, pixelRadius, 0, Math.PI * 2);
+                diagCtx.fill();
+
+                diagCtx.strokeStyle = sphereColors[i];
+                diagCtx.lineWidth = 1.5;
+                diagCtx.beginPath();
+                diagCtx.arc(cx, cz, pixelRadius, 0, Math.PI * 2);
+                diagCtx.stroke();
+
+                diagCtx.fillStyle = '#ffffff';
+                diagCtx.font = 'bold 9px Arial';
+                diagCtx.fillText(`S${3 - i}`, cx - 5, cz + 3);
+            }
+
+            // 5. 광원의 평면 가상 위치
+            const lx = transX(state.light_pos[0]);
+            const lz = transZ(state.light_pos[2]);
+            diagCtx.fillStyle = '#fceb21';
+            diagCtx.beginPath();
+            diagCtx.arc(lx, lz, 4, 0, Math.PI * 2);
+            diagCtx.fill();
+            diagCtx.fillText('Light', lx + 8, lz + 3);
+        }
+
+        // WebGPU 버퍼 기록 및 동기화 처리 함수
+        function syncUniformBufferData(device, uniformBuffer) {
+            const bufferArray = new Float32Array(176 / 4); // 총 176바이트 구조체 공간
+            
+            // 1. RaytraceCameraSettings 복제 (32 바이트 오프셋 점유)
+            bufferArray[0] = raytracerAppState.eye_pos[0];
+            bufferArray[1] = raytracerAppState.eye_pos[1];
+            bufferArray[2] = raytracerAppState.eye_pos[2];
+            bufferArray[3] = raytracerAppState.proj_mode;
+            
+            bufferArray[4] = raytracerAppState.light_pos[0];
+            bufferArray[5] = raytracerAppState.light_pos[1];
+            bufferArray[6] = raytracerAppState.light_pos[2];
+            bufferArray[7] = raytracerAppState.enable_sorting;
+            
+            // 2. SpherePhysicalProperties 3개 구조체 복제 (개당 48 바이트 점유)
+            for (let i = 0; i < 3; i++) {
+                const s = raytracerAppState.spheres[i];
+                const baseOffset = 8 + i * 12; // 32바이트(8 float) 이후부터 순차적 기입
+                
+                bufferArray[baseOffset + 0] = s.center[0];
+                bufferArray[baseOffset + 1] = s.center[1];
+                bufferArray[baseOffset + 2] = s.center[2];
+                bufferArray[baseOffset + 3] = s.radius;
+                
+                bufferArray[baseOffset + 4] = s.ambient[0];
+                bufferArray[baseOffset + 5] = s.ambient[1];
+                bufferArray[baseOffset + 6] = s.ambient[2];
+                bufferArray[baseOffset + 7] = s.specular;
+                
+                bufferArray[baseOffset + 8] = s.diffuse[0];
+                bufferArray[baseOffset + 9] = s.diffuse[1];
+                bufferArray[baseOffset + 10] = s.diffuse[2];
+                bufferArray[baseOffset + 11] = s.shininess;
+            }
+            
+            device.queue.writeBuffer(uniformBuffer, 0, bufferArray);
+        }
+
+        // WebGPU 리소스 바인딩 및 파이프라인 형성 초기화 구동
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                document.getElementById('webgpu-error').classList.remove('hidden');
+                return null;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                document.getElementById('webgpu-error').classList.remove('hidden');
+                return null;
+            }
+
+            const device = await adapter.requestDevice();
+            const canvas = document.getElementById('webgpuCanvas');
+            const context = canvas.getContext('webgpu');
+            const preferredFormat = navigator.gpu.getPreferredCanvasFormat();
+
+            context.configure({
+                device: device,
+                format: preferredFormat,
+                alphaMode: 'opaque'
+            });
+
+            // 연산 데이터를 전송할 단일 Uniform Buffer 설정
+            const uniformBuffer = device.createBuffer({
+                size: 176,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // 광선 역추적 픽셀 기록을 위한 Storage Texture 생성
+            const textureSize = { width: 512, height: 512 };
+            const raytraceBufferTexture = device.createTexture({
+                size: textureSize,
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            // WGSL 기반 컴퓨트 셰이더 정의 (DirectX 11 최적화 알고리즘 재현)
+            const computeShaderSource = `
+            struct RaytraceCameraSettings {
+                eye_pos_world: vec3f,
+                projection_mode_type: f32, // 0.0: 직교 투영, 1.0: 원근 투영
+                light_source_pos: vec3f,
+                occlusion_sorting_active: f32, // 0.0: 비활성화, 1.0: 활성화
+            }
+
+            struct SpherePhysicalProperties {
+                geometric_center: vec3f,
+                sphere_radius: f32,
+                ambient_color: vec3f,
+                specular_strength: f32,
+                diffuse_color: vec3f,
+                specular_shininess: f32,
+            }
+
+            struct RaytraceGlobalSceneData {
+                camera_settings: RaytraceCameraSettings,
+                render_spheres: array<SpherePhysicalProperties, 3>,
+            }
+
+            @group(0) @binding(0) var<uniform> global_scene: RaytraceGlobalSceneData;
+            @group(0) @binding(1) var target_render_texture: texture_storage_2d<rgba8unorm, write>;
+
+            struct RayIntersectionPayload {
+                hit_distance: f32,
+                hit_world_point: vec3f,
+                hit_surface_normal: vec3f,
+                detected_sphere_index: i32,
+            }
+
+            // 구체와 광선 간의 수학적 교점을 추적하고 정규화된 충돌 정보를 반환합니다.
+            fn computeRaySphereIntersection(ray_origin: vec3f, ray_direction: vec3f, target_sphere: SpherePhysicalProperties, index: i32) -> RayIntersectionPayload {
+                var payload: RayIntersectionPayload;
+                payload.hit_distance = -1.0;
+                
+                let vector_to_center = ray_origin - target_sphere.geometric_center;
+                let b_coefficient = 2.0 * dot(ray_direction, vector_to_center);
+                let c_coefficient = dot(vector_to_center, vector_to_center) - target_sphere.sphere_radius * target_sphere.sphere_radius;
+                let mathematical_discriminant = b_coefficient * b_coefficient - 4.0 * c_coefficient;
+                
+                // 판별식이 0 이상일 때만 실제적인 기하학적 교점이 존재합니다.
+                if (mathematical_discriminant >= 0.0) {
+                    let root_distance_1 = (-b_coefficient - sqrt(mathematical_discriminant)) * 0.5;
+                    let root_distance_2 = (-b_coefficient + sqrt(mathematical_discriminant)) * 0.5;
+                    
+                    var selected_distance = -1.0;
+                    if (root_distance_1 >= 0.0) {
+                        selected_distance = root_distance_1;
+                    } else if (root_distance_2 >= 0.0) {
+                        selected_distance = root_distance_2;
+                    }
+                    
+                    if (selected_distance >= 0.0) {
+                        payload.hit_distance = selected_distance;
+                        payload.hit_world_point = ray_origin + selected_distance * ray_direction;
+                        payload.hit_surface_normal = normalize(payload.hit_world_point - target_sphere.geometric_center);
+                        payload.detected_sphere_index = index;
+                    }
+                }
+                return payload;
+            }
+
+            // 등록된 모든 기하학체(구체들) 중 광선과의 가장 가까운(또는 정렬되지 않은 최초의) 충돌체를 식별합니다.
+            fn gatherClosestIntersection(ray_origin: vec3f, ray_direction: vec3f) -> RayIntersectionPayload {
+                var final_payload: RayIntersectionPayload;
+                final_payload.hit_distance = -1.0;
+                
+                if (global_scene.camera_settings.occlusion_sorting_active > 0.5) {
+                    // Occlusion Sorting 활성화: 모든 구체를 검출하여 가장 근접한 충돌(최소 양의 t)을 탐색합니다.
+                    var absolute_minimum_t: f32 = 1e9;
+                    for (var i: i32 = 0; i < 3; i = i + 1) {
+                        let current_hit = computeRaySphereIntersection(ray_origin, ray_direction, global_scene.render_spheres[i], i);
+                        if (current_hit.hit_distance >= 0.0 && current_hit.hit_distance < absolute_minimum_t) {
+                            absolute_minimum_t = current_hit.hit_distance;
+                            final_payload = current_hit;
+                        }
+                    }
+                } else {
+                    // Occlusion Sorting 비활성화: DX11 이전 스텝의 오작동 시뮬레이션 (검색 순서대로 첫 충돌 즉시 승인)
+                    for (var i: i32 = 0; i < 3; i = i + 1) {
+                        let current_hit = computeRaySphereIntersection(ray_origin, ray_direction, global_scene.render_spheres[i], i);
+                        if (current_hit.hit_distance >= 0.0) {
+                            final_payload = current_hit;
+                            break;
+                        }
+                    }
+                }
+                return final_payload;
+            }
+
+            @compute @workgroup_size(8, 8)
+            fn cs_main(@builtin(global_invocation_id) invocation_id: vec3u) {
+                let output_texture_dims = textureDimensions(target_render_texture);
+                if (invocation_id.x >= output_texture_dims.x || invocation_id.y >= output_texture_dims.y) {
+                    return;
+                }
+                
+                // 화면 좌표계를 월드 좌표계 영역 [-aspect, aspect] 및 [-1, 1]로 사상시킵니다.
+                let canvas_aspect_ratio = f32(output_texture_dims.x) / f32(output_texture_dims.y);
+                let world_coordinate_u = (2.0 * f32(invocation_id.x) / f32(output_texture_dims.x) - 1.0) * canvas_aspect_ratio;
+                let world_coordinate_v = 1.0 - 2.0 * f32(invocation_id.y) / f32(output_texture_dims.y);
+                
+                let projection_screen_world_pos = vec3f(world_coordinate_u, world_coordinate_v, 0.0);
+                
+                var final_ray_origin = projection_screen_world_pos;
+                var final_ray_direction = vec3f(0.0, 0.0, 1.0); // 직교 투영(Orthographic)의 기본 광선 벡터 방향
+                
+                // 원근 투영(Perspective) 기법을 사용한다면 눈(Eye)의 위치에서 픽셀 세계 좌표를 뚫고 나가는 방향으로 광선을 설정합니다.
+                if (global_scene.camera_settings.projection_mode_type > 0.5) {
+                    final_ray_origin = global_scene.camera_settings.eye_pos_world;
+                    final_ray_direction = normalize(projection_screen_world_pos - global_scene.camera_settings.eye_pos_world);
+                }
+                
+                let collision_result = gatherClosestIntersection(final_ray_origin, final_ray_direction);
+                var pixel_accumulated_color = vec3f(0.0);
+                
+                if (collision_result.hit_distance >= 0.0) {
+                    let sphere_properties = global_scene.render_spheres[collision_result.detected_sphere_index];
+                    
+                    // 조명 모델 적용 (Ambient + Lambertian Diffuse + Phong Specular)
+                    let direction_to_light_source = normalize(global_scene.camera_settings.light_source_pos - collision_result.hit_world_point);
+                    let lambertian_diffuse_factor = max(dot(collision_result.hit_surface_normal, direction_to_light_source), 0.0);
+                    
+                    // 반사 섀이딩 방향 벡터 유도 (C++의 Phong 물리 수식을 완벽히 복제)
+                    let light_ray_reflection_dir = 2.0 * dot(collision_result.hit_surface_normal, direction_to_light_source) * collision_result.hit_surface_normal - direction_to_light_source;
+                    let phong_specular_factor = pow(max(dot(-final_ray_direction, light_ray_reflection_dir), 0.0), sphere_properties.specular_shininess);
+                    
+                    pixel_accumulated_color = sphere_properties.ambient_color + 
+                                              sphere_properties.diffuse_color * lambertian_diffuse_factor + 
+                                              vec3f(sphere_properties.specular_strength) * phong_specular_factor;
+                }
+                
+                // 누적된 픽셀 색상 값을 저장 텍스처 영역에 기록합니다.
+                textureStore(target_render_texture, invocation_id.xy, vec4f(clamp(pixel_accumulated_color, vec3f(0.0), vec3f(1.0)), 1.0));
+            }
+            `;
+
+            // Storage Texture의 연산 결과 내용을 뷰포트 전체로 환원 그리기 할 풀스크린 렌더 셰이더 정의
+            const renderShaderSource = `
+            struct VertexOutput {
+                @builtin(position) pos: vec4f,
+                @location(0) uv: vec2f,
+            }
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) index: u32) -> VertexOutput {
+                var position_data = array<vec2f, 6>(
+                    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
+                    vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
+                );
+                var uv_coordinate_data = array<vec2f, 6>(
+                    vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
+                    vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
+                );
+                var result: VertexOutput;
+                result.pos = vec4f(position_data[index], 0.0, 1.0);
+                result.uv = uv_coordinate_data[index];
+                return result;
+            }
+
+            @group(0) @binding(0) var source_render_tex: texture_2d<f32>;
+            @group(0) @binding(1) var target_sampler: sampler;
+
+            @fragment
+            fn fg_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                return textureSample(source_render_tex, target_sampler, uv);
+            }
+            `;
+
+            const computeShaderModule = device.createShaderModule({ code: computeShaderSource });
+            const renderShaderModule = device.createShaderModule({ code: renderShaderSource });
+
+            // 파이프라인 형성
+            const computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: { module: computeShaderModule, entryPoint: 'cs_main' }
+            });
+
+            const renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: { module: renderShaderModule, entryPoint: 'vs_main' },
+                fragment: {
+                    module: renderShaderModule,
+                    entryPoint: 'fg_main',
+                    targets: [{ format: preferredFormat }]
+                },
+                primitive: { topology: 'triangle-list' }
+            });
+
+            // 각 파이프라인 바인딩 그룹 설정
+            const computeBindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: uniformBuffer } },
+                    { binding: 1, resource: raytraceBufferTexture.createView() }
+                ]
+            });
+
+            const screenSampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear'
+            });
+
+            const renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: raytraceBufferTexture.createView() },
+                    { binding: 1, resource: screenSampler }
+                ]
+            });
+
+            return {
+                device,
+                context,
+                uniformBuffer,
+                computePipeline,
+                renderPipeline,
+                computeBindGroup,
+                renderBindGroup
+            };
+        }
+
+        // 전체 연산 명령 및 렌더 패스 제출 함수
+        function executeRenderIteration() {
+            if (!webgpuRendererResources) return;
+            const { device, context, uniformBuffer, computePipeline, renderPipeline, computeBindGroup, renderBindGroup } = webgpuRendererResources;
+
+            // GPU 데이터 동기화
+            syncUniformBufferData(device, uniformBuffer);
+
+            const commandEncoder = device.createCommandEncoder();
+
+            // 1단계: 광선 추적 연산 셰이더 구동 (Compute Shader Pass)
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, computeBindGroup);
+            computePass.dispatchWorkgroups(512 / 8, 512 / 8);
+            computePass.endPass();
+
+            // 2단계: 결과 텍스처를 캔버스 표면에 투영 (Rasterization Render Pass)
+            const renderPass = commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    clearValue: { r: 0.08, g: 0.08, b: 0.12, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+            renderPass.setPipeline(renderPipeline);
+            renderPass.setBindGroup(0, renderBindGroup);
+            renderPass.draw(6);
+            renderPass.endPass();
+
+            // 연산 결과 기하 모식도 전개
+            drawCameraRayDiagram(raytracerAppState);
+
+            // 최종 연산 명령 대기열 발행
+            device.queue.submit([commandEncoder.finish()]);
+
+            isFrameRenderPending = false;
+        }
+
+        // 실시간 사용자 변경 반응형 비동기 호출 제어
+        function scheduleRender() {
+            if (!isFrameRenderPending) {
+                isFrameRenderPending = true;
+                requestAnimationFrame(executeRenderIteration);
+            }
+        }
+
+        // 사용자 조작용 HTML 바인딩 이벤트 처리
+        function setupInteractiveInterface() {
+            function bindInputRange(id, callback) {
+                const rangeControl = document.getElementById(id);
+                const displayValue = document.getElementById(id + '_val');
+                rangeControl.addEventListener('input', (e) => {
+                    const parsedValue = parseFloat(e.target.value);
+                    if (displayValue) displayValue.textContent = parsedValue.toFixed(2);
+                    callback(parsedValue);
+                    scheduleRender();
+                });
+            }
+
+            // 투영 기법 제어 인터랙션 설정
+            document.getElementById('proj_mode').addEventListener('change', (e) => {
+                raytracerAppState.proj_mode = parseFloat(e.target.value);
+                scheduleRender();
+            });
+
+            // 가려짐 정렬 제어 인터랙션 설정
+            document.getElementById('enable_sorting').addEventListener('change', (e) => {
+                raytracerAppState.enable_sorting = parseFloat(e.target.value);
+                scheduleRender();
+            });
+
+            // 눈 및 라이트 위치 값 연동
+            bindInputRange('eye_pos_z', (v) => { raytracerAppState.eye_pos[2] = v; });
+            bindInputRange('light_pos_x', (v) => { raytracerAppState.light_pos[0] = v; });
+            bindInputRange('light_pos_y', (v) => { raytracerAppState.light_pos[1] = v; });
+            bindInputRange('light_pos_z', (v) => { raytracerAppState.light_pos[2] = v; });
+
+            // 구체 1 (가장 전면 적색 구체는 state 구조 배열의 2번 인덱스에 매핑)
+            bindInputRange('s1_cx', (v) => { raytracerAppState.spheres[2].center[0] = v; });
+            bindInputRange('s1_cz', (v) => { raytracerAppState.spheres[2].center[2] = v; });
+            bindInputRange('s1_r', (v) => { raytracerAppState.spheres[2].radius = v; });
+
+            // 구체 2 (중간 녹색 구체는 state 구조 배열의 1번 인덱스에 매핑)
+            bindInputRange('s2_cx', (v) => { raytracerAppState.spheres[1].center[0] = v; });
+            bindInputRange('s2_cz', (v) => { raytracerAppState.spheres[1].center[2] = v; });
+            bindInputRange('s2_r', (v) => { raytracerAppState.spheres[1].radius = v; });
+
+            // 구체 3 (최후방 청색 구체는 state 구조 배열의 0번 인덱스에 매핑)
+            bindInputRange('s3_cx', (v) => { raytracerAppState.spheres[0].center[0] = v; });
+            bindInputRange('s3_cz', (v) => { raytracerAppState.spheres[0].center[2] = v; });
+            bindInputRange('s3_r', (v) => { raytracerAppState.spheres[0].radius = v; });
+        }
+
+        // 초기 구동 엔트리포인트 등록
+        window.addEventListener('DOMContentLoaded', async () => {
+            webgpuRendererResources = await initWebGPU();
+            if (webgpuRendererResources) {
+                setupInteractiveInterface();
+                scheduleRender();
+            }
+        });
+    </script>
+</body>
+</html>
