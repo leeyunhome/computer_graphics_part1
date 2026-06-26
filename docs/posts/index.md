@@ -24,6 +24,15 @@
 ---
 
 
+## [원근 투영(Perspective Projection) 및 가림 해결(Occlusion Sorting) 구현 분석](2026-06-26-원근-투영perspective-projection-및-가림-해결occlusion-sorting-구현-분석.md)
+
+
+📅 2026-06-26
+
+
+---
+
+
 ## [퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현](2026-06-23-퐁-반사-모델phong-reflection-model의-스펙큘러-하이라이트-및-반사-벡터-구현.md)
 
 
