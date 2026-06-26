@@ -1,0 +1,2146 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="컴퓨터 그래픽스 학습 포트폴리오 - DirectX 11, 레이트레이싱, HLSL">
+      
+      
+      
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-26-%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9B%90%EA%B7%BC-%ED%88%AC%EC%98%81perspective-projection-%EB%B0%8F-%EC%B5%9C%EB%8B%A8-%EA%B1%B0%EB%A6%AC-%EC%B6%A9%EB%8F%8C-%ED%8C%90%EC%A0%95-%EA%B5%AC%ED%98%84/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 판정 구현 - Computer Graphics Portfolio</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#perspective-projection" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="Computer Graphics Portfolio" class="md-header__button md-logo" aria-label="Computer Graphics Portfolio" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Computer Graphics Portfolio
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              [코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 판정 구현
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/leeyunhome/computer_graphics_part1" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  홈
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  학습 포스트
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../demos/" class="md-tabs__link">
+          
+  
+  
+  인터랙티브 데모
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Computer Graphics Portfolio" class="md-nav__button md-logo" aria-label="Computer Graphics Portfolio" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Computer Graphics Portfolio
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/leeyunhome/computer_graphics_part1" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    홈
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습 포스트
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인터랙티브 데모
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    인터랙티브 데모
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    목록
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/pixel-animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 버퍼 애니메이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/raytracer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CPU 레이트레이서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/boxblur5-%EB%B6%84%EB%A6%AC-%EA%B0%80%EB%8A%A5%ED%95%9C-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%A6%AC%EB%B7%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    boxblur5 분리 가능한 컨볼루션수평 패스 구현 리뷰
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%A1%9C%EC%A7%81-%EC%B6%94%EA%B0%80-%ED%94%BD%EC%85%80-%EB%8B%A8%EC%9C%84-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%8B%9C%EC%9E%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이미지 밝기 조절 로직 추가 픽셀 단위 연산의 시작
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%ED%94%BD%EC%85%80-%EA%B0%92-%EC%A7%81%EC%A0%91-%EC%A1%B0%EC%9E%91%ED%95%98%EA%B8%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이미지 밝기 조절 픽셀 값 직접 조작하기
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90%EC%9D%98-directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-%EC%9E%85%EB%A0%A5-%EC%9D%B4%EB%AF%B8%EC%A7%80-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습자의 directx 11 c 그래픽스 스터디 커밋 분석 입력 이미지
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/box-blur-5x5-%EC%88%98%ED%8F%89-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EB%B6%84%EB%A6%AC%ED%98%95-%EC%BB%A8%EB%B3%BC%EB%A3%A8%EC%85%98-%EC%9D%B4%ED%95%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Box Blur 5x5: 수평 패스 구현 및 분리형 컨볼루션 이해
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/directx-11c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%B2%AB-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DirectX 11/C++ 그래픽스 스터디: 첫 커밋 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%95%99%EC%8A%B5%EC%9E%90-%EC%BB%A4%EB%B0%8B-%EB%B6%84%EC%84%9D-add-source-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습자 커밋 분석: add source code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%A1%B0%EC%9E%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%9D%B4%ED%95%B4-20-%EC%9C%84%EC%B9%98%EC%97%90-%ED%8C%8C%EB%9E%80%EC%83%89-%ED%94%BD%EC%85%80-%EC%B6%94%EA%B0%80/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 조작을 통한 캔버스 초기화 이해: (2,0) 위치에 파란색 픽셀 추가
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84%EA%B3%BC-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%EA%B0%B1%EC%8B%A0-%EC%9B%90%EB%A6%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 애니메이션 구현과 프레임 기반 갱신 원리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EC%9D%B4%ED%95%B4%EC%99%80-directx-11-%EC%A0%81%EC%9A%A9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 버퍼 애니메이션 이해와 DirectX 11 적용
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EB%B0%8F-%ED%94%84%EB%A0%88%EC%9E%84-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    픽셀 애니메이션 및 프레임 제어 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ImGui를 활용한 캔버스 배경색 제어 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EC%8A%A4%ED%84%B0%EB%94%94-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B5%90%EC%B2%B4-%EB%B0%8F-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F-%EC%B4%88%EA%B8%B0%ED%99%94/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DirectX 11 / C++ 그래픽스 스터디: 이미지 교체 및 렌더 타겟 초기화 커밋 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/directx-11-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-window-%EB%B0%8F-%EB%94%94%EB%B0%94%EC%9D%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DirectX 11 그래픽스 파이프라인의 첫 걸음: Window 및 디바이스 초기화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/directx-11-3d-%EA%B3%B5%EA%B0%84-%EB%B3%80%ED%99%98%EA%B3%BC-%EB%A0%8C%EB%8D%94%EB%A7%81-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8%EC%9D%98-%ED%95%B5%EC%8B%AC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [DirectX 11] 3D 공간 변환과 렌더링 파이프라인의 핵심 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-cpu-gpu-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EB%A7%A4%ED%95%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1차원 배열을 통한 2D 캔버스 제어와 CPU-GPU 메모리 매핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B0%B0%EC%97%B4%EC%9D%84-%ED%86%B5%ED%95%9C-2d-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%A0%9C%EC%96%B4%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EA%B8%B0%EB%B0%98-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1차원 배열을 통한 2D 캔버스 제어와 프레임 기반 픽셀 애니메이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/1%EC%B0%A8%EC%9B%90-%EB%B2%84%ED%8D%BC%EC%99%80-%ED%94%84%EB%A0%88%EC%9E%84-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%EB%A5%BC-%ED%86%B5%ED%95%9C-%ED%94%BD%EC%85%80-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1차원 버퍼와 프레임 업데이트를 통한 픽셀 애니메이션 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-cpu-%ED%94%BD%EC%85%80-%EB%B2%84%ED%8D%BC-%EC%A0%9C%EC%96%B4%EC%99%80-rgb-%EC%88%9C%ED%99%98-%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] CPU 픽셀 버퍼 제어와 RGB 순환 애니메이션 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/imgui%EC%99%80-directx-11%EC%9D%84-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EC%8B%A4%EC%8B%9C%EA%B0%84-%EC%BA%94%EB%B2%84%EC%8A%A4-%EC%BB%AC%EB%9F%AC-%EB%8F%99%EC%A0%81-%EC%A0%9C%EC%96%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ImGui와 DirectX 11을 이용한 실시간 캔버스 컬러 동적 제어
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/directx-11-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1-%EB%B8%94%EB%A3%B8bloom-%ED%95%84%ED%84%B0-%EA%B5%AC%ED%98%84%EA%B3%BC-%EB%A0%8C%EB%8D%94-%ED%83%80%EA%B2%9F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DirectX 11 포스트 프로세싱: 블룸(Bloom) 필터 구현과 렌더 타겟 초기화 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0brightness-%EC%A1%B0%EC%A0%88%EC%9D%98-%EA%B8%B0%EC%B4%88%EC%99%80-%ED%94%BD%EC%85%80-%EC%97%B0%EC%82%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] 이미지 밝기(Brightness) 조절의 기초와 픽셀 연산
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-convolution%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-box-blu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] Separable Convolution을 활용한 Box Blur 5 가로 패스 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-box-blur-%EA%B0%80%EB%A1%9C-%ED%8C%A8%EC%8A%A4-%EA%B5%AC%ED%98%84-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] Separable 5-Tap Box Blur 가로 패스 구현 및 이미지 전처리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%94%BD%EC%85%80-%ED%81%B4%EB%9E%A8%ED%95%91clamping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%84%A0%ED%98%95-%ED%86%A4-%EB%A7%A4%ED%95%91%EA%B3%BC-%ED%81%B4%EB%9E%A8%ED%95%91%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B0%9D%EA%B8%B0-%EC%A1%B0%EC%A0%88-%EB%B0%8F-%EC%98%A4%EB%B2%84%ED%94%8C%EB%A1%9C%EC%9A%B0-%EB%B0%A9%EC%A7%80/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    선형 톤 매핑과 클램핑을 통한 이미지 밝기 조절 및 오버플로우 방지
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%94%BD%EC%85%80-%EA%B0%90%EC%87%84pixel-decay%EB%A5%BC-%ED%86%B5%ED%95%9C-%EC%A0%90%EC%A7%84%EC%A0%81-%EC%95%94%EC%A0%84-%ED%9A%A8%EA%B3%BC-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    실시간 픽셀 감쇄(Pixel Decay)를 통한 점진적 암전 효과 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/bloom-%ED%9A%A8%EA%B3%BC-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-%EC%84%A4%EA%B3%84-%EB%B0%8F-2%EC%B0%A8%EC%9B%90-%EA%B3%B5%EA%B0%84-%ED%95%84%ED%84%B0%EB%A7%81-%EA%B5%AC%EC%A1%B0%ED%99%94/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloom 효과 파이프라인 설계 및 2차원 공간 필터링 구조화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8B%A4%EC%8B%9C%EA%B0%84-%ED%85%9C%ED%8F%AC%EB%9F%B4-%EB%9D%BC%EC%9D%B4%ED%8A%B8-%EB%94%94%EC%BC%80%EC%9D%B4temporal-light-deca/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] 실시간 템포럴 라이트 디케이(Temporal Light Decay)와 이미지 프로세싱 파이프라인 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B0%8F-%ED%95%99%EC%8A%B5-%EA%B0%80%EC%9D%B4%EB%93%9C-separable-5-tap-box-blur-%EA%B5%AC%ED%98%84%EC%9D%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [리뷰 및 학습 가이드] Separable 5-Tap Box Blur 구현을 통한 2D 컨볼루션 최적화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%94%BC%EB%93%9C%EB%B0%B1-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84%EC%84%9D-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [피드백] Separable 5-tap Gaussian Blur 구현 분석 및 최적화 제안
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-separable-5-tap-gaussian-blur-%EA%B5%AC%ED%98%84-%EB%B6%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] Separable 5-Tap Gaussian Blur 구현 분석 및 최적화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%B8%94%EB%A3%B8bloom-%ED%9A%A8%EA%B3%BC%EC%9D%98-%EC%B2%AB-%EB%8B%A8%EA%B3%84-%ED%9C%98%EB%8F%84luminance-%EA%B8%B0%EB%B0%98-%EC%9E%84%EA%B3%84%EA%B0%92-%EC%B6%94/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [리뷰] 블룸(Bloom) 효과의 첫 단계: 휘도(Luminance) 기반 임계값 추출 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EB%B6%84%EB%A6%AC%ED%98%95-%EA%B0%80%EC%9A%B0%EC%8B%9C%EC%95%88-%EB%B8%94%EB%9F%ACseparable-gaussian-blur%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94%EB%A5%BC-%ED%86%B5%ED%95%9C-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%EB%94%94%EB%B2%84%EA%B9%85-%ED%99%98%EA%B2%BD-%EA%B5%AC%EC%B6%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GLM 실험적 확장 활성화를 통한 C++ 그래픽스 디버깅 환경 구축
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/directx-11-c-%EA%B7%B8%EB%9E%98%ED%94%BD%EC%8A%A4-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C%EC%9D%98-glm-%EC%8B%A4%ED%97%98%EC%A0%81-%ED%99%95%EC%9E%A5-%ED%99%9C%EC%84%B1%ED%99%94-%EB%B0%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [DirectX 11] C++ 그래픽스 환경에서의 GLM 실험적 확장 활성화 및 디버깅 기초
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EC%9D%B4%ED%95%B4-%EB%B0%8F-directxmath%EC%99%80%EC%9D%98-%EB%B9%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GLM을 활용한 벡터 연산의 수학적 이해 및 DirectXMath와의 비교 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/glm%EC%9D%84-%ED%99%9C%EC%9A%A9%ED%95%9C-3%EC%B0%A8%EC%9B%90-%EB%B2%A1%ED%84%B0-%EC%97%B0%EC%82%B0%EC%9D%98-%EA%B8%B0%EC%B4%88-%EB%82%B4%EC%A0%81-%EC%99%B8%EC%A0%81-%EA%B7%B8%EB%A6%AC%EA%B3%A0-directx/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GLM을 활용한 3차원 벡터 연산의 기초: 내적, 외적, 그리고 DirectXMath와의 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EB%B3%84-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-point-in-circle-t/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스크린 공간에서의 원 판별 알고리즘 구현 (Point-in-Circle Test)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%8A%A4%ED%81%AC%EB%A6%B0-%EA%B3%B5%EA%B0%84%EC%97%90%EC%84%9C%EC%9D%98-%EC%9B%90-%ED%8C%90%EC%A0%95point-in-circle-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EA%B5%AC%ED%98%84-%EB%B0%8F-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스크린 공간에서의 원 판정(Point-in-Circle) 알고리즘 구현 및 최적화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EC%BD%94%EB%93%9C-%EB%A6%AC%EB%B7%B0-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EC%9B%94%EB%93%9C-%EC%A2%8C%ED%91%9C%EA%B3%84-%EB%B3%80%ED%99%98-%EB%B0%8F-%ED%8F%AC%EC%8A%A4%ED%8A%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8B%B1bloom-%ED%95%A9%EC%84%B1-%EA%B5%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [코드 리뷰] 스크린-월드 좌표계 변환 및 포스트 프로세싱(Bloom) 합성 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EA%B4%91%EC%84%A0-%EA%B5%AC%EC%B2%B4-%EA%B5%90%EC%B0%A8-%ED%8C%90%EC%A0%95%EA%B3%BC-%EB%B2%95%EC%84%A0-%EB%B2%A1%ED%84%B0-%EA%B3%84%EC%82%B0%EC%9D%98-%EC%88%98%ED%95%99%EC%A0%81-%EA%B5%AC%ED%98%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    광선-구체 교차 판정과 법선 벡터 계산의 수학적 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-%EB%A0%88%EC%9D%B4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%8B%B1-%EA%B8%B0%EB%B0%98-%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-mod/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [리뷰] 레이트레이싱 기반 퐁 반사 모델(Phong Reflection Model)의 기초 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%ED%90%81-%EB%B0%98%EC%82%AC-%EB%AA%A8%EB%8D%B8phong-reflection-model%EC%9D%98-%EC%8A%A4%ED%8E%99%ED%81%98%EB%9F%AC-%ED%95%98%EC%9D%B4%EB%9D%BC%EC%9D%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    퐁 반사 모델(Phong Reflection Model)의 스펙큘러 하이라이트 및 반사 벡터 구현
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../demos/%EB%A6%AC%EB%B7%B0-phong-shading%EC%9D%98-%ED%95%B5%EC%8B%AC-%EC%8A%A4%ED%8E%99%ED%81%98%EB%9F%ACspecular-%EB%B0%98%EC%82%AC-%EB%B2%A1%ED%84%B0-/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    [리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 핵심 개념 및 수학적 원리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 핵심 개념 및 수학적 원리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-orthographic-vs-perspective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1) 정투영(Orthographic) vs 원근 투영(Perspective)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-pseudo-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 알고리즘 추상화 (Pseudo-code)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 코드 변경 사항 분석 및 피드백 (중요한 버그 발견)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 코드 변경 사항 분석 및 피드백 (중요한 버그 발견)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#findclosestcollision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔍 치명적인 논리 오류 분석 (FindClosestCollision)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔍 치명적인 논리 오류 분석 (FindClosestCollision)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        무엇이 문제인가요?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        해결 방안 (Code Fix)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-phong-reflection-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 조명 모델 적용: 퐁 반사 모델 (Phong Reflection Model)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. WebGPU 인터랙티브 데모 확장 가이드
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. WebGPU 인터랙티브 데모 확장 가이드">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wgsl-compute-shader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WGSL Compute Shader 시각화 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="perspective-projection">[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 판정 구현</h1>
+<p>이번 커밋은 3차원 컴퓨터 그래픽스의 핵심인 <strong>원근 투영(Perspective Projection)</strong>과 여러 물체가 레이(Ray)에 부딪혔을 때 가장 앞쪽에 있는 물체를 판별하는 <strong>가려짐 처리(Occlusion Sorting / Depth Test)</strong>를 레이트레이싱 파이프라인에 성공적으로 통합한 중요한 단계입니다. </p>
+<p>학습자가 직접 직관을 넓혀가며 수식과 알고리즘을 코드로 구현한 흐름을 분석하고, 한 단계 더 발전하기 위한 피드백을 제공합니다.</p>
+<hr />
+<h2 id="1">1. 핵심 개념 및 수학적 원리</h2>
+<h3 id="1-orthographic-vs-perspective">1) 정투영(Orthographic) vs 원근 투영(Perspective)</h3>
+<p>기존 단계에서는 화면의 모든 픽셀에서 동일한 방향 $<span class="arithmatex">\((0, 0, 1)\)</span>$로 평행한 광선을 보냈습니다(정투영). 이 방식은 멀고 가까움에 따른 크기 변화가 없어 설계 도면 등에 유리하지만, 인간의 눈이나 카메라가 세상을 보는 방식과는 다릅니다.</p>
+<p>원근 투영을 구현하기 위해, 카메라의 위치(눈의 위치) $<span class="arithmatex">\(\mathbf{E}_{\text{eye}}\)</span>$를 가상의 3차원 공간 내 고정된 점 $<span class="arithmatex">\((0, 0, -1.5)\)</span>$에 배치합니다. 그리고 이미지 평면(스크린) 위의 한 점 $<span class="arithmatex">\(\mathbf{P}_{\text{world}}\)</span>$를 향해 퍼져나가는 광선을 생성합니다.</p>
+<p>광선의 수학적 정의는 다음과 같습니다.</p>
+<div class="arithmatex">\[ \mathbf{R}(t) = \mathbf{o} + t\mathbf{d} \quad (t \ge 0) \]</div>
+<p>여기서 광선의 시작점 $<span class="arithmatex">\(\mathbf{o}\)</span>$와 방향 벡터 $<span class="arithmatex">\(\mathbf{d}\)</span>$는 다음과 같이 정의됩니다.</p>
+<ul>
+<li><strong>광선의 시작점 (Origin, $<span class="arithmatex">\(\mathbf{o}\)</span>$)</strong>: $<span class="arithmatex">\(\mathbf{P}_{\text{world}}\)</span>$ (픽셀의 월드 좌표)</li>
+<li><strong>광선의 방향 (Direction, $<span class="arithmatex">\(\mathbf{d}\)</span>$)</strong>: 눈의 위치에서 픽셀을 향하는 벡터를 정규화(Normalize)한 것</li>
+</ul>
+<div class="arithmatex">\[ \mathbf{d} = \frac{\mathbf{P}_{\text{world}} - \mathbf{E}_{\text{eye}}}{\|\mathbf{P}_{\text{world}} - \mathbf{E}_{\text{eye}}\|} \]</div>
+<p>이 식을 통해 스크린 중심에서 멀어질수록 광선이 바깥쪽으로 넓게 퍼지게 되어, 멀리 있는 물체일수록 작게 투영되는 원근 효과가 자연스럽게 발생합니다.</p>
+<hr />
+<h2 id="2-pseudo-code">2. 알고리즘 추상화 (Pseudo-code)</h2>
+<p>원근 투영 광선 생성 및 최단 거리 충돌 판정 알고리즘의 전체적인 흐름은 다음과 같습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>for each pixel (i, j) in screen:
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    // 1. 픽셀 좌표를 3D 월드 좌표로 변환
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    pixelPosWorld = TransformScreenToWorld(i, j)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    // 2. 원근 투영 광선(Ray) 생성
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    rayDirection = Normalize(pixelPosWorld - eyePos)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    ray = Ray(origin = pixelPosWorld, direction = rayDirection)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    // 3. 씬의 모든 물체와 충돌 검사하여 가장 가까운 히트점 찾기
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    closestHit = FindClosestCollision(ray)
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    // 4. 충돌한 경우 퐁 반사 모델(Phong Reflection Model)을 적용해 픽셀 색상 결정
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    if closestHit.d &gt;= 0:
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        pixelColor = CalculatePhongReflection(closestHit, ray)
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    else:
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        pixelColor = Black
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    pixels[i, j] = pixelColor
+</code></pre></div>
+<hr />
+<h2 id="3">3. 코드 변경 사항 분석 및 피드백 (중요한 버그 발견)</h2>
+<h3 id="findclosestcollision">🔍 치명적인 논리 오류 분석 (<code>FindClosestCollision</code>)</h3>
+<p>학습자가 작성한 <code>FindClosestCollision</code> 함수를 보면, 가려짐 처리를 위해 최단 거리 <code>closestD</code>를 추적하고자 노력한 흔적이 보입니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// 학습자의 코드 일부</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">Hit</span><span class="w"> </span><span class="nf">FindClosestCollision</span><span class="p">(</span><span class="n">Ray</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ray</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">{</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">;</span><span class="w"> </span><span class="c1">// inf</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="n">Hit</span><span class="w"> </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Hit</span><span class="p">{</span><span class="w"> </span><span class="mf">-1.0</span><span class="p">,</span><span class="w"> </span><span class="n">dvec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span><span class="w"> </span><span class="n">dvec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">objects</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="n">l</span><span class="o">++</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">objects</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">CheckRayCollision</span><span class="p">(</span><span class="n">ray</span><span class="p">);</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">)</span><span class="w"> </span><span class="c1">// &lt;--- 버그 발생 지점!</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="p">{</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">            </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="p">;</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">            </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">;</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">            </span><span class="n">closestHit</span><span class="p">.</span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">objects</span><span class="p">[</span><span class="n">l</span><span class="p">];</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">closestHit</span><span class="p">;</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="_1">무엇이 문제인가요?</h4>
+<p>조건문 <code>if (hit.d &gt;= 0.0f)</code> 내부에서 <code>closestD = hit.d;</code>로 값을 업데이트하고 있지만, <strong>새로운 충돌 거리 <code>hit.d</code>가 기존의 최소 거리 <code>closestD</code>보다 작은지 비교하는 조건이 누락</strong>되었습니다.</p>
+<p>이로 인해 루프 내에서 충돌이 발생하는 모든 오브젝트 중 <strong>가장 마지막으로 검사된 오브젝트의 충돌 정보</strong>가 항상 최종 반환됩니다. </p>
+<p>현재 코드에서 구들이 역순으로 배치되어 있고(<code>sphere3</code> -&gt; <code>sphere2</code> -&gt; <code>sphere1</code>), 실제 시각적으로 가장 앞에 있는 <code>sphere1</code>이 가장 마지막 인덱스(<code>l = 2</code>)에 위치해 있어서 우연히 올바르게 렌더링된 것처럼 보였을 뿐입니다. 만약 오브젝트의 추가 순서가 바뀌거나 카메라의 구도가 바뀌면 뒤에 가려진 물체가 앞에 그려지는 렌더링 오류가 발생하게 됩니다.</p>
+<h4 id="code-fix">해결 방안 (Code Fix)</h4>
+<p>충돌 거리 <code>hit.d</code>가 현재 기록된 <code>closestD</code>보다 작을 때만 값을 갱신하도록 조건식을 수정해야 합니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">Hit</span><span class="w"> </span><span class="nf">FindClosestCollision</span><span class="p">(</span><span class="n">Ray</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ray</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1e6f</span><span class="p">;</span><span class="w"> </span><span class="c1">// 충돌 가능한 충분히 큰 값 (Infinity 역할)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="n">Hit</span><span class="w"> </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Hit</span><span class="p">{</span><span class="w"> </span><span class="mf">-1.0</span><span class="p">,</span><span class="w"> </span><span class="n">dvec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span><span class="w"> </span><span class="n">dvec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">objects</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="n">l</span><span class="o">++</span><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">objects</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">CheckRayCollision</span><span class="p">(</span><span class="n">ray</span><span class="p">);</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="c1">// 충돌 거리가 유효(0 이상)하고, 기존 최단 거리보다 작은 경우에만 업데이트</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0f</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">closestD</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">        </span><span class="p">{</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">            </span><span class="n">closestD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">.</span><span class="n">d</span><span class="p">;</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">            </span><span class="n">closestHit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hit</span><span class="p">;</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">            </span><span class="n">closestHit</span><span class="p">.</span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">objects</span><span class="p">[</span><span class="n">l</span><span class="p">];</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">closestHit</span><span class="p">;</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="4-phong-reflection-model">4. 조명 모델 적용: 퐁 반사 모델 (Phong Reflection Model)</h2>
+<p>물체의 입체감을 살리기 위해 <code>traceRay</code> 함수에서 구현된 조명 연산은 <strong>퐁 반사 모델(Phong Reflection Model)</strong>을 충실히 따르고 있습니다. (래스터화 단계의 'Phong Shading'과 혼동하지 않아야 하며, 여기서는 수학적 빛의 반사를 근사하는 조명 모델을 지칭합니다.)</p>
+<div class="arithmatex">\[ \text{Color} = I_{\text{ambient}} + I_{\text{diffuse}} + I_{\text{specular}} \]</div>
+<ul>
+<li><strong>Ambient (환경광)</strong>: 주변 공간에 기본적으로 퍼져 있는 빛에 의한 최소한의 밝기.</li>
+<li><strong>Diffuse (난반사)</strong>: 램버트 코사인 법칙(Lambert's Cosine Law)에 따라 표면의 법선 벡터 $<span class="arithmatex">\(\mathbf{N}\)</span>$과 광원 방향 벡터 $<span class="arithmatex">\(\mathbf{L}\)</span><span class="arithmatex">\(의 내적(\)</span><span class="arithmatex">\(\mathbf{N} \cdot \mathbf{L}\)</span>$)으로 계산되는 빛의 밝기.</li>
+<li><strong>Specular (경면반사)</strong>: 빛이 매끄러운 표면에서 정반사되어 눈으로 직접 들어오는 강한 하이라이트 효과. 반사 벡터 $<span class="arithmatex">\(\mathbf{R}\)</span>$과 시선 방향의 역벡터 $<span class="arithmatex">\(-\mathbf{D}\)</span>$의 내적을 물체의 거칠기 상수 <code>alpha</code>만큼 거듭제곱하여 계산합니다.</li>
+</ul>
+<hr />
+<h2 id="5-webgpu">5. WebGPU 인터랙티브 데모 확장 가이드</h2>
+<p>현재 CPU 환경에서 <code>omp parallel for</code>로 병렬 처리하고 있는 레이트레이싱 파이프라인은 GPU 기반의 <strong>WebGPU Compute Shader</strong>를 활용하면 실시간(Interactive) 프레임레이트로 매우 손쉽게 전환할 수 있습니다.</p>
+<h3 id="wgsl-compute-shader">WGSL Compute Shader 시각화 구조</h3>
+<p>WebGPU의 셰이딩 언어인 WGSL(WebGPU Shading Language)을 이용해 브라우저에서 이 씬을 실행한다면 다음과 같은 방식으로 설계됩니다.</p>
+<ol>
+<li><strong>Workgroup 및 스레드 매핑</strong>: CPU의 이중 루프(<code>width</code>, <code>height</code>)가 GPU의 2D 스레드 그리드 <code>@workgroup_size(16, 16)</code>로 직접 매핑됩니다.</li>
+<li><strong>구조체 정의 및 스토리지 버퍼</strong>:
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">struct</span><span class="w"> </span><span class="n">Sphere</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nb">center</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="n">radius</span><span class="p">:</span><span class="w"> </span><span class="nb">f32</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="n">ambient</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="n">diffuse</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="n">specular</span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="n">alpha</span><span class="p">:</span><span class="w"> </span><span class="nb">f32</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="o">&lt;</span><span class="nb">storage</span><span class="p">,</span><span class="w"> </span><span class="nb">read</span><span class="o">&gt;</span><span class="w"> </span><span class="n">objects</span><span class="p">:</span><span class="w"> </span><span class="nb">array</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nd">@group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="nd">@binding</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="n">outputTex</span><span class="p">:</span><span class="w"> </span><span class="nb">texture_storage_2d</span><span class="o">&lt;</span><span class="nb">rgba8unorm</span><span class="p">,</span><span class="w"> </span><span class="nb">write</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div></li>
+<li><strong>Compute Shader 메인 함수</strong>:<ul>
+<li>CPU 코드의 <code>Render</code> 함수 내부 동작이 그대로 이식됩니다.</li>
+<li>각 스레드의 글로벌 ID <code>global_id.xy</code>를 기반으로 <code>TransformScreenToWorld</code> 연산을 수행하여 레이를 쏘고, 결과를 <code>textureStore</code>를 통해 화면에 출력합니다.</li>
+</ul>
+</li>
+<li><strong>인터랙티브 요소</strong>: WebGPU 버퍼를 통해 마우스 드래그 좌표를 <code>eyePos</code> Uniform 변수로 실시간 전달하면, 웹 브라우저 상에서 마우스의 움직임에 따라 구체들의 원근이 역동적으로 변화하고 가려짐 처리가 완벽하게 동적 계산되는 고성능 그래픽스 데모를 경험할 수 있습니다.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  맨위로
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
