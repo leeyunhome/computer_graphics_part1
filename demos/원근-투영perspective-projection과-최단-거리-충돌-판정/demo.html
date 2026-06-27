@@ -850,7 +850,7 @@
             computePass.setPipeline(computePipeline);
             computePass.setBindGroup(0, computeBindGroup);
             computePass.dispatchWorkgroups(512 / 8, 512 / 8);
-            computePass.endPass();
+            computePass.end();
 
             // 2단계: 결과 텍스처를 캔버스 표면에 투영 (Rasterization Render Pass)
             const renderPass = commandEncoder.beginRenderPass({
@@ -864,7 +864,7 @@
             renderPass.setPipeline(renderPipeline);
             renderPass.setBindGroup(0, renderBindGroup);
             renderPass.draw(6);
-            renderPass.endPass();
+            renderPass.end();
 
             // 연산 결과 기하 모식도 전개
             drawCameraRayDiagram(raytracerAppState);
