@@ -264,7 +264,7 @@
       <!-- 삼각형 설정 섹션 -->
       <div class="section">
         <div class="section-title">Triangle Vertices (v0, v1, v2)</div>
-        
+
         <!-- Vertex 0 컨트롤 -->
         <div class="control-group">
           <span class="control-label">Vertex 0 X</span>
@@ -326,12 +326,12 @@
       <!-- 옵션 및 광원 컨트롤 -->
       <div class="section">
         <div class="section-title">Environment Options</div>
-        
+
         <label class="checkbox-container">
           <input type="checkbox" id="cull-backface" checked>
           <span>Backface Culling</span>
         </label>
-        
+
         <label class="checkbox-container">
           <input type="checkbox" id="show-grid" checked>
           <span>Show Floor Grid</span>
@@ -621,7 +621,7 @@
     let computeBindGroup, renderBindGroup;
 
     // WGSL 셰이더 코드 기술 (스펙에 맞춰 고도로 최적화 및 주석 첨부)
-    const shaderSource = `
+    const computeShaderSource = `
       // 삼각형 레이캐스트 연산을 전달받는 구조체
       struct TriangleRaycastParams {
           v0: vec4f,
@@ -647,38 +647,38 @@
           let edge1 = v1 - v0;
           let edge2 = v2 - v0;
           let face_normal = normalize(cross(edge1, edge2));
-          
+
           // 광선 방향과 삼각형 평면 법선의 내적 (분모 d·n)
           let denom = dot(dir, face_normal);
-          
+
           // 평행도 검사 (계산 안정성 및 0 나누기 방지)
           if (abs(denom) < 1e-4) {
               return vec4f(-1.0, 0.0, 0.0, 0.0);
           }
-          
+
           // Backface Culling 여부 처리
           if (cull && denom > 0.0) {
               return vec4f(-1.0, 0.0, 0.0, 0.0);
           }
-          
+
           // 평면 공식과 레이 공식을 대입하여 구한 t 수식
           // t = (v0·n - o·n) / (d·n)
           let t = dot(v0 - orig, face_normal) / denom;
           if (t < 0.0) {
               return vec4f(-1.0, 0.0, 0.0, 0.0);
           }
-          
+
           let hit_point = orig + t * dir;
-          
+
           // 충돌점이 삼각형 에지 내에 포함되는지 Inside-Outside 검증
           let c0 = cross(v1 - v0, hit_point - v0);
           let c1 = cross(v2 - v1, hit_point - v1);
           let c2 = cross(v0 - v2, hit_point - v2);
-          
+
           let dot0 = dot(face_normal, c0);
           let dot1 = dot(face_normal, c1);
           let dot2 = dot(face_normal, c2);
-          
+
           // 내적값들의 부호 일치 조건 판단 (양면 판정 처리)
           if (dot0 >= -1e-5 && dot1 >= -1e-5 && dot2 >= -1e-5) {
               return vec4f(t, face_normal);
@@ -686,7 +686,7 @@
           if (dot0 <= 1e-5 && dot1 <= 1e-5 && dot2 <= 1e-5) {
               return vec4f(t, -face_normal);
           }
-          
+
           return vec4f(-1.0, 0.0, 0.0, 0.0);
       }
 
@@ -699,13 +699,13 @@
           if (global_id.x >= size.x || global_id.y >= size.y) {
               return;
           }
-          
+
           let aspect = f32(size.x) / f32(size.y);
           let uv = vec2f(
               (f32(global_id.x) + 0.5) / f32(size.x) * 2.0 - 1.0,
               1.0 - (f32(global_id.y) + 0.5) / f32(size.y) * 2.0
           );
-          
+
           // 카메라 방향 변환계 빌드 (LookAt 기반)
           let cam_pos = params.camera_pos.xyz;
           let cam_target = params.camera_lookat.xyz;
@@ -713,14 +713,14 @@
           let temp_up = vec3f(0.0, 1.0, 0.0);
           let right = normalize(cross(fwd, temp_up));
           let up = cross(right, fwd);
-          
+
           // 투영 평면상의 레이 디렉션 설정
           let fov_factor = 1.2;
           let ray_dir = normalize(uv.x * aspect * right + uv.y * up + fwd * fov_factor);
-          
+
           // 씬 기본 배경 정의 (아름다운 공학적 그리드 스타일)
-          var final_color = vec3f(0.1, 0.1, 0.16); 
-          
+          var final_color = vec3f(0.1, 0.1, 0.16);
+
           // 격자 바닥면 레이 연산 (선택 옵션일 시)
           if (params.show_grid > 0.5) {
               let p_y = -1.0;
@@ -738,43 +738,45 @@
                   }
               }
           }
-          
+
           // 삼각형 충돌 테스트 실행
           let hit_res = computeRayTriangleHit(
-              cam_pos, 
-              ray_dir, 
-              params.v0.xyz, 
-              params.v1.xyz, 
-              params.v2.xyz, 
+              cam_pos,
+              ray_dir,
+              params.v0.xyz,
+              params.v1.xyz,
+              params.v2.xyz,
               params.cull_backface > 0.5
           );
-          
+
           if (hit_res.x > 0.0) {
               let t = hit_res.x;
               let normal = hit_res.yzw;
               let hit_point = cam_pos + t * ray_dir;
-              
+
               // 퐁 라이팅 기반 표면 쉐이딩 연산
               let light_dir = normalize(params.light_pos.xyz - hit_point);
               let diff = max(dot(normal, light_dir), 0.0);
-              
+
               // 반사 하이라이트 specular 계산
               let view_dir = normalize(cam_pos - hit_point);
               let h = normalize(light_dir + view_dir);
               let spec = pow(max(dot(normal, h), 0.0), 40.0) * 0.6;
-              
+
               // 법선 정보를 색상화 하여 직관적이고 미려한 그래픽 확보
               let normal_color = abs(normal) * 0.7 + vec3f(0.3);
               final_color = normal_color * (diff + 0.15) + vec3f(spec);
-              
+
               // 충돌 교점 부근 림 라이팅 추가
               let rim = 1.0 - max(dot(view_dir, normal), 0.0);
               final_color += vec3f(0.15 * pow(rim, 3.0));
           }
-          
+
           textureStore(out_texture, global_id.xy, vec4f(final_color, 1.0));
       }
+    `;
 
+    const renderShaderSource = `
       // -------------------------------------------------------------
       // Fullscreen Quad를 그리는 래스터 기반 렌더 쉐이더 정의
       // -------------------------------------------------------------
@@ -818,10 +820,14 @@
       device = await adapter.requestDevice();
       queue = device.queue;
 
-      // 셰이더 컴파일 모듈 등록
-      const shaderModule = device.createShaderModule({
-        label: 'TriangleRaycastShader',
-        code: shaderSource
+            // 셰이더 컴파일 모듈 등록
+      const computeShaderModule = device.createShaderModule({
+        label: 'TriangleRaycastComputeShader',
+        code: computeShaderSource
+      });
+      const renderShaderModule = device.createShaderModule({
+        label: 'TriangleRaycastRenderShader',
+        code: renderShaderSource
       });
 
       // -------------------------------------------------------------
@@ -845,7 +851,7 @@
 
       // Uniform 버퍼 정의 (TriangleRaycastParams 구조체 정렬 규약 준증)
       // v0(16B) + v1(16B) + v2(16B) + cam_pos(16B) + cam_look(16B) + light_pos(16B) + size(8B) + cull(4B) + grid(4B) = 112 Bytes
-      const uniformBufferSize = 112; 
+      const uniformBufferSize = 112;
       uniformBuffer = device.createBuffer({
         size: uniformBufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -861,9 +867,9 @@
         ]
       });
 
-      computePipeline = device.createComputePipeline({
+            computePipeline = device.createComputePipeline({
         layout: device.createPipelineLayout({ bindGroupLayouts: [computeBindGroupLayout] }),
-        compute: { module: shaderModule, entryPoint: 'raytraceComputeMain' }
+        compute: { module: computeShaderModule, entryPoint: 'raytraceComputeMain' }
       });
 
       computeBindGroup = device.createBindGroup({
@@ -884,11 +890,11 @@
         ]
       });
 
-      renderPipeline = device.createRenderPipeline({
+            renderPipeline = device.createRenderPipeline({
         layout: device.createPipelineLayout({ bindGroupLayouts: [renderBindGroupLayout] }),
-        vertex: { module: shaderModule, entryPoint: 'screenQuadVS' },
+        vertex: { module: renderShaderModule, entryPoint: 'screenQuadVS' },
         fragment: {
-          module: shaderModule,
+          module: renderShaderModule,
           entryPoint: 'screenQuadFS',
           targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
         }
@@ -924,7 +930,7 @@
 
       // 1. Uniform 데이터 버퍼 정렬 구축 및 전송
       const bufferData = new Float32Array(28); // 112 Bytes / 4
-      
+
       // v0 (vec4f)
       bufferData[0] = params.v0[0];
       bufferData[1] = params.v0[1];
