@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-09-directx-11-dear-imgui%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%9D%B8%ED%84%B0%EB%9E%99%ED%8B%B0%EB%B8%8C-%EC%BA%94%EB%B2%84%EC%8A%A4-%EB%B0%B0%EA%B2%BD%EC%83%89-%EC%A0%9C%EC%96%B4-%EA%B5%AC%ED%98%84/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-28-%EC%82%BC%EA%B0%81%ED%98%95%EC%9D%98-%ED%8F%89%EB%A9%B4%EC%84%B1planarity%EA%B3%BC-%EB%B9%84%ED%8F%89%EB%A9%B4-%EC%82%AC%EA%B0%81%ED%98%95%EC%9D%98-%EC%82%BC%EA%B0%81%ED%98%95-%EB%B6%84%ED%95%A0triangulation/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>[DirectX 11] Dear ImGui를 활용한 인터랙티브 캔버스 배경색 제어 구현 - Computer Graphics Portfolio</title>
+        <title>삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation) - Computer Graphics Portfolio</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#directx-11-dear-imgui" class="md-skip">
+        <a href="#planarity-triangulation" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              [DirectX 11] Dear ImGui를 활용한 인터랙티브 캔버스 배경색 제어 구현
+              삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation)
             
           </span>
         </div>
@@ -1884,50 +1884,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-immediate-mode-gui-imgui" class="md-nav__link">
+  <a href="#1-triangle-planarity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Immediate Mode GUI (IMGUI) 패러다임의 이해
+        1. 핵심 개념: 왜 삼각형인가? (Triangle Planarity)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Immediate Mode GUI (IMGUI) 패러다임의 이해">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#imgui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        렌더링 루프 내의 ImGui 생명주기 (개념도)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 색상 데이터의 수학적 표현과 메모리 업데이트
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. 색상 데이터의 수학적 표현과 메모리 업데이트">
+    <nav class="md-nav" aria-label="1. 핵심 개념: 왜 삼각형인가? (Triangle Planarity)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        캔버스 버퍼 업데이트 알고리즘
+        수학적 정의
       
     </span>
   </a>
@@ -1940,21 +1912,94 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3" class="md-nav__link">
+  <a href="#2-non-planar-quadrilaterals-folding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. 실시간 인터랙션을 위한 코드 리팩토링
+        2. 사각형의 한계: 비평면성과 뒤틀림 (Non-planar Quadrilaterals &amp; Folding)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 사각형의 한계: 비평면성과 뒤틀림 (Non-planar Quadrilaterals &amp; Folding)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        레이트레이싱에서의 문제점
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#4" class="md-nav__link">
+  <a href="#3-triangulation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. 배운 점 및 향후 과제
+        3. 해결책: 삼각형 분할 (Triangulation)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 해결책: 삼각형 분할 (Triangulation)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pseudo-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        추상화된 분할 알고리즘 (Pseudo-code)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. WebGPU 인터랙티브 데모 제안: 비평면 사각형의 시각화
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. WebGPU 인터랙티브 데모 제안: 비평면 사각형의 시각화">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데모 구현 핵심 요약
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webgpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인터랙티브 WebGPU 데모
       
     </span>
   </a>
@@ -1981,71 +2026,100 @@
   
 
 
-<h1 id="directx-11-dear-imgui">[DirectX 11] Dear ImGui를 활용한 인터랙티브 캔버스 배경색 제어 구현</h1>
-<p>안녕하세요. 컴퓨터 그래픽스를 학습하며 구현한 내용과 고민의 과정을 기록하는 포트폴리오입니다. </p>
-<p>이번 프로젝트에서는 DirectX 11 환경에 <strong>Dear ImGui</strong>를 연동하여, 사용자가 UI 슬라이더를 통해 실시간으로 캔버스의 배경색을 제어할 수 있는 기능을 구현했습니다. 기존의 정적이거나 하드코딩된 애니메이션을 제거하고, 진정한 의미의 <strong>인터랙티브 렌더링 루프(Interactive Rendering Loop)</strong>를 구축하는 과정을 정리해 보았습니다.</p>
+<h1 id="planarity-triangulation">삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation)</h1>
+<p>우리가 3차원 공간을 정의하고 이를 화면에 렌더링할 때, 가장 기본이 되는 기하학적 단위는 단연 <strong>삼각형(Triangle)</strong>입니다. 이번 커밋은 그래픽스 파이프라인과 레이트레이싱에서 삼각형이 왜 만능의 기본 단위(Primitive)로 사용되는지, 그리고 4개 이상의 정점을 가진 다각형이 가질 수 있는 치명적인 한계인 <strong>비평면성(Non-planarity)</strong>을 어떻게 해결하는지에 대한 수학적·기하학적 고찰을 담고 있습니다.</p>
 <hr />
-<h2 id="1-immediate-mode-gui-imgui">1. Immediate Mode GUI (IMGUI) 패러다임의 이해</h2>
-<p>이번 구현의 핵심은 <code>Dear ImGui</code> 라이브러리의 도입입니다. 전통적인 GUI 시스템(Retained Mode)과 달리, IMGUI는 <strong>매 프레임마다 UI의 상태를 새로 정의하고 그리는 방식</strong>을 취합니다. </p>
-<p>이러한 방식은 그래픽스 렌더링 파이프라인의 '메인 루프(Main Loop)' 구조와 완벽하게 맞아떨어집니다. 프로그램의 상태(State)와 UI가 즉각적으로 동기화되므로, 복잡한 콜백(Callback) 이벤트 없이도 직관적인 데이터 바인딩이 가능합니다.</p>
-<h3 id="imgui">렌더링 루프 내의 ImGui 생명주기 (개념도)</h3>
-<p>실제 코드 대신 렌더링 루프 안에서 ImGui가 어떻게 동작하는지 추상화한 흐름은 다음과 같습니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">MessageLoop</span><span class="p">())</span><span class="w"> </span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="c1">// 1. ImGui 및 플랫폼/그래픽스 API의 새 프레임 시작</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="n">ImGui_StartNewFrame</span><span class="p">();</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="c1">// 2. UI 위젯 정의 (데이터 바인딩)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="n">ImGui</span><span class="o">::</span><span class="n">Begin</span><span class="p">(</span><span class="s">&quot;Background Color&quot;</span><span class="p">);</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="n">ImGui</span><span class="o">::</span><span class="n">SliderFloat3</span><span class="p">(</span><span class="s">&quot;RGB&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">appState</span><span class="p">.</span><span class="n">backgroundColor</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="n">ImGui</span><span class="o">::</span><span class="n">End</span><span class="p">();</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="c1">// 3. UI 렌더링 데이터 생성</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="n">ImGui</span><span class="o">::</span><span class="n">Render</span><span class="p">();</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="c1">// 4. 애플리케이션 상태 업데이트 및 메인 그래픽스 렌더링</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="n">App_Update</span><span class="p">();</span><span class="w"> </span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="n">App_Render</span><span class="p">();</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="c1">// 5. 생성된 ImGui 데이터를 실제 그래픽스 API(DX11)를 통해 화면에 그리기</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="n">RenderDrawData_DX11</span><span class="p">();</span>
+<h2 id="1-triangle-planarity">1. 핵심 개념: 왜 삼각형인가? (Triangle Planarity)</h2>
+<p>3차원 공간에서 세 점은 언제나 단 하나의 평면을 정의합니다. 이를 <strong>삼각형의 평면성(Triangle Planarity)</strong>이라고 합니다. </p>
+<h3 id="_1">수학적 정의</h3>
+<p>공간 상의 서로 다른 세 정점 <span class="arithmatex">\(\mathbf{v}_0, \mathbf{v}_1, \mathbf{v}_2\)</span>가 일직선상에 있지 않다면, 이 세 점을 지나는 평면의 법선 벡터(Normal Vector) <span class="arithmatex">\(\mathbf{n}\)</span>은 외적(Cross Product)을 통해 다음과 같이 유일하게 결정됩니다.</p>
+<div class="arithmatex">\[\mathbf{e}_1 = \mathbf{v}_1 - \mathbf{v}_0$$
+$$\mathbf{e}_2 = \mathbf{v}_2 - \mathbf{v}_0$$
+$$\mathbf{n} = \mathbf{e}_1 \times \mathbf{e}_2\]</div>
+<p>이렇게 구해진 법선 벡터 <span class="arithmatex">\(\mathbf{n}\)</span>과 평면 위의 한 점 <span class="arithmatex">\(\mathbf{v}_0\)</span>를 이용하면, 평면 위의 임의의 점 <span class="arithmatex">\(\mathbf{p}\)</span>가 만족해야 하는 평면의 방정식을 정의할 수 있습니다.</p>
+<div class="arithmatex">\[(\mathbf{p} - \mathbf{v}_0) \cdot \mathbf{n} = 0\]</div>
+<p>삼각형의 세 점은 항상 이 식을 완벽하게 만족하므로, 어떠한 방식으로 3차원 공간에서 회전하거나 변형되어도 평평한(Planar) 상태를 유지합니다.</p>
+<hr />
+<h2 id="2-non-planar-quadrilaterals-folding">2. 사각형의 한계: 비평면성과 뒤틀림 (Non-planar Quadrilaterals &amp; Folding)</h2>
+<p>반면, 4개의 정점 <span class="arithmatex">\(\mathbf{v}_0, \mathbf{v}_1, \mathbf{v}_2, \mathbf{v}_3\)</span>으로 구성된 사각형(Quad)은 항상 평평하다는 보장이 없습니다. </p>
+<p>예를 들어, 평평한 종이의 한쪽 모서리를 접는 상황(Folding)을 생각해 봅시다. 한 정점 <span class="arithmatex">\(\mathbf{v}_3\)</span>가 다른 세 점이 이루는 평면의 방정식 <span class="arithmatex">\((\mathbf{p} - \mathbf{v}_0) \cdot \mathbf{n} = 0\)</span>을 만족하지 못하고 붕 뜨게 된다면, 이 사각형은 더 이상 하나의 평면으로 표현할 수 없는 <strong>비평면 사각형(Non-planar Quadrilateral)</strong>이 됩니다.</p>
+<h3 id="_2">레이트레이싱에서의 문제점</h3>
+<p>레이트레이싱(Raytracing)에서 광선과 도형의 교차 판정(Ray-Object Intersection)을 수행할 때, 도형이 평평하지 않으면 수학적 정의가 모호해집니다. 단일 법선 벡터를 정의할 수 없기 때문에 광선이 사각형과 만나는 정확한 교차점과 그 지점에서의 반사광을 계산하기가 매우 까다로워집니다. 이는 결국 <strong>퐁 반사 모델(Phong Reflection Model)</strong>을 적용할 때 입사각과 반사각 계산의 왜곡을 야기하여, 화면에 어색한 그림자나 아티팩트(Artifact)를 발생시키는 원인이 됩니다.</p>
+<hr />
+<h2 id="3-triangulation">3. 해결책: 삼각형 분할 (Triangulation)</h2>
+<p>이 문제를 해결하는 가장 확실하고 단순한 방법은 모든 다각형을 삼각형 단위로 쪼개는 <strong>삼각형 분할(Triangulation)</strong>입니다. 비평면 사각형은 대각선을 기준으로 두 개의 삼각형으로 분할하면, 각각의 삼각형은 언제나 완벽한 평평함을 유지하게 됩니다.</p>
+<h3 id="pseudo-code">추상화된 분할 알고리즘 (Pseudo-code)</h3>
+<p>비평면 사각형 <span class="arithmatex">\(Q(\mathbf{v}_0, \mathbf{v}_1, \mathbf{v}_2, \mathbf{v}_3)\)</span>가 주어졌을 때, 이를 두 개의 삼각형 <span class="arithmatex">\(T_1, T_2\)</span>로 안전하게 분할하여 레이트레이싱 파이프라인에 전달하는 과정은 다음과 같이 추상화할 수 있습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">Quad</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">v1</span><span class="p">,</span><span class="w"> </span><span class="n">v2</span><span class="p">,</span><span class="w"> </span><span class="n">v3</span><span class="p">;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">};</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">struct</span><span class="w"> </span><span class="nc">Triangle</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="n">Vector3</span><span class="w"> </span><span class="n">p0</span><span class="p">,</span><span class="w"> </span><span class="n">p1</span><span class="p">,</span><span class="w"> </span><span class="n">p2</span><span class="p">;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">};</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">// 사각형을 2개의 평면 삼각형으로 분할하는 함수</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">Triangle</span><span class="p">,</span><span class="w"> </span><span class="n">Triangle</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TriangulateQuad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Quad</span><span class="o">&amp;</span><span class="w"> </span><span class="n">quad</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="n">Triangle</span><span class="w"> </span><span class="n">t1</span><span class="p">;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="n">t1</span><span class="p">.</span><span class="n">p0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quad</span><span class="p">.</span><span class="n">v0</span><span class="p">;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="n">t1</span><span class="p">.</span><span class="n">p1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quad</span><span class="p">.</span><span class="n">v1</span><span class="p">;</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="n">t1</span><span class="p">.</span><span class="n">p2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quad</span><span class="p">.</span><span class="n">v2</span><span class="p">;</span><span class="w"> </span><span class="c1">// 첫 번째 삼각형 (v0, v1, v2)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="n">Triangle</span><span class="w"> </span><span class="n">t2</span><span class="p">;</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="n">t2</span><span class="p">.</span><span class="n">p0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quad</span><span class="p">.</span><span class="n">v0</span><span class="p">;</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="n">t2</span><span class="p">.</span><span class="n">p1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quad</span><span class="p">.</span><span class="n">v2</span><span class="p">;</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="n">t2</span><span class="p">.</span><span class="n">p2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quad</span><span class="p">.</span><span class="n">v3</span><span class="p">;</span><span class="w"> </span><span class="c1">// 두 번째 삼각형 (v0, v2, v3)</span>
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span><span class="c1">// 6. 백버퍼와 프론트버퍼 교체 (Swap)</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span><span class="n">Present</span><span class="p">();</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="p">}</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="n">t1</span><span class="p">,</span><span class="w"> </span><span class="n">t2</span><span class="p">};</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="p">}</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="c1">// 레이트레이싱 루프에서의 적용</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="kt">bool</span><span class="w"> </span><span class="n">IntersectQuad</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Ray</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ray</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Quad</span><span class="o">&amp;</span><span class="w"> </span><span class="n">quad</span><span class="p">,</span><span class="w"> </span><span class="n">HitRecord</span><span class="o">&amp;</span><span class="w"> </span><span class="n">record</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">t1</span><span class="p">,</span><span class="w"> </span><span class="n">t2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TriangulateQuad</span><span class="p">(</span><span class="n">quad</span><span class="p">);</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="c1">// 두 삼각형 각각에 대해 평면 교차 판정을 수행</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntersectTriangle</span><span class="p">(</span><span class="n">ray</span><span class="p">,</span><span class="w"> </span><span class="n">t1</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">);</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">    </span><span class="n">hit</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">IntersectTriangle</span><span class="p">(</span><span class="n">ray</span><span class="p">,</span><span class="w"> </span><span class="n">t2</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">);</span><span class="w"> </span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">hit</span><span class="p">;</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="p">}</span>
 </code></pre></div>
+<p>이 분할을 통해 복잡한 비평면 기하구조도 고유의 법선 벡터를 가진 단순한 평면 삼각형들의 집합으로 환원되므로, 일관성 있는 <strong>퐁 반사 모델(Phong Reflection Model)</strong> 기반의 광원 연산이 가능해집니다.</p>
 <hr />
-<h2 id="2">2. 색상 데이터의 수학적 표현과 메모리 업데이트</h2>
-<p>GUI를 통해 입력받은 색상 데이터는 화면의 픽셀(Pixel) 데이터로 변환되어야 합니다. 컴퓨터 그래픽스에서 색상은 일반적으로 <strong>RGBA(Red, Green, Blue, Alpha)</strong> 모델을 사용하며, 이번 구현에서는 각 채널을 <span class="arithmatex">\(0.0\)</span> 부터 <span class="arithmatex">\(1.0\)</span> 사이의 정규화된 부동소수점(Normalized Floating-point)으로 표현합니다.</p>
-<p>수학적으로 캔버스의 특정 픽셀 색상 <span class="arithmatex">\(C\)</span> 는 다음과 같은 벡터로 표현됩니다.</p>
-<div class="arithmatex">\[ C_{rgba} = \begin{bmatrix} R \\ G \\ B \\ A \end{bmatrix}, \quad R, G, B, A \in [0.0, 1.0] \]</div>
-<h3 id="_1">캔버스 버퍼 업데이트 알고리즘</h3>
-<p>사용자가 ImGui 슬라이더를 조작하면, 전역 상태(또는 클래스 멤버)로 관리되는 배경색 배열의 값이 즉각적으로 변경됩니다. <code>Update</code> 함수에서는 이 값을 읽어와 캔버스 해상도(Width <span class="arithmatex">\(\times\)</span> Height)만큼의 1차원 배열을 단일 색상으로 가득 채웁니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// 개념적 코드: 캔버스 전체 픽셀을 새로운 배경색으로 업데이트</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">Color</span><span class="w"> </span><span class="n">currentBgColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GetColorFromImGui</span><span class="p">();</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1">// 캔버스의 총 픽셀 수만큼 배열을 할당하고, 현재 색상으로 초기화</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pixelBuffer</span><span class="p">(</span><span class="n">TotalPixels</span><span class="p">,</span><span class="w"> </span><span class="n">currentBgColor</span><span class="p">);</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1">// 이후 이 pixelBuffer 데이터를 GPU 텍스처 메모리로 전송 (Map / Unmap)</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">UpdateTextureBuffer</span><span class="p">(</span><span class="n">pixelBuffer</span><span class="p">);</span>
+<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모 제안: 비평면 사각형의 시각화</h2>
+<p>이 기하학적 개념을 웹 브라우저에서 실시간으로 시각화하기 위해, <strong>WebGPU Compute Shader</strong>와 렌더링 파이프라인을 활용한 인터랙티브 데모를 다음과 같이 구성할 수 있습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>[ WebGPU Interactive Canvas ]
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>+----------------------------------------+
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>|   (v3) *-----&gt; 조절용 기즈모(Drag)      |  &lt;- 마우스로 v3를 위아래로 움직임
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>|       / \                              |
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>|      /   \  Triangulated Edge (v0-v2)  |  &lt;- 접히는 경계선 시각화
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>|     /     \                            |
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>| (v0)*------* (v2)                      |
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>|     \      /                           |
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>|      \    /                            |
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>|       \  /                             |
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>|        * (v1)                          |
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>+----------------------------------------+
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>* 실시간 퐁 반사 모델(Phong Reflection Model) 적용:
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>  접힌 양쪽 삼각형의 밝기가 서로 다르게 표현되어 평면의 깨짐을 시각적으로 인지 가능.
 </code></pre></div>
-<p>이 과정에서 CPU의 시스템 메모리(RAM)에 존재하는 <code>std::vector</code> 데이터가 Direct3D의 리소스 매핑 기법을 통해 GPU의 비디오 메모리(VRAM)로 전송되어 화면에 그려지게 됩니다.</p>
+<h3 id="_3">데모 구현 핵심 요약</h3>
+<ol>
+<li><strong>정점 버퍼 제어 (Vertex Buffer Manipulation)</strong>: </li>
+<li>화면에 4개의 정점(Quad)을 배치하고, 사용자가 UI 슬라이더나 마우스 드래그를 통해 하나의 정점(예: <span class="arithmatex">\(\mathbf{v}_3\)</span>)의 Z축 값을 실시간으로 변화시킬 수 있도록 합니다.</li>
+<li><strong>Compute/Render Shader 내 동적 분할</strong>:</li>
+<li>WebGPU의 셰이더(WGSL) 단계에서 해당 Quad를 실시간으로 2개의 삼각형(<code>Triangle 1: v0-v1-v2</code>, <code>Triangle 2: v0-v2-v3</code>)으로 분할합니다.</li>
+<li><strong>법선 벡터 변화 및 조명 시각화</strong>:</li>
+<li>두 삼각형의 개별 법선 벡터 <span class="arithmatex">\(\mathbf{n}_1, \mathbf{n}_2\)</span>를 실시간으로 계산하여 화면에 가느다란 화살표(Vector)로 시각화합니다.</li>
+<li>평평할 때는 두 법선 벡터가 완벽히 일치하지만, 정점을 움직여 '접히는(Folding)' 순간 법선 벡터가 서로 다른 방향으로 갈라지는 모습을 보여줍니다.</li>
+<li>여기에 <strong>퐁 반사 모델(Phong Reflection Model)</strong>을 적용하여 광원의 위치에 따라 접힌 경계선(Diagonal Edge)을 경계로 명암이 급격하게 갈라지는 현상을 실시간으로 렌더링합니다.</li>
+</ol>
+<p>이 데모는 학습자가 구현한 삼각형 분할 공식이 실제 3D 그래픽스 렌더러에서 빛의 반사와 섀이딩에 얼마나 즉각적이고 결정적인 영향을 미치는지 직관적으로 이해할 수 있도록 돕는 훌륭한 도구가 될 것입니다.</p>
 <hr />
-<h2 id="3">3. 실시간 인터랙션을 위한 코드 리팩토링</h2>
-<p>이번 커밋에서는 새로운 기능 추가뿐만 아니라 기존 코드의 문제점을 개선하는 리팩토링도 함께 진행되었습니다.</p>
-<ul>
-<li><strong>Blocking 함수(<code>Sleep</code>) 제거:</strong> 
-  초기 테스트용 코드에 포함되어 있던 <code>Sleep(300)</code> 함수는 메인 스레드를 멈추게 하여 UI의 응답성을 심각하게 저해합니다. 실시간 렌더링과 상호작용을 위해서는 메인 루프가 지연 없이 최대한 빠르게 회전해야 하므로 이를 제거했습니다.</li>
-<li><strong>하드코딩된 애니메이션 제거:</strong> 
-  모듈로 연산(<code>%</code>)을 통해 픽셀의 색상을 순차적으로 바꾸던 정해진 애니메이션 코드를 제거하고, 전적으로 사용자의 입력(ImGui)에 의해 캔버스 전체의 상태가 결정되도록 로직을 간결하게 변경했습니다.</li>
-</ul>
-<hr />
-<h2 id="4">4. 배운 점 및 향후 과제</h2>
-<p>이번 작업을 통해 <strong>응용 프로그램의 상태(State) <span class="arithmatex">\(\rightarrow\)</span> GUI 상호작용 <span class="arithmatex">\(\rightarrow\)</span> CPU 버퍼 업데이트 <span class="arithmatex">\(\rightarrow\)</span> GPU 리소스 매핑 및 렌더링</strong>으로 이어지는 전체 파이프라인의 데이터 흐름을 명확하게 이해할 수 있었습니다. </p>
-<p>특히 렌더링 파이프라인 위에 별도의 UI 레이어를 올리는 과정에서, 상태 값이 프레임마다 어떻게 동기화되는지 체감할 수 있었습니다. </p>
-<p><strong>다음 학습 목표:</strong>
-현재는 캔버스 전체를 단일 색상으로 채우고 있지만, 앞으로는 이 픽셀 버퍼 배열을 조작하여 선 그리기(Bresenham's line algorithm), 삼각형 래스터화(Rasterization), 그리고 점진적으로는 3D 공간의 물체를 2D 화면에 투영(Projection)하는 렌더러의 핵심 기초를 구현해 나갈 계획입니다.</p>
+<h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
+<div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
+<iframe src="../../demos/삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triang/demo.html" width="100%" height="700" frameborder="0" scrolling="no" style="display:block;"></iframe>
+</div>
 
 
 
