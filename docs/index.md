@@ -273,13 +273,18 @@ graph LR
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현</strong><br><br>
+<a href="demos/원근-투영과-최접점-가려짐-처리를-통한-3차원-레이트레이싱-구현/">데모 보기 →</a>
+</div>
+
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
 <strong>원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현</strong><br><br>
 <a href="demos/원근-투영perspective-projection과-최단-거리-충돌-판정/">데모 보기 →</a>
 </div>
 
 <div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
-<strong>원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현</strong><br><br>
-<a href="demos/원근-투영과-최접점-가려짐-처리를-통한-3차원-레이트레이싱-구현/">데모 보기 →</a>
+<strong>삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation)</strong><br><br>
+<a href="demos/삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triang/">데모 보기 →</a>
 </div>
 
 </div>
@@ -290,10 +295,10 @@ graph LR
 
 ## 최근 학습 포스트
 
+- [삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation)](posts/2026-06-28-삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triangulation.md) <small style='color:#64748b'>(2026-06-28)</small>
 - [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 판정 구현](posts/2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-판정-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 검사(Closest Hit) 구현](posts/2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-검사closest-hit-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현](posts/2026-06-26-원근-투영과-최접점-가려짐-처리를-통한-3차원-레이트레이싱-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현](posts/2026-06-26-원근-투영perspective-projection과-최단-거리-충돌-판정closest-collision의-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
-- [원근 투영(Perspective Projection) 및 가림 해결(Occlusion Sorting) 구현 분석](posts/2026-06-26-원근-투영perspective-projection-및-가림-해결occlusion-sorting-구현-분석.md) <small style='color:#64748b'>(2026-06-26)</small>
 
 [모든 포스트 보기 →](posts/index.md)

@@ -233,6 +233,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation)](삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triang.md)
+
+
+[→ 데모 열기](삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triang.md){.md-button}
+
+
+---
+
+
 ## [선형 톤 매핑과 오버플로우 방지를 위한 픽셀 클램핑(Clamping)](선형-톤-매핑과-오버플로우-방지를-위한-픽셀-클램핑clamping.md)
 
 

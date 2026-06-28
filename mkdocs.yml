@@ -101,3 +101,4 @@ nav:
     - "[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성": demos/리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-.md
     - 원근 투영(Perspective Projection)과 최단 거리 충돌 판정(Closest Collision)의 구현: demos/원근-투영perspective-projection과-최단-거리-충돌-판정.md
     - 원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현: demos/원근-투영과-최접점-가려짐-처리를-통한-3차원-레이트레이싱-구현.md
+    - 삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation): demos/삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triang.md
