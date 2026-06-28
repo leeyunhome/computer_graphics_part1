@@ -224,6 +224,15 @@ WebGPU Compute Shader로 DirectX 11 강의 예제를 재현한 데모입니다.
 ---
 
 
+## [벡터 외적을 이용한 삼각형의 법선 벡터 및 면적 계산](벡터-외적을-이용한-삼각형의-법선-벡터-및-면적-계산.md)
+
+
+[→ 데모 열기](벡터-외적을-이용한-삼각형의-법선-벡터-및-면적-계산.md){.md-button}
+
+
+---
+
+
 ## [분리형 가우시안 블러(Separable Gaussian Blur)를 이용한 Bloom 효과 구현 리뷰](분리형-가우시안-블러separable-gaussian-blur를-이용한-.md)
 
 
