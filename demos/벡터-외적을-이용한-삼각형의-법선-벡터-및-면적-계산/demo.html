@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DirectX 11 — Save cross product and triangle area diagram</title>
+  <style>
+    /* 필수 레이아웃 골격 */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;  /* iframe 높이에 맞게 고정 */
+      margin: 0;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* 헤더 스타일 - DirectX 11 도구 창 느낌 */
+    .title-bar {
+      background: linear-gradient(90deg, #1f1f3a, #0f0f1a);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #3a3a5a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    .title-bar .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #00ffcc;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #00ffcc;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ffcc;
+    }
+
+    .workspace {
+      display: flex;
+      flex-direction: row;  /* wrap 금지 */
+      flex: 1;
+      min-height: 0;       /* overflow-y 작동을 위한 필수 조건 */
+      overflow: hidden;
+    }
+
+    /* 모바일 대응: wrap 대신 flex-direction 전환 */
+    @media (max-width: 680px) {
+      .workspace { flex-direction: column; }
+      .sidebar { width: 100% !important; max-height: 50vh; }
+    }
+
+    .canvas-container {
+      flex: 1;
+      min-width: 300px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #0d0d16;
+      position: relative;
+    }
+
+    canvas {
+      width: 520px;
+      height: 520px;
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid #2d2d44;
+      background-color: #000;
+    }
+
+    /* ImGui 스타일 사이드바 */
+    .sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      background-color: #161625;
+      border-left: 2px solid #2d2d44;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (max-width: 700px) {
+      .sidebar { width: 100%; max-height: 55vh; }
+    }
+
+    /* ImGui 스타일 패널 섹션 */
+    .panel-section {
+      border: 1px solid #2d2d44;
+      background-color: #1c1c30;
+      margin: 12px;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .panel-header {
+      background-color: #252545;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #ffffff;
+      border-bottom: 1px solid #3a3a5a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 슬라이더 컨트롤 스타일 */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #aaaaaa;
+    }
+    .control-value {
+      font-family: monospace;
+      color: #00ffcc;
+      font-weight: bold;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #2d2d44;
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #5050ff;
+      cursor: pointer;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #8080ff;
+    }
+
+    /* 정보 디스플레이 구역 */
+    .info-display {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      background-color: #0d0d1a;
+      border: 1px solid #22223a;
+      border-radius: 3px;
+      padding: 8px;
+      color: #a0a0ff;
+      white-space: pre-wrap;
+    }
+    .highlight-area {
+      color: #ffaa00;
+      font-weight: bold;
+    }
+    .highlight-normal {
+      color: #00ff88;
+      font-weight: bold;
+    }
+
+    /* WebGPU 오류 모달 */
+    #error-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 15, 26, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      color: #ff4d4d;
+      text-align: center;
+      padding: 20px;
+      font-weight: bold;
+    }
+    #error-overlay h2 { margin-bottom: 10px; }
+
+    /* 버튼 스타일 */
+    .btn {
+      background-color: #3b3b6d;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 11px;
+      margin: 2px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #50509a;
+    }
+    .btn-active {
+      background-color: #5050ff !important;
+      box-shadow: 0 0 8px rgba(80,80,255,0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- DX11 풍의 상단 타이틀 바 -->
+  <div class="title-bar">
+    <div>DirectX 11 — Save cross product and triangle area diagram</div>
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>WebGPU Active (60 FPS Target)</span>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <!-- 캔버스 영역 -->
+    <div class="canvas-container">
+      <canvas id="gpu-canvas" width="520" height="520"></canvas>
+      <div id="error-overlay" style="display: none;">
+        <h2>WebGPU 미지원 환경</h2>
+        <p>이 웹 데모는 WebGPU API를 필요로 합니다. Chrome, Edge 또는 최신 브라우저를 사용해 주세요.</p>
+      </div>
+    </div>
+
+    <!-- ImGui를 모방한 사이드바 조작 영역 -->
+    <div class="sidebar">
+      
+      <!-- 정점 0 조작 패널 -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Triangle Vertex 0</span>
+          <span style="color: #ff4444;">V0 (Red)</span>
+        </div>
+        <div class="panel-body">
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex0 X</label>
+              <span class="control-value" id="val-v0x">0.00</span>
+            </div>
+            <input type="range" id="v0x" min="-2.0" max="2.0" step="0.05" value="-0.8">
+          </div>
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex0 Y</label>
+              <span class="control-value" id="val-v0y">0.00</span>
+            </div>
+            <input type="range" id="v0y" min="-2.0" max="2.0" step="0.05" value="-0.5">
+          </div>
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex0 Z</label>
+              <span class="control-value" id="val-v0z">0.00</span>
+            </div>
+            <input type="range" id="v0z" min="-2.0" max="2.0" step="0.05" value="1.0">
+          </div>
+        </div>
+      </div>
+
+      <!-- 정점 1 조작 패널 -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Triangle Vertex 1</span>
+          <span style="color: #44ff44;">V1 (Green)</span>
+        </div>
+        <div class="panel-body">
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex1 X</label>
+              <span class="control-value" id="val-v1x">0.00</span>
+            </div>
+            <input type="range" id="v1x" min="-2.0" max="2.0" step="0.05" value="0.8">
+          </div>
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex1 Y</label>
+              <span class="control-value" id="val-v1y">0.00</span>
+            </div>
+            <input type="range" id="v1y" min="-2.0" max="2.0" step="0.05" value="-0.4">
+          </div>
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex1 Z</label>
+              <span class="control-value" id="val-v1z">0.00</span>
+            </div>
+            <input type="range" id="v1z" min="-2.0" max="2.0" step="0.05" value="0.8">
+          </div>
+        </div>
+      </div>
+
+      <!-- 정점 2 조작 패널 -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Triangle Vertex 2</span>
+          <span style="color: #4444ff;">V2 (Blue)</span>
+        </div>
+        <div class="panel-body">
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex2 X</label>
+              <span class="control-value" id="val-v2x">0.00</span>
+            </div>
+            <input type="range" id="v2x" min="-2.0" max="2.0" step="0.05" value="0.0">
+          </div>
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex2 Y</label>
+              <span class="control-value" id="val-v2y">0.00</span>
+            </div>
+            <input type="range" id="v2y" min="-2.0" max="2.0" step="0.05" value="0.8">
+          </div>
+          <div class="control-group">
+            <div class="control-label-row">
+              <label>Vertex2 Z</label>
+              <span class="control-value" id="val-v2z">0.00</span>
+            </div>
+            <input type="range" id="v2z" min="-2.0" max="2.0" step="0.05" value="1.2">
+          </div>
+        </div>
+      </div>
+
+      <!-- 렌더링 옵션 및 실시간 데이터 -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Mathematical Analytics</span>
+        </div>
+        <div class="panel-body">
+          <div class="control-group" style="flex-direction: row; justify-content: space-between;">
+            <button id="btn-parallelogram" class="btn btn-active">Show Parallelogram</button>
+            <button id="btn-grid" class="btn btn-active">Show Pattern Grid</button>
+          </div>
+          <div id="stats-panel" class="info-display">
+            <!-- 자바스크립트가 수학 연산 결과를 실시간으로 주입 -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- WGSL 소스 코드 ---
+    const computeShaderSource = `
+      // WebGPU Compute Shader: Raytracing & Vector Cross Product Area Visualization
+      
+      struct Uniforms {
+        v0: vec4f,
+        v1: vec4f,
+        v2: vec4f,
+        light_pos: vec4f,
+        camera_pos: vec4f,
+        screen_size: vec2f,
+        show_parallelogram: f32,
+        show_grid: f32,
+      }
+
+      @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+      @group(0) @binding(1) var out_texture: texture_storage_2d<rgba8unorm, write>;
+
+      // 광선 구조체 정의
+      struct Ray {
+        origin: vec3f,
+        direction: vec3f,
+      }
+
+      // 교차 검출 정보 구조체
+      struct HitRecord {
+        hit: bool,
+        t: f32,
+        point: vec3f,
+        normal: vec3f,
+        color: vec3f,
+        is_grid: bool,
+      }
+
+      // 레이와 구체의 교차 공식 구현
+      fn intersect_sphere(r: Ray, center: vec3f, radius: f32, color: vec3f) -> HitRecord {
+        var rec: HitRecord;
+        rec.hit = false;
+        rec.is_grid = false;
+        
+        let oc = r.origin - center;
+        let a = dot(r.direction, r.direction);
+        let b = 2.0 * dot(oc, r.direction);
+        let c = dot(oc, oc) - radius * radius;
+        let discriminant = b * b - 4.0 * a * c;
+
+        if (discriminant > 0.0) {
+          let temp = (-b - sqrt(discriminant)) / (2.0 * a);
+          if (temp > 0.01) {
+            rec.hit = true;
+            rec.t = temp;
+            rec.point = r.origin + temp * r.direction;
+            rec.normal = normalize(rec.point - center);
+            rec.color = color;
+            return rec;
+          }
+        }
+        return rec;
+      }
+
+      // 두 점 사이를 잇는 두꺼운 실린더(선)와의 교차 공식
+      fn intersect_cylinder_segment(r: Ray, a: vec3f, b: vec3f, radius: f32, color: vec3f) -> HitRecord {
+        var rec: HitRecord;
+        rec.hit = false;
+        rec.is_grid = false;
+
+        let d_cyl = b - a;
+        let len_cyl = length(d_cyl);
+        if (len_cyl < 0.001) { return rec; }
+        let u = d_cyl / len_cyl;
+
+        let v = r.origin - a;
+        let u_dot_d = dot(r.direction, u);
+        let u_dot_v = dot(v, u);
+
+        let a_coeff = dot(r.direction, r.direction) - u_dot_d * u_dot_d;
+        let b_coeff = 2.0 * (dot(v, r.direction) - u_dot_v * u_dot_d);
+        let c_coeff = dot(v, v) - u_dot_v * u_dot_v - radius * radius;
+
+        let discriminant = b_coeff * b_coeff - 4.0 * a_coeff * c_coeff;
+        if (discriminant > 0.0) {
+          let t_val = (-b_coeff - sqrt(discriminant)) / (2.0 * a_coeff);
+          if (t_val > 0.01) {
+            let p = r.origin + t_val * r.direction;
+            let h = dot(p - a, u);
+            if (h >= 0.0 && h <= len_cyl) {
+              rec.hit = true;
+              rec.t = t_val;
+              rec.point = p;
+              rec.normal = normalize(p - (a + h * u));
+              rec.color = color;
+              return rec;
+            }
+          }
+        }
+        return rec;
+      }
+
+      // 외적을 활용한 레이-삼각형 정밀 기하 교차 검출 알고리즘
+      fn intersect_triangle(r: Ray, v0: vec3f, v1: vec3f, v2: vec3f, is_para: bool) -> HitRecord {
+        var rec: HitRecord;
+        rec.hit = false;
+        rec.is_grid = false;
+
+        let e1 = v1 - v0;
+        let e2 = v2 - v0;
+        
+        // 1단계: 외적(Cross Product)으로 평면 법선 벡터 탐색
+        let N_raw = cross(e1, e2);
+        let N_len = length(N_raw);
+        if (N_len < 0.0001) { return rec; }
+        let N = N_raw / N_len; // 법선 정규화
+
+        // 2단계: 평면과 레이의 만남 각도 계산
+        let ndotd = dot(N, r.direction);
+        if (abs(ndotd) < 1e-6) { return rec; } // 광선과 평면이 수평
+
+        // 3단계: 평면식 d 계산 및 교차 시점 t 획득
+        let d = -dot(N, v0);
+        let t = -(dot(N, r.origin) + d) / ndotd;
+        if (t < 0.01) { return rec; }
+
+        let P = r.origin + t * r.direction;
+
+        // 4단계: 외적(Cross Product)을 이용한 삼각형 내부 판정 (Inside-Outside Test)
+        // 변의 바깥을 바라보는 부호 판단
+        let edge0 = v1 - v0;
+        let vp0 = P - v0;
+        let C0 = cross(edge0, vp0);
+        if (dot(N, C0) < 0.0) { return rec; }
+
+        let edge1 = v2 - v1;
+        let vp1 = P - v1;
+        let C1 = cross(edge1, vp1);
+        if (dot(N, C1) < 0.0) { return rec; }
+
+        let edge2 = v0 - v2;
+        let vp2 = P - v2;
+        let C2 = cross(edge2, vp2);
+        if (dot(N, C2) < 0.0) { return rec; }
+
+        // 통과 시 충돌 저장
+        rec.hit = true;
+        rec.t = t;
+        rec.point = P;
+        // 외적으로 구한 기하 법선 방향 뒤집힘 방지
+        rec.normal = select(N, -N, ndotd > 0.0);
+        
+        if (is_para) {
+          rec.color = vec3f(0.85, 0.45, 0.1); // 평행사변형 파트색 (오렌지 황색)
+        } else {
+          rec.color = vec3f(0.15, 0.45, 0.85); // 삼각형 기본 색 (푸른색 계열)
+        }
+
+        // 패턴 그리드 렌더링 (외적 크기 면적 시각화용 격자무늬)
+        if (uniforms.show_grid > 0.5) {
+          // 중첩 좌표계 계산
+          // P = v0 + u*e1 + v*e2
+          // 크래머의 공식을 사용하여 Barycentric 좌표를 활용한 u, v 매핑
+          let d00 = dot(e1, e1);
+          let d01 = dot(e1, e2);
+          let d11 = dot(e2, e2);
+          let d20 = dot(vp0, e1);
+          let d21 = dot(vp0, e2);
+          let denom = d00 * d11 - d01 * d01;
+          
+          if (abs(denom) > 1e-6) {
+            let u_coord = (d11 * d20 - d01 * d21) / denom;
+            let v_coord = (d00 * d21 - d01 * d20) / denom;
+            
+            // 0.1 간격의 격자 선 계산
+            let grid_size = 10.0;
+            let u_frac = fract(u_coord * grid_size);
+            let v_frac = fract(v_coord * grid_size);
+            if (u_frac < 0.08 || v_frac < 0.08) {
+              rec.is_grid = true;
+            }
+          }
+        }
+
+        return rec;
+      }
+
+      @compute @workgroup_size(8, 8)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let size = textureDimensions(out_texture);
+        if (id.x >= size.x || id.y >= size.y) { return; }
+
+        // Normalized Device Coordinates (-1 ~ 1) 전환
+        let uv = (vec2f(id.xy) + 0.5) / vec2f(size);
+        let ndc_x = uv.x * 2.0 - 1.0;
+        // Y축 뒤집어 DX 좌표계와 정렬
+        let ndc_y = 1.0 - uv.y * 2.0;
+
+        // 카메라 원점 및 레이 세팅
+        let cam_pos = uniforms.camera_pos.xyz;
+        
+        // 간단한 원근 투영 뷰 레이 생성
+        let aspect = f32(size.x) / f32(size.y);
+        let ray_dir = normalize(vec3f(ndc_x * aspect * 0.75, ndc_y * 0.75, -1.0));
+        
+        var ray: Ray;
+        ray.origin = cam_pos;
+        ray.direction = ray_dir;
+
+        // 광선 기하 렌더링 판정 루프 (Z-Buffer 대용 t 추적)
+        var closest_rec: HitRecord;
+        closest_rec.hit = false;
+        closest_rec.t = 1e10;
+
+        // 정점 추출
+        let v0 = uniforms.v0.xyz;
+        let v1 = uniforms.v1.xyz;
+        let v2 = uniforms.v2.xyz;
+
+        // 1. 삼각형 영역 충돌
+        let tri_hit = intersect_triangle(ray, v0, v1, v2, false);
+        if (tri_hit.hit && tri_hit.t < closest_rec.t) {
+          closest_rec = tri_hit;
+        }
+
+        // 2. 평행사변형 영역 충돌 (옵션 활성화 시)
+        if (uniforms.show_parallelogram > 0.5) {
+          // 평행사변형은 v1, v2 및 v1 + (v2 - v0) 정점으로 두 번째 삼각형을 완성
+          let v3 = v1 + (v2 - v0);
+          let para_hit = intersect_triangle(ray, v1, v3, v2, true);
+          if (para_hit.hit && para_hit.t < closest_rec.t) {
+            closest_rec = para_hit;
+          }
+        }
+
+        // 3. 기하 시각화 구조물 렌더링 (기둥, 축, 정점 구체 등)
+        let radius_node = 0.06;
+        let radius_edge = 0.02;
+
+        // 정점 구체 (V0: 빨강, V1: 초록, V2: 파랑)
+        let sp0 = intersect_sphere(ray, v0, radius_node, vec3f(1.0, 0.2, 0.2));
+        if (sp0.hit && sp0.t < closest_rec.t) { closest_rec = sp0; }
+        let sp1 = intersect_sphere(ray, v1, radius_node, vec3f(0.2, 1.0, 0.2));
+        if (sp1.hit && sp1.t < closest_rec.t) { closest_rec = sp1; }
+        let sp2 = intersect_sphere(ray, v2, radius_node, vec3f(0.2, 0.2, 1.0));
+        if (sp2.hit && sp2.t < closest_rec.t) { closest_rec = sp2; }
+
+        // 두 주요 변 (e1, e2) 렌더링
+        let cyl_e1 = intersect_cylinder_segment(ray, v0, v1, radius_edge, vec3f(1.0, 0.3, 0.3));
+        if (cyl_e1.hit && cyl_e1.t < closest_rec.t) { closest_rec = cyl_e1; }
+        let cyl_e2 = intersect_cylinder_segment(ray, v0, v2, radius_edge, vec3f(0.3, 1.0, 0.3));
+        if (cyl_e2.hit && cyl_e2.t < closest_rec.t) { closest_rec = cyl_e2; }
+
+        // 나머지 세 번째 변 (시각적 일관성용 흐릿한 선)
+        let cyl_e3 = intersect_cylinder_segment(ray, v1, v2, radius_edge * 0.5, vec3f(0.6, 0.6, 0.7));
+        if (cyl_e3.hit && cyl_e3.t < closest_rec.t) { closest_rec = cyl_e3; }
+
+        // 평행사변형의 나머지 두 변 외곽선
+        if (uniforms.show_parallelogram > 0.5) {
+          let v3 = v1 + (v2 - v0);
+          let cyl_p1 = intersect_cylinder_segment(ray, v1, v3, radius_edge * 0.5, vec3f(1.0, 0.7, 0.3));
+          if (cyl_p1.hit && cyl_p1.t < closest_rec.t) { closest_rec = cyl_p1; }
+          let cyl_p2 = intersect_cylinder_segment(ray, v2, v3, radius_edge * 0.5, vec3f(1.0, 0.7, 0.3));
+          if (cyl_p2.hit && cyl_p2.t < closest_rec.t) { closest_rec = cyl_p2; }
+        }
+
+        // 4. 외적 법선 벡터(Normal Vector) 3D 화살표 그리기
+        // 삼각형의 무게중심(Centroid)에서 외적 법선 방향으로 연장
+        let centroid = (v0 + v1 + v2) / 3.0;
+        let e1 = v1 - v0;
+        let e2 = v2 - v0;
+        let cross_vector = cross(e1, e2); // 외적 원형 벡터
+        let normal_vector = normalize(cross_vector);
+        
+        // 외적의 크기가 커질수록 법선 화살표가 길어짐 (외적 크기 = 면적 비례 증명)
+        let arrow_scale = 0.5; // 화면 스케일 계수
+        let arrow_len = length(cross_vector) * arrow_scale;
+        let arrow_end = centroid + normal_vector * arrow_len;
+
+        // 법선 벡터 기둥 (보라색 화살표 대)
+        let cyl_normal = intersect_cylinder_segment(ray, centroid, arrow_end, 0.025, vec3f(0.8, 0.1, 0.9));
+        if (cyl_normal.hit && cyl_normal.t < closest_rec.t) { closest_rec = cyl_normal; }
+
+        // 법선 벡터 끝점 구체 (화살표 팁 대용)
+        let sp_tip = intersect_sphere(ray, arrow_end, 0.05, vec3f(0.9, 0.1, 0.9));
+        if (sp_tip.hit && sp_tip.t < closest_rec.t) { closest_rec = sp_tip; }
+
+        // 5. 음영 계산 및 셰이딩 구현
+        var pixel_color = vec3f(0.08, 0.08, 0.15); // 배경 깊은 네이비 블루
+
+        if (closest_rec.hit) {
+          // 조명 계산 (Classic Phong shading)
+          let light_dir = normalize(uniforms.light_pos.xyz - closest_rec.point);
+          let view_dir = normalize(cam_pos - closest_rec.point);
+          
+          // 디퓨즈 감쇄
+          var diffuse = max(dot(closest_rec.normal, light_dir), 0.0);
+          
+          // 패턴 격자선일 경우 어두운 하이라이트 부여
+          if (closest_rec.is_grid) {
+            diffuse *= 0.3;
+          }
+
+          // 스펙큘러 하이라이트
+          let reflect_dir = reflect(-light_dir, closest_rec.normal);
+          let specular = pow(max(dot(view_dir, reflect_dir), 0.0), 16.0) * 0.4;
+          
+          // 주변광
+          let ambient = 0.15;
+
+          // 최종 결합 색상
+          let shade = ambient + diffuse + specular;
+          pixel_color = closest_rec.color * shade;
+
+          // 원거리 안개 연출 (깊이 효과)
+          let fog_factor = min(closest_rec.t * 0.08, 0.85);
+          pixel_color = mix(pixel_color, vec3f(0.08, 0.08, 0.15), fog_factor);
+        }
+
+        // 구형 모니터 주사선 스타일 격자 추가 (DirectX 개발 스튜디오 분위기 연출)
+        let scanline = sin(f32(id.y) * 1.5) * 0.02 + 0.98;
+        pixel_color = pixel_color * scanline;
+
+        // 최종 쓰기
+        textureStore(out_texture, id.xy, vec4f(pixel_color, 1.0));
+      }
+    `;
+
+    const vertexShaderSource = `
+      // 화면 전체를 덮는 Quad 렌더링 버텍스 셰이더
+      @vertex
+      fn main(@builtin(vertex_index) VertexIndex: u32) -> @builtin(position) vec4f {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0), vec2f( 1.0, -1.0), vec2f(-1.0,  1.0),
+          vec2f(-1.0,  1.0), vec2f( 1.0, -1.0), vec2f( 1.0,  1.0)
+        );
+        return vec4f(pos[VertexIndex], 0.0, 1.0);
+      }
+    `;
+
+    const fragmentShaderSource = `
+      // 계산된 계산 텍스처를 스크린으로 샘플링 전달
+      @group(0) @binding(0) var src_texture: texture_2d<f32>;
+
+      @fragment
+      fn main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
+        let pixel_pos = vec2i(coord.xy);
+        let color = textureLoad(src_texture, pixel_pos, 0);
+        return color;
+      }
+    `;
+
+    // --- WebGPU 메인 애플리케이션 ---
+    let device, queue, context;
+    let computePipeline, renderPipeline;
+    let uniformBuffer, storageTexture, textureView;
+    let bindGroupCompute, bindGroupRender;
+
+    // 초기 상태 데이터 정의
+    const state = {
+      v0: [-0.8, -0.5, 1.0],
+      v1: [0.8, -0.4, 0.8],
+      v2: [0.0, 0.8, 1.2],
+      light_pos: [2.0, 3.0, 4.0],
+      camera_pos: [0.0, 0.0, 3.2],
+      show_parallelogram: 1.0,
+      show_grid: 1.0,
+      canvas_width: 520,
+      canvas_height: 520
+    };
+
+    // UI 엘리먼트 맵핑
+    const sliders = {
+      v0x: document.getElementById('v0x'),
+      v0y: document.getElementById('v0y'),
+      v0z: document.getElementById('v0z'),
+      v1x: document.getElementById('v1x'),
+      v1y: document.getElementById('v1y'),
+      v1z: document.getElementById('v1z'),
+      v2x: document.getElementById('v2x'),
+      v2y: document.getElementById('v2y'),
+      v2z: document.getElementById('v2z')
+    };
+
+    const valDisplays = {
+      v0x: document.getElementById('val-v0x'),
+      v0y: document.getElementById('val-v0y'),
+      v0z: document.getElementById('val-v0z'),
+      v1x: document.getElementById('val-v1x'),
+      v1y: document.getElementById('val-v1y'),
+      v1z: document.getElementById('val-v1z'),
+      v2x: document.getElementById('val-v2x'),
+      v2y: document.getElementById('val-v2y'),
+      v2z: document.getElementById('val-v2z')
+    };
+
+    const statsPanel = document.getElementById('stats-panel');
+    const btnParallelogram = document.getElementById('btn-parallelogram');
+    const btnGrid = document.getElementById('btn-grid');
+
+    async function initWebGPU() {
+      if (!navigator.gpu) {
+        document.getElementById('error-overlay').style.display = 'flex';
+        throw new Error("WebGPU not supported on this browser.");
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        document.getElementById('error-overlay').style.display = 'flex';
+        throw new Error("Failed to get GPU adapter.");
+      }
+
+      device = await adapter.requestDevice();
+      queue = device.queue;
+
+      const canvas = document.getElementById('gpu-canvas');
+      context = canvas.getContext('webgpu');
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: 'premultiplied'
+      });
+
+      // 1. Uniform Buffer 생성 및 설정
+      const byteSize = 16 * 5; // 5 x vec4f (v0, v1, v2, light_pos, camera_pos) + 2 x vec2f(screen_size, option_floats)
+      uniformBuffer = device.createBuffer({
+        size: byteSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+
+      // 2. Compute Storage Texture 생성 (화면 픽셀 맵핑용)
+      storageTexture = device.createTexture({
+        size: [state.canvas_width, state.canvas_height],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      });
+      textureView = storageTexture.createView();
+
+      // 3. Compute 파이프라인 생성
+      const computeModule = device.createShaderModule({ code: computeShaderSource });
+      computePipeline = device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+          module: computeModule,
+          entryPoint: 'main'
+        }
+      });
+
+      // 4. Render Pipeline 생성 (계산된 텍스처 출력용)
+      const renderModule = device.createShaderModule({
+        code: vertexShaderSource + fragmentShaderSource
+      });
+      renderPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: {
+          module: renderModule,
+          entryPoint: 'main'
+        },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'main',
+          targets: [{ format: presentationFormat }]
+        }
+      });
+
+      // 5. 바인드 그룹 정의
+      bindGroupCompute = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: uniformBuffer } },
+          { binding: 1, resource: textureView }
+        ]
+      });
+
+      bindGroupRender = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: textureView }
+        ]
+      });
+
+      // 초기 리더링 업데이트
+      updateUniformsAndStats();
+      scheduleRender();
+    }
+
+    // 외적 및 삼각형 정보 실시간 계산 및 UI 출력함수
+    function updateUniformsAndStats() {
+      // 1. 슬라이더 값 데이터 주입
+      state.v0[0] = parseFloat(sliders.v0x.value);
+      state.v0[1] = parseFloat(sliders.v0y.value);
+      state.v0[2] = parseFloat(sliders.v0z.value);
+
+      state.v1[0] = parseFloat(sliders.v1x.value);
+      state.v1[1] = parseFloat(sliders.v1y.value);
+      state.v1[2] = parseFloat(sliders.v1z.value);
+
+      state.v2[0] = parseFloat(sliders.v2x.value);
+      state.v2[1] = parseFloat(sliders.v2y.value);
+      state.v2[2] = parseFloat(sliders.v2z.value);
+
+      // 숫자 라벨 텍스트 동적 업데이트
+      Object.keys(sliders).forEach(key => {
+        valDisplays[key].textContent = parseFloat(sliders[key].value).toFixed(2);
+      });
+
+      // 2. 벡터 연산 실행 (JS 사이드 검증 및 텍스트 시각화용)
+      const e1 = [
+        state.v1[0] - state.v0[0],
+        state.v1[1] - state.v0[1],
+        state.v1[2] - state.v0[2]
+      ];
+      const e2 = [
+        state.v2[0] - state.v0[0],
+        state.v2[1] - state.v0[1],
+        state.v2[2] - state.v0[2]
+      ];
+
+      // 외적 공식 적용 (e1 x e2)
+      const N = [
+        e1[1] * e2[2] - e1[2] * e2[1],
+        e1[2] * e2[0] - e1[0] * e2[2],
+        e1[0] * e2[1] - e1[1] * e2[0]
+      ];
+
+      // 외적 벡터의 길이 = 평행사변형 면적
+      const crossMagnitude = Math.sqrt(N[0]*N[0] + N[1]*N[1] + N[2]*N[2]);
+      const triangleArea = crossMagnitude * 0.5;
+
+      // 단위 법선 벡터 (정규화)
+      const normalNormalized = crossMagnitude > 0.0001 
+        ? [N[0] / crossMagnitude, N[1] / crossMagnitude, N[2] / crossMagnitude]
+        : [0, 0, 0];
+
+      // 기하 수치 문자열 생성
+      statsPanel.innerHTML = `
+<span class="highlight-normal">== VECTOR CALCULATION ==</span>
+Edge 1 (e1 = V1 - V0):
+  [${e1.map(v => v.toFixed(2)).join(', ')}]
+Edge 2 (e2 = V2 - V0):
+  [${e2.map(v => v.toFixed(2)).join(', ')}]
+
+<span class="highlight-normal">== VECTOR CROSS PRODUCT ==</span>
+Normal Raw (N = e1 × e2):
+  [${N.map(v => v.toFixed(2)).join(', ')}]
+Normal Unit (Normalized n):
+  [${normalNormalized.map(v => v.toFixed(2)).join(', ')}]
+
+<span class="highlight-area">== GEOMETRY AREA DIAGRAM ==</span>
+Cross Magnitude (||e1 × e2||):
+  <span class="highlight-area">${crossMagnitude.toFixed(4)}</span> (Parallelogram)
+Triangle Area (0.5 * ||e1 × e2||):
+  <span class="highlight-area" style="font-size:12px; color:#ffcc00;">${triangleArea.toFixed(4)}</span>
+`;
+
+      // 3. WebGPU Uniform Buffer 업데이트 데이터 배열 패킹
+      const arrayBuffer = new Float32Array(20); // 20 floats (80 bytes)
+      
+      // v0 (vec4f, 패딩용 4번째 원소 포함)
+      arrayBuffer[0] = state.v0[0];
+      arrayBuffer[1] = state.v0[1];
+      arrayBuffer[2] = state.v0[2];
+      arrayBuffer[3] = 1.0;
+      
+      // v1
+      arrayBuffer[4] = state.v1[0];
+      arrayBuffer[5] = state.v1[1];
+      arrayBuffer[6] = state.v1[2];
+      arrayBuffer[7] = 1.0;
+
+      // v2
+      arrayBuffer[8] = state.v2[0];
+      arrayBuffer[9] = state.v2[1];
+      arrayBuffer[10] = state.v2[2];
+      arrayBuffer[11] = 1.0;
+
+      // light_pos
+      arrayBuffer[12] = state.light_pos[0];
+      arrayBuffer[13] = state.light_pos[1];
+      arrayBuffer[14] = state.light_pos[2];
+      arrayBuffer[15] = 1.0;
+
+      // camera_pos
+      arrayBuffer[16] = state.camera_pos[0];
+      arrayBuffer[17] = state.camera_pos[1];
+      arrayBuffer[18] = state.camera_pos[2];
+      arrayBuffer[19] = 1.0;
+
+      // 그 외 콤팩트 변수들 추가전달용 버퍼
+      const extraBuffer = new Float32Array(8);
+      extraBuffer[0] = state.canvas_width;
+      extraBuffer[1] = state.canvas_height;
+      extraBuffer[2] = state.show_parallelogram;
+      extraBuffer[3] = state.show_grid;
+
+      // GPU 메모리로 병합 기록
+      queue.writeBuffer(uniformBuffer, 0, arrayBuffer);
+      queue.writeBuffer(uniformBuffer, 80, extraBuffer);
+    }
+
+    let renderRequested = false;
+    function scheduleRender() {
+      if (!renderRequested) {
+        renderRequested = true;
+        requestAnimationFrame(render);
+      }
+    }
+
+    function render() {
+      renderRequested = false;
+
+      const commandEncoder = device.createCommandEncoder();
+
+      // Pass 1: GPU Compute Pass 실행
+      const computePass = commandEncoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, bindGroupCompute);
+      
+      // 520 x 520 해상도에 맞춘 워크그룹 디스패치 (8x8 블록단위 계산)
+      const workgroupCountX = Math.ceil(state.canvas_width / 8);
+      const workgroupCountY = Math.ceil(state.canvas_height / 8);
+      computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+      computePass.end(); // 최신 사양 'end()' 준수
+
+      // Pass 2: GPU Render Pass 실행 (Compute 이미지 스크린 출력)
+      const renderPassDesc = {
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+      };
+      
+      const renderPass = commandEncoder.beginRenderPass(renderPassDesc);
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setBindGroup(0, bindGroupRender);
+      renderPass.draw(6); // Fullscreen Quad (삼각형 2개로 구성된 6개 정점)
+      renderPass.end(); // 최신 사양 'end()' 준수
+
+      // 커맨드 버퍼 전송 실행
+      queue.submit([commandEncoder.finish()]);
+    }
+
+    // --- UI 이벤트 리스너 등록 ---
+    Object.values(sliders).forEach(slider => {
+      slider.addEventListener('input', () => {
+        updateUniformsAndStats();
+        scheduleRender();
+      });
+    });
+
+    btnParallelogram.addEventListener('click', () => {
+      state.show_parallelogram = state.show_parallelogram > 0.5 ? 0.0 : 1.0;
+      if (state.show_parallelogram > 0.5) {
+        btnParallelogram.classList.add('btn-active');
+      } else {
+        btnParallelogram.classList.remove('btn-active');
+      }
+      updateUniformsAndStats();
+      scheduleRender();
+    });
+
+    btnGrid.addEventListener('click', () => {
+      state.show_grid = state.show_grid > 0.5 ? 0.0 : 1.0;
+      if (state.show_grid > 0.5) {
+        btnGrid.classList.add('btn-active');
+      } else {
+        btnGrid.classList.remove('btn-active');
+      }
+      updateUniformsAndStats();
+      scheduleRender();
+    });
+
+    // 앱 실행 시작점
+    window.addEventListener('DOMContentLoaded', initWebGPU);
+  </script>
+</body>
+</html>
