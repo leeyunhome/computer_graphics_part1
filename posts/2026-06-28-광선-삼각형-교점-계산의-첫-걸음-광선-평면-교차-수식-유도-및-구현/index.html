@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-23-%EB%A6%AC%EB%B7%B0-phong-shading%EC%9D%98-%ED%95%B5%EC%8B%AC-%EC%8A%A4%ED%8E%99%ED%81%98%EB%9F%ACspecular-%EB%B0%98%EC%82%AC-%EB%B2%A1%ED%84%B0-%EA%B5%AC%ED%98%84-%EB%B0%8F-%EC%A1%B0%EB%AA%85-%EB%AA%A8%EB%8D%B8-%EC%99%84%EC%84%B1/">
+        <link rel="canonical" href="https://leeyunhome.github.io/computer_graphics_part1/posts/2026-06-28-%EA%B4%91%EC%84%A0-%EC%82%BC%EA%B0%81%ED%98%95-%EA%B5%90%EC%A0%90-%EA%B3%84%EC%82%B0%EC%9D%98-%EC%B2%AB-%EA%B1%B8%EC%9D%8C-%EA%B4%91%EC%84%A0-%ED%8F%89%EB%A9%B4-%EA%B5%90%EC%B0%A8-%EC%88%98%EC%8B%9D-%EC%9C%A0%EB%8F%84-%EB%B0%8F-%EA%B5%AC%ED%98%84/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성 - Computer Graphics Portfolio</title>
+        <title>광선-삼각형 교점 계산의 첫 걸음: 광선-평면 교차 수식 유도 및 구현 - Computer Graphics Portfolio</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#phong-shading-specular" class="md-skip">
+        <a href="#-" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              [리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성
+              광선-삼각형 교점 계산의 첫 걸음: 광선-평면 교차 수식 유도 및 구현
             
           </span>
         </div>
@@ -1943,19 +1943,19 @@
   <a href="#1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. 이 커밋의 핵심 개념 분석
+        1. 핵심 수학적 개념 및 수식 유도
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. 이 커밋의 핵심 개념 분석">
+    <nav class="md-nav" aria-label="1. 핵심 수학적 개념 및 수식 유도">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-r" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ① 입사광에 대한 반사 벡터 \(r\)의 유도
+        광선과 평면의 방정식 결합
       
     </span>
   </a>
@@ -1963,21 +1963,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-v-r" class="md-nav__link">
+  <a href="#t" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ② 시선 벡터 \(v\)와 반사 벡터 \(r\)의 정렬도 계산
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-shininess-exponent-alpha" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ③ 신해 지수(Shininess Exponent, \(\alpha\))를 통한 하이라이트 제어
+        매개변수 \(t\)의 유도 과정
       
     </span>
   </a>
@@ -1993,7 +1982,7 @@
   <a href="#2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. 핵심 알고리즘의 추상화 (의사코드)
+        2. 코드 분석 및 구현의 의미
       
     </span>
   </a>
@@ -2004,7 +1993,7 @@
   <a href="#3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. 학습자가 겪은 개념적 도약
+        3. 핵심 알고리즘 흐름 (의사코드)
       
     </span>
   </a>
@@ -2015,32 +2004,15 @@
   <a href="#4-webgpu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. WebGPU 인터랙티브 데모로의 확장 제안
+        4. WebGPU 인터랙티브 데모 시각화 제안
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="4. WebGPU 인터랙티브 데모로의 확장 제안">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#webgpu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WebGPU 시각화 데모의 구성 및 효과
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#webgpu_1" class="md-nav__link">
+  <a href="#webgpu" class="md-nav__link">
     <span class="md-ellipsis">
       
         인터랙티브 WebGPU 데모
@@ -2070,92 +2042,100 @@
   
 
 
-<h1 id="phong-shading-specular">[리뷰] Phong Shading의 핵심, 스펙큘러(Specular) 반사 벡터 구현 및 조명 모델 완성</h1>
-<p>축하합니다! 이번 커밋은 레이트레이싱 기반 렌더러에서 단순한 색상 출력을 넘어, 물체의 질감과 입체감을 결정짓는 가장 중요한 시각적 요소인 <strong>Phong 반사 모델(Phong Reflection Model)</strong>을 성공적으로 완성한 중요한 마일스톤입니다. </p>
-<p>단순히 라이브러리가 제공하는 내장 함수(<code>reflect</code> 등)를 사용하지 않고, 수학적 원리를 직접 코드로 표현하여 그래픽스 파이프라인의 저수준 동작을 완벽히 이해하고 구현해 낸 점이 돋보입니다.</p>
+<h1 id="-">광선-삼각형 교점 계산의 첫 걸음: 광선-평면 교차 수식 유도 및 구현</h1>
+<p>이 커밋은 3D 컴퓨터 그래픽스 레이트레이싱의 가장 핵심적인 기초 중 하나인 <strong>광선-삼각형 교점(Ray-Triangle Intersection) 검출</strong> 알고리즘의 1단계(광선-평면 교차 계산)를 성공적으로 구현한 단계입니다. </p>
+<p>학습자는 단순한 API 호출을 넘어, 광선과 평면의 수학적 방정식을 결합하여 매개변수 <span class="arithmatex">\(t\)</span>를 유도하는 과정을 코드로 직접 옮겼습니다.</p>
 <hr />
-<h3 id="1">1. 이 커밋의 핵심 개념 분석</h3>
-<p>이번 구현의 핵심은 <strong>"빛이 매끄러운 표면에 부딪혀 반사될 때 발생하는 하이라이트(Specular Highlight)"</strong>를 수학적으로 모델링하는 것입니다. 이를 위해 크게 세 가지 기하학적 관계를 정의하고 결합했습니다.</p>
-<h4 id="1-r">① 입사광에 대한 반사 벡터 <span class="arithmatex">\(r\)</span>의 유도</h4>
-<p>광원 방향 벡터 <span class="arithmatex">\(l\)</span> (표면에서 광원을 향하는 벡터)과 표면 법선 벡터 <span class="arithmatex">\(n\)</span>이 주어졌을 때, 완전 반사되는 방향 벡터 <span class="arithmatex">\(r\)</span>은 다음과 같은 대칭 관계를 가집니다.</p>
-<div class="arithmatex">\[ r = 2(n \cdot l)n - l \]</div>
+<h2 id="1">1. 핵심 수학적 개념 및 수식 유도</h2>
+<p>삼각형은 하나의 3차원 평면 위에 존재합니다. 따라서 광선과 삼각형의 교점을 찾으려면 우선 <strong>광선과 평면이 만나는 교점</strong>을 찾은 뒤, 그 교점이 <strong>삼각형의 세 변 안쪽에 존재하는지</strong> 판별하는 2단계 전략을 취해야 합니다. 이번 커밋은 이 중 1단계를 구현한 것입니다.</p>
+<h3 id="_1">광선과 평면의 방정식 결합</h3>
 <ul>
-<li><span class="arithmatex">\(n \cdot l\)</span>은 <span class="arithmatex">\(l\)</span> 벡터를 <span class="arithmatex">\(n\)</span> 방향으로 투영한 투영 길이를 의미합니다.</li>
-<li>여기에 <span class="arithmatex">\(n\)</span>을 곱하고 2배를 해준 뒤(<span class="arithmatex">\(2(n \cdot l)n\)</span>) 입사 벡터 <span class="arithmatex">\(l\)</span>을 빼줌으로써, 법선 벡터 <span class="arithmatex">\(n\)</span>을 기준으로 대칭인 반사 벡터 <span class="arithmatex">\(r\)</span>이 도출됩니다.</li>
+<li>
+<p><strong>광선(Ray)의 방정식</strong>: 시점 <span class="arithmatex">\(o\)</span>(Origin)에서 방향 벡터 <span class="arithmatex">\(d\)</span>(Direction)로 진행하는 광선 위의 임의의 점 <span class="arithmatex">\(p\)</span>는 매개변수 <span class="arithmatex">\(t\)</span>를 이용하여 다음과 같이 표현됩니다.
+  $$ p(t) = o + td \quad (t \ge 0) $$</p>
+</li>
+<li>
+<p><strong>평면(Plane)의 방정식</strong>: 평면 위의 한 점 <span class="arithmatex">\(v_0\)</span>와 평면의 법선 벡터(Normal) <span class="arithmatex">\(n\)</span>이 주어졌을 때, 평면 위의 임의의 점 <span class="arithmatex">\(p\)</span>는 다음 관계식을 만족합니다. 평면 위의 임의의 벡터 <span class="arithmatex">\((p - v_0)\)</span>는 법선 벡터 <span class="arithmatex">\(n\)</span>과 수직이기 때문입니다.
+  $$ (p - v_0) \cdot n = 0 $$</p>
+</li>
 </ul>
-<h4 id="2-v-r">② 시선 벡터 <span class="arithmatex">\(v\)</span>와 반사 벡터 <span class="arithmatex">\(r\)</span>의 정렬도 계산</h4>
-<p>관찰자(카메라)가 반사광을 얼마나 정면으로 바라보고 있는지를 측정하기 위해, 시선 벡터 <span class="arithmatex">\(v\)</span>와 반사 벡터 <span class="arithmatex">\(r\)</span> 사이의 사잇각을 내적(Dot Product)으로 계산합니다.
-* 레이트레이싱에서 카메라 광선 방향(<code>ray.dir</code>)은 카메라에서 물체로 향하므로, 물체에서 카메라를 바라보는 시선 벡터 <span class="arithmatex">\(v\)</span>는 광선 방향의 반대인 <span class="arithmatex">\(-ray.dir\)</span>이 됩니다.
-* 내적 값이 음수가 되는 경우(빛이 뒤로 반사되는 경우)를 방지하기 위해 <span class="arithmatex">\(0\)</span>과의 <code>max</code> 연산을 취합니다.</p>
-<h4 id="3-shininess-exponent-alpha">③ 신해 지수(Shininess Exponent, <span class="arithmatex">\(\alpha\)</span>)를 통한 하이라이트 제어</h4>
-<p>스펙큘러 하이라이트는 표면의 거칠기(Roughness)에 따라 집중도가 달라집니다. 이를 수학적으로 조절하기 위해 지수 승(Power) 연산을 적용합니다.</p>
-<div class="arithmatex">\[ I_{\text{specular}} = k_s \cdot (v \cdot r)^\alpha \]</div>
-<ul>
-<li>학습자가 설정한 파라미터는 <span class="arithmatex">\(\alpha = 9.0\)</span>, <span class="arithmatex">\(k_s = 0.8\)</span>입니다. <span class="arithmatex">\(\alpha\)</span> 값이 커질수록 하이라이트 영역이 좁고 선명해져 더욱 매끄럽고 금속성에 가까운 질감을 표현하게 됩니다.</li>
-</ul>
+<h3 id="t">매개변수 <span class="arithmatex">\(t\)</span>의 유도 과정</h3>
+<p>광선의 식 <span class="arithmatex">\(p(t)\)</span>를 평면의 방정식에 대입하여 <span class="arithmatex">\(t\)</span>에 대해 정리합니다.
+$$ ((o + td) - v_0) \cdot n = 0 $$
+$$ (o - v_0) \cdot n + t(d \cdot n) = 0 $$
+$$ t(d \cdot n) = (v_0 - o) \cdot n $$
+$$ t = \frac{(v_0 - o) \cdot n}{d \cdot n} = \frac{v_0 \cdot n - o \cdot n}{d \cdot n} $$</p>
+<p>학습자는 위 유도 과정을 바탕으로 코드에 아래 수식을 정확히 반영하였습니다.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">dot</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">faceNormal</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">dot</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span><span class="w"> </span><span class="n">faceNormal</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">dot</span><span class="p">(</span><span class="n">dir</span><span class="p">,</span><span class="w"> </span><span class="n">faceNormal</span><span class="p">);</span>
+</code></pre></div></p>
 <hr />
-<h3 id="2">2. 핵심 알고리즘의 추상화 (의사코드)</h3>
-<p>학습자가 작성한 <code>traceRay</code> 함수 내의 Phong Shading 계산 흐름을 추상화하면 다음과 같습니다. 이 알고리즘은 현대 GPU의 프래그먼트 셰이더(Fragment Shader)에서 조명을 계산할 때 사용하는 표준적인 흐름과 완벽히 일치합니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Function traceRay(Ray pixelRay):
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    HitRecord hit = Intersect(sphere, pixelRay)
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    // 물체에 충돌하지 않은 경우 배경색(검은색) 반환
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    if hit.distance &lt; 0:
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        return Color(0, 0, 0)
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    // 1. 디퓨즈(Diffuse) 계산: 난반사광
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    Vector3 dirToLight = Normalize(LightPosition - hit.point)
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    Float diffuseIntensity = Max(Dot(hit.normal, dirToLight), 0.0)
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    Vector3 diffuseColor = sphere.diffuseColor * diffuseIntensity
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    // 2. 스펙큘러(Specular) 계산: 정반사 하이라이트
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    Vector3 reflectDir = 2.0 * Dot(hit.normal, dirToLight) * hit.normal - dirToLight
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    Vector3 viewDir = -pixelRay.direction
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    Float specularBase = Max(Dot(viewDir, reflectDir), 0.0)
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    Float specularIntensity = Power(specularBase, sphere.alpha)
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    Vector3 specularColor = sphere.specularColor * specularIntensity * sphere.ks
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    // 3. 최종 색상 조합 (Ambient + Diffuse + Specular)
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    Return sphere.ambientColor + diffuseColor + specularColor
-</code></pre></div>
-<p>이전 커밋에서는 디버깅을 위해 스펙큘러 성분만 출력하거나 일부를 주석 처리했으나, 이번 변경사항(diff)을 통해 <strong>Ambient, Diffuse, Specular를 모두 더한 완전한 Phong Reflection 모델의 최종 결과물을 화면에 렌더링하도록 전환</strong>하였습니다. 이로써 구(Sphere)는 완벽한 입체감과 광택을 동시에 가지게 됩니다.</p>
-<hr />
-<h3 id="3">3. 학습자가 겪은 개념적 도약</h3>
-<p>코드와 주석을 통해 학습자가 이 단계를 수행하며 다음과 같은 핵심 그래픽스 이론을 몸소 체득했음을 알 수 있습니다.</p>
+<h2 id="2">2. 코드 분석 및 구현의 의미</h2>
+<p>단순히 수식을 대입하는 것에 그치지 않고, 수치 해석적 안정성과 그래픽스 렌더링 파이프라인의 효율성을 위한 예외 처리가 꼼꼼히 반영되어 있습니다.</p>
 <ol>
-<li><strong>벡터 방향성의 중요성 이해</strong>: <code>ray.dir</code> 대신 <code>-ray.dir</code>을 사용하여 시선 벡터 <span class="arithmatex">\(v\)</span>를 올바르게 정의한 점은 공간 기하학에 대한 높은 이해도를 보여줍니다.</li>
-<li><strong>에너지 보존의 직관</strong>: 무작정 값을 더하는 것이 아니라 <span class="arithmatex">\(k_s\)</span> (Specular Coefficient) 상수를 두어 하이라이트의 강도를 조절함으로써, 물리적으로 그럴듯한(plausible) 결과물을 만들어내는 감각을 익혔습니다.</li>
-<li><strong>분기 구조에서 통합 구조로의 전환</strong>: 렌더링 파이프라인을 작성할 때 개별 조명 요소를 따로 테스트해 보고, 최종적으로 이를 누적 합산하여 물리 현상을 합성하는 빌딩 블록 방식의 개발 흐름을 터득했습니다.</li>
+<li>
+<p><strong>외적(Cross Product)을 통한 평면의 법선 벡터 계산</strong>
+   삼각형의 두 에지(Edge) 벡터 <span class="arithmatex">\(v_1 - v_0\)</span>와 <span class="arithmatex">\(v_2 - v_0\)</span>를 외적한 후 정규화하여 평면의 법선 벡터 <span class="arithmatex">\(n\)</span>을 구합니다. 이 벡터는 교점 계산뿐만 아니라 추후 <strong>퐁 반사 모델(Phong Reflection Model)</strong>을 적용하여 광원 효과를 계산할 때 필수적인 정보가 됩니다.</p>
+</li>
+<li>
+<p><strong>백페이스 컬링(Backface Culling) 처리</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">dot</span><span class="p">(</span><span class="o">-</span><span class="n">dir</span><span class="p">,</span><span class="w"> </span><span class="n">faceNormal</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</code></pre></div>
+   광선의 진행 방향 역벡터 <code>-dir</code>과 삼각형의 법선 벡터 <code>faceNormal</code> 사이의 사잇각이 <span class="arithmatex">\(90^\circ\)</span>보다 크면(내적 값이 음수이면) 카메라를 등지고 있는 뒷면으로 판단하여 조기에 충돌 대상에서 제외합니다. 렌더링 성능 향상에 도움을 줍니다.</p>
+</li>
+<li>
+<p><strong>제로 디비전(Division by Zero) 방지</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">glm</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">dot</span><span class="p">(</span><span class="n">dir</span><span class="p">,</span><span class="w"> </span><span class="n">faceNormal</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">1e-2f</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</code></pre></div>
+   분모에 해당하는 <span class="arithmatex">\(d \cdot n\)</span>이 <span class="arithmatex">\(0\)</span>에 가깝다는 것은 광선과 평면이 거의 평행하다는 의미입니다. 이 경우 교점이 존재하지 않거나 무한대에 위치하므로, 임계값(<code>1e-2f</code>) 이하일 때는 충돌하지 않은 것으로 처리하여 부동소수점 오버플로우 오류를 예방했습니다.</p>
+</li>
+<li>
+<p><strong>유효 거리 검증</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+</code></pre></div>
+   수학적으로 평면과의 교점이 광선의 시작점 뒤쪽에 있는 경우(즉, 카메라 뒤편에 배치된 삼각형)를 걸러내어 불필요한 렌더링을 방지합니다.</p>
+</li>
 </ol>
 <hr />
-<h3 id="4-webgpu">4. WebGPU 인터랙티브 데모로의 확장 제안</h3>
-<p>이 알고리즘을 최신 웹 그래픽스 표준인 <strong>WebGPU</strong>의 Compute Shader 또는 Fragment Shader로 구현한다면 다음과 같은 아키텍처를 가집니다.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// WGSL (WebGPU Shading Language)로 표현한 핵심 셰이더 개념</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nd">@compute</span><span class="w"> </span><span class="nd">@workgroup_size</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p">)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">fn</span><span class="w"> </span><span class="n">cs_main</span><span class="p">(</span><span class="nd">@builtin</span><span class="p">(</span><span class="nb">global_invocation_id</span><span class="p">)</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nb">vec3</span><span class="o">&lt;</span><span class="nb">u32</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">screen_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">textureDimensions</span><span class="p">(</span><span class="n">outTexture</span><span class="p">);</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">screen_size</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">id</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">screen_size</span><span class="p">.</span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="c1">// C++의 TransformScreenToWorld와 동일한 레이 생성 로직</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">uv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">id</span><span class="p">.</span><span class="n">xy</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">vec2</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">screen_size</span><span class="p">);</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">ray</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">generateRay</span><span class="p">(</span><span class="n">uv</span><span class="p">);</span><span class="w"> </span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">traceRay</span><span class="p">(</span><span class="n">ray</span><span class="p">);</span><span class="w"> </span><span class="c1">// Phong Shading 계산 수행</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="n">textureStore</span><span class="p">(</span><span class="n">outTexture</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">.</span><span class="n">xy</span><span class="p">,</span><span class="w"> </span><span class="nb">vec4</span><span class="o">&lt;</span><span class="nb">f32</span><span class="o">&gt;</span><span class="p">(</span><span class="n">color</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">));</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">}</span>
+<h2 id="3">3. 핵심 알고리즘 흐름 (의사코드)</h2>
+<p>학습자가 구현한 알고리즘의 추상화된 흐름은 다음과 같습니다.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>function IntersectRayTriangle(Ray ray, Triangle tri) {
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    // 1. 삼각형 평면의 법선 벡터 계산
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    Vector3 edge1 = tri.v1 - tri.v0;
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    Vector3 edge2 = tri.v2 - tri.v0;
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    Vector3 normal = Normalize(Cross(edge1, edge2));
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    // 2. 예외 처리: 뒷면 거르기 &amp; 평행 여부 검사
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    if (Dot(-ray.dir, normal) &lt; 0) return Miss;
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    if (Absolute(Dot(ray.dir, normal)) &lt; epsilon) return Miss;
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    // 3. 광선-평면 교점 계산 (수식 대입)
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    float t = (Dot(tri.v0, normal) - Dot(ray.origin, normal)) / Dot(ray.dir, normal);
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    if (t &lt; 0) return Miss; // 카메라 뒤쪽에 있는 평면
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    Vector3 hitPoint = ray.origin + t * ray.dir;
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    // 4. [Next Step] 충돌점(hitPoint)이 삼각형 영역 내부에 있는지 판단
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    // (Barycentric Coordinates 또는 Inside-Outside Test 적용 예정)
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    return Hit(t, hitPoint, normal);
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>}
 </code></pre></div>
-<h4 id="webgpu">WebGPU 시각화 데모의 구성 및 효과</h4>
-<ol>
-<li><strong>실시간 패러미터 튜닝</strong>: 브라우저 화면에 HTML UI(Slider)를 배치하여 <code>alpha</code>(Shininess) 값을 1.0에서 200.0까지, <code>ks</code> 값을 0.0에서 1.0까지 실시간으로 조절합니다. WebGPU의 Uniform Buffer를 통해 이 값이 GPU로 매 프레임 전달됩니다.</li>
-<li><code>alpha</code>가 낮을 때: 점토나 플라스틱처럼 넓고 둔탁한 하이라이트가 형성됩니다.</li>
-<li><code>alpha</code>가 높을 때: 당구공이나 당겨진 쇠구슬처럼 아주 작고 강렬한 점 형태의 하이라이트가 형성되어 금속성 질감이 즉각적으로 표현됩니다.</li>
-<li><strong>인터랙티브 광원</strong>: 마우스 드래그를 통해 광원의 위치(<code>light.pos</code>)를 실시간으로 이동시킵니다. 광원의 위치가 바뀜에 따라 구 표면의 하이라이트 동그라미가 마우스 궤적을 부드럽게 따라 움직이는 60fps 이상의 인터랙티브한 퐁 셰이딩을 웹브라우저에서 직접 경험할 수 있습니다.</li>
-</ol>
 <hr />
-<h2 id="webgpu_1">인터랙티브 WebGPU 데모</h2>
+<h2 id="4-webgpu">4. WebGPU 인터랙티브 데모 시각화 제안</h2>
+<p>이 알고리즘을 최신 웹 표준인 <strong>WebGPU</strong>의 Compute Shader를 이용해 브라우저 상에서 시각화한다면 다음과 같은 훌륭한 인터랙티브 데모를 만들 수 있습니다.</p>
+<ul>
+<li><strong>동적 광선 시각화</strong>: 마우스 커서의 움직임에 따라 카메라에서 나가는 광선(Ray)의 궤적을 3차원 공간 상에 실선으로 그립니다.</li>
+<li><strong>영역별 컬러 코딩 (Debug View)</strong>:</li>
+<li><strong>회색 (Gray)</strong>: 광선이 평면과 평행하여 아예 교점이 생기지 않는 영역.</li>
+<li><strong>반투명 주황색 (Orange)</strong>: 광선-평면 교점(<span class="arithmatex">\(t\)</span>)은 성공적으로 구했으나, 아직 삼각형 내부 판정을 통과하지 못한 영역 (즉, 무한 평면과의 교점).</li>
+<li><strong>빨간색 (Red)</strong>: 최종적으로 삼각형 내부 판정까지 통과하여 완벽한 교점이 형성된 영역.</li>
+<li><strong>실시간 파라미터 제어</strong>: UI 슬라이더를 통해 삼각형의 세 정점(<span class="arithmatex">\(v_0, v_1, v_2\)</span>)의 위치를 실시간으로 변경하며 평면 법선 벡터가 어떻게 변화하는지 웹 브라우저에서 실시간으로 관찰할 수 있습니다.</li>
+<li><strong>퐁 반사 모델(Phong Reflection Model) 적용</strong>: 교점 검출이 완료되면 법선 벡터 <code>faceNormal</code>과 임의의 포인트 광원(Point Light)의 위치 정보를 셰이더로 넘겨주어, 교점에 Ambient, Diffuse, Specular 값이 합쳐진 입체감 있는 3D 조명 효과를 즉각적으로 렌더링해 볼 수 있습니다.</li>
+</ul>
+<hr />
+<h2 id="webgpu">인터랙티브 WebGPU 데모</h2>
 <div style="border: 1px solid #312e81; border-radius: 8px; overflow: hidden; margin: 16px 0;">
-<iframe src="../../demos/리뷰-phong-shading의-핵심-스펙큘러specular-반사-벡터-/demo.html" width="100%" height="700" frameborder="0" scrolling="no" style="display:block;"></iframe>
+<iframe src="../../demos/광선-삼각형-교점-계산의-첫-걸음-광선-평면-교차-수식-유도-및-구현/demo.html" width="100%" height="700" frameborder="0" scrolling="no" style="display:block;"></iframe>
 </div>
 
 
