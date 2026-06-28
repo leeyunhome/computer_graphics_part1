@@ -292,6 +292,11 @@ graph LR
 <a href="demos/벡터-외적을-이용한-삼각형의-법선-벡터-및-면적-계산/">데모 보기 →</a>
 </div>
 
+<div style="flex:1; min-width:200px; background:#1e293b; border-radius:8px; padding:16px; border:1px solid #334155;">
+<strong>광선-삼각형 교점 계산의 첫 걸음: 광선-평면 교차 수식 유도 및 구현</strong><br><br>
+<a href="demos/광선-삼각형-교점-계산의-첫-걸음-광선-평면-교차-수식-유도-및-구현/">데모 보기 →</a>
+</div>
+
 </div>
 
 [전체 데모 목록 →](demos/index.md)
@@ -302,8 +307,8 @@ graph LR
 
 - [삼각형의 평면성(Planarity)과 비평면 사각형의 삼각형 분할(Triangulation)](posts/2026-06-28-삼각형의-평면성planarity과-비평면-사각형의-삼각형-분할triangulation.md) <small style='color:#64748b'>(2026-06-28)</small>
 - [벡터 외적을 이용한 삼각형의 법선 벡터 및 면적 계산](posts/2026-06-28-벡터-외적을-이용한-삼각형의-법선-벡터-및-면적-계산.md) <small style='color:#64748b'>(2026-06-28)</small>
+- [광선-삼각형 교점 계산의 첫 걸음: 광선-평면 교차 수식 유도 및 구현](posts/2026-06-28-광선-삼각형-교점-계산의-첫-걸음-광선-평면-교차-수식-유도-및-구현.md) <small style='color:#64748b'>(2026-06-28)</small>
 - [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 판정 구현](posts/2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-판정-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 - [[코드 리뷰] 원근 투영(Perspective Projection) 및 최단 거리 충돌 검사(Closest Hit) 구현](posts/2026-06-26-코드-리뷰-원근-투영perspective-projection-및-최단-거리-충돌-검사closest-hit-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
-- [원근 투영과 최접점 가려짐 처리를 통한 3차원 레이트레이싱 구현](posts/2026-06-26-원근-투영과-최접점-가려짐-처리를-통한-3차원-레이트레이싱-구현.md) <small style='color:#64748b'>(2026-06-26)</small>
 
 [모든 포스트 보기 →](posts/index.md)
