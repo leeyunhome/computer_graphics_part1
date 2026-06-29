@@ -3,1025 +3,592 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DirectX 11 — Ray-Triangle Intersection Formula Diagram</title>
+  <title>광선-평면 교차 수식: 삼각형 교점 계산</title>
   <style>
-    /* 기본 테마 설정 - DirectX 11 ImGui 스타일의 정밀한 다크 모드 */
     :root {
-      --bg-color: #1a1a2e;
-      --panel-bg: #161625;
-      --panel-border: #2e2e4a;
-      --accent-color: #007acc;
-      --accent-hover: #0098ff;
-      --text-color: #e0e0e0;
-      --text-muted: #8e8ea8;
+      --bg: #1a1a2e;
+      --panel: #161625;
+      --border: #2e2e4a;
+      --accent: #007acc;
+      --accent2: #0098ff;
+      --fg: #e0e0e0;
+      --muted: #8e8ea8;
       --input-bg: #0f0f1a;
-      --widget-orange: #e67e22;
+      --orange: #e67e22;
     }
-
-    * {
-      box-sizing: border-box;
-      font-family: 'Consolas', 'Fira Code', monospace;
-    }
-
+    * { box-sizing: border-box; font-family: 'Consolas', 'Fira Code', monospace; }
     body {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-      margin: 0;
-      background-color: var(--bg-color);
-      color: var(--text-color);
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+      margin: 0; background: var(--bg); color: var(--fg);
     }
-
-    /* 상단 앱 타이틀 바 - DX11 시뮬레이션 환경 느낌 부여 */
     .title-bar {
-      background-color: #0c0c14;
-      padding: 8px 16px;
-      font-size: 13px;
-      border-bottom: 2px solid var(--accent-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: #0c0c14; padding: 8px 16px; font-size: 13px;
+      border-bottom: 2px solid var(--accent);
+      display: flex; justify-content: space-between; align-items: center;
       flex-shrink: 0;
     }
-
-    .title-bar span {
-      font-weight: bold;
-    }
-
+    .title-bar span { font-weight: bold; }
     .status-badge {
-      background: #27ae60;
-      color: white;
-      padding: 2px 8px;
-      border-radius: 3px;
-      font-size: 11px;
+      background: #27ae60; color: white;
+      padding: 2px 8px; border-radius: 3px; font-size: 11px;
     }
-
-    /* 메인 워크스페이스 구조 */
     .workspace {
-      display: flex;
-      flex-direction: row;
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
+      display: flex; flex-direction: row;
+      flex: 1; min-height: 0; overflow: hidden;
     }
-
-    @media (max-width: 860px) {
-      .workspace {
-        flex-direction: column;
-      }
-      .sidebar {
-        width: 100% !important;
-        max-height: 50vh;
-      }
+    @media (max-width: 820px) {
+      .workspace { flex-direction: column; }
+      .sidebar { width: 100% !important; max-height: 50vh; }
     }
-
-    /* 캔버스 뷰포트 영역 */
     .canvas-container {
-      flex: 1;
-      min-width: 300px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      flex: 1; min-width: 300px;
+      display: flex; justify-content: center; align-items: center;
       background: radial-gradient(circle at center, #22223b, #0c0c14);
-      position: relative;
     }
-
-    canvas#webgpu-canvas {
-      width: 520px;
-      height: 520px;
-      max-width: 100%;
-      max-height: 100%;
-      border: 1px solid var(--panel-border);
+    canvas#main-canvas {
+      width: 480px; height: 480px;
+      max-width: 100%; aspect-ratio: 1/1;
+      border: 1px solid var(--border);
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      background-color: #000;
+      image-rendering: pixelated;
     }
-
-    /* 가이드 툴팁 */
-    .canvas-instruction {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      background: rgba(12, 12, 20, 0.8);
-      border-left: 3px solid var(--accent-color);
-      padding: 6px 12px;
-      font-size: 11px;
-      pointer-events: none;
-      color: var(--text-muted);
-    }
-
-    /* ImGui 느낌의 다단 사이드바 패널 */
     .sidebar {
-      width: 350px;
-      flex-shrink: 0;
-      background-color: var(--panel-bg);
-      border-left: 1px solid var(--panel-border);
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      min-height: 0;
+      width: 320px; flex-shrink: 0;
+      background: var(--panel); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto; min-height: 0;
     }
-
-    .section {
-      border-bottom: 1px solid var(--panel-border);
-      padding: 16px;
-    }
-
+    .section { border-bottom: 1px solid var(--border); padding: 14px; }
     .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: var(--accent-hover);
-      margin-bottom: 12px;
-      border-bottom: 1px dashed var(--panel-border);
-      padding-bottom: 6px;
-      text-transform: uppercase;
+      font-size: 12px; font-weight: bold; color: var(--accent2);
+      margin-bottom: 10px; border-bottom: 1px dashed var(--border);
+      padding-bottom: 5px; text-transform: uppercase;
     }
-
-    /* 대화형 위젯 요소들 */
-    .control-group {
-      margin-bottom: 10px;
-    }
-
-    .control-label {
-      display: block;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
+    .control-group { margin-bottom: 8px; }
+    .control-label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .slider-row { display: flex; align-items: center; gap: 6px; }
     .slider-row input[type="range"] {
-      flex: 1;
-      height: 6px;
-      background: var(--input-bg);
-      outline: none;
-      accent-color: var(--accent-color);
+      flex: 1; height: 5px; background: var(--input-bg);
+      outline: none; accent-color: var(--accent);
     }
-
     .slider-value {
-      width: 48px;
-      text-align: right;
-      font-size: 11px;
-      background: var(--input-bg);
-      border: 1px solid var(--panel-border);
-      padding: 1px 4px;
-      color: var(--text-color);
+      width: 44px; text-align: right; font-size: 11px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      padding: 1px 4px; color: var(--fg);
     }
-
-    /* 독자적 개념 기하학 다이어그램을 실시간 렌더링하는 Canvas2D */
-    .diagram-panel {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 8px;
-    }
-
-    canvas#diagram-canvas {
-      background-color: #0f0f18;
-      border: 1px solid var(--panel-border);
-      border-radius: 4px;
-      margin-bottom: 8px;
-    }
-
-    /* WebGPU 에러 레이어 */
-    #error-modal {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background-color: rgba(12, 12, 20, 0.95);
-      z-index: 9999;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .error-box {
-      background: #2c1a1a;
-      border: 2px solid #e74c3c;
-      padding: 24px;
-      border-radius: 8px;
-      max-width: 500px;
-      text-align: center;
-    }
-
-    .error-box h2 {
-      color: #e74c3c;
-      margin-top: 0;
-    }
-
-    .error-box p {
-      color: #ecc4c4;
-      line-height: 1.5;
-    }
-
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      margin-bottom: 8px;
-      cursor: pointer;
-    }
-
-    .checkbox-container input {
-      accent-color: var(--accent-color);
-    }
-
-    /* 수학 수식 표시용 블록 */
     .formula-box {
-      background: #0d0d16;
-      border-left: 3px solid var(--widget-orange);
-      padding: 8px;
-      font-size: 11px;
-      margin-top: 8px;
-      line-height: 1.4;
-      color: #e0e0fa;
+      background: #0d0d16; border-left: 3px solid var(--orange);
+      padding: 8px 10px; font-size: 11px; margin-top: 8px;
+      line-height: 1.6; color: #e0e0fa;
     }
+    canvas#diagram-canvas {
+      background: #0f0f18; border: 1px solid var(--border);
+      border-radius: 4px; margin-top: 8px;
+      display: block; max-width: 100%;
+    }
+    #error-modal {
+      position: fixed; top:0; left:0; width:100vw; height:100vh;
+      background: rgba(12,12,20,0.95); z-index:9999;
+      display:none; justify-content:center; align-items:center; padding:20px;
+    }
+    .error-box {
+      background:#2c1a1a; border:2px solid #e74c3c;
+      padding:24px; border-radius:8px; max-width:500px; text-align:center;
+    }
+    .error-box h2 { color:#e74c3c; margin-top:0; }
+    .error-box p { color:#ecc4c4; line-height:1.5; }
   </style>
 </head>
 <body>
 
-  <!-- DirectX 11 헤더 바 디자인 -->
-  <div class="title-bar">
-    <span>DirectX 11 — Ray-Triangle Intersection Formula Diagram</span>
-    <span class="status-badge" id="backend-status">WebGPU ACTIVE</span>
+<div class="title-bar">
+  <span>Ray-Plane Intersection: 광선-삼각형 교점 계산</span>
+  <span class="status-badge" id="status-badge">INITIALIZING</span>
+</div>
+
+<div class="workspace">
+  <div class="canvas-container">
+    <canvas id="main-canvas" width="480" height="480"></canvas>
   </div>
 
-  <div class="workspace">
-    <!-- 왼쪽: WebGPU 레이트레이싱 결과물 영역 -->
-    <div class="canvas-container">
-      <canvas id="webgpu-canvas" width="520" height="520"></canvas>
-      <div class="canvas-instruction">마우스 드래그: 카메라 궤도 회전</div>
-    </div>
+  <div class="sidebar">
+    <!-- Triangle Vertices -->
+    <div class="section">
+      <div class="section-title">Triangle Vertices</div>
 
-    <!-- 오른쪽: ImGui 스타일의 컨트롤과 독자적 유도 다이어그램 파트 -->
-    <div class="sidebar">
-      <!-- 삼각형 설정 섹션 -->
-      <div class="section">
-        <div class="section-title">Triangle Vertices (v0, v1, v2)</div>
-
-        <!-- Vertex 0 컨트롤 -->
-        <div class="control-group">
-          <span class="control-label">Vertex 0 X</span>
-          <div class="slider-row">
-            <input type="range" id="v0x" min="-2.0" max="2.0" step="0.1" value="-0.8">
-            <span class="slider-value" id="v0x-val">-0.8</span>
-          </div>
-          <span class="control-label">Vertex 0 Y</span>
-          <div class="slider-row">
-            <input type="range" id="v0y" min="-2.0" max="2.0" step="0.1" value="-0.5">
-            <span class="slider-value" id="v0y-val">-0.5</span>
-          </div>
-          <span class="control-label">Vertex 0 Z</span>
-          <div class="slider-row">
-            <input type="range" id="v0z" min="-2.0" max="2.0" step="0.1" value="0.0">
-            <span class="slider-value" id="v0z-val">0.0</span>
-          </div>
+      <div class="control-group">
+        <span class="control-label">V0 X</span>
+        <div class="slider-row">
+          <input type="range" id="v0x" min="-1.5" max="1.5" step="0.05" value="-0.8">
+          <span class="slider-value" id="v0x-val">-0.80</span>
         </div>
-
-        <!-- Vertex 1 컨트롤 -->
-        <div class="control-group">
-          <span class="control-label">Vertex 1 X</span>
-          <div class="slider-row">
-            <input type="range" id="v1x" min="-2.0" max="2.0" step="0.1" value="0.8">
-            <span class="slider-value" id="v1x-val">0.8</span>
-          </div>
-          <span class="control-label">Vertex 1 Y</span>
-          <div class="slider-row">
-            <input type="range" id="v1y" min="-2.0" max="2.0" step="0.1" value="-0.5">
-            <span class="slider-value" id="v1y-val">-0.5</span>
-          </div>
-          <span class="control-label">Vertex 1 Z</span>
-          <div class="slider-row">
-            <input type="range" id="v1z" min="-2.0" max="2.0" step="0.1" value="0.0">
-            <span class="slider-value" id="v1z-val">0.0</span>
-          </div>
-        </div>
-
-        <!-- Vertex 2 컨트롤 -->
-        <div class="control-group">
-          <span class="control-label">Vertex 2 X</span>
-          <div class="slider-row">
-            <input type="range" id="v2x" min="-2.0" max="2.0" step="0.1" value="0.0">
-            <span class="slider-value" id="v2x-val">0.0</span>
-          </div>
-          <span class="control-label">Vertex 2 Y</span>
-          <div class="slider-row">
-            <input type="range" id="v2y" min="-2.0" max="2.0" step="0.1" value="0.8">
-            <span class="slider-value" id="v2y-val">0.8</span>
-          </div>
-          <span class="control-label">Vertex 2 Z</span>
-          <div class="slider-row">
-            <input type="range" id="v2z" min="-2.0" max="2.0" step="0.1" value="0.0">
-            <span class="slider-value" id="v2z-val">0.0</span>
-          </div>
+        <span class="control-label">V0 Y</span>
+        <div class="slider-row">
+          <input type="range" id="v0y" min="-1.5" max="1.5" step="0.05" value="-0.6">
+          <span class="slider-value" id="v0y-val">-0.60</span>
         </div>
       </div>
 
-      <!-- 옵션 및 광원 컨트롤 -->
-      <div class="section">
-        <div class="section-title">Environment Options</div>
-
-        <label class="checkbox-container">
-          <input type="checkbox" id="cull-backface" checked>
-          <span>Backface Culling</span>
-        </label>
-
-        <label class="checkbox-container">
-          <input type="checkbox" id="show-grid" checked>
-          <span>Show Floor Grid</span>
-        </label>
-
-        <div class="control-group" style="margin-top:10px;">
-          <span class="control-label">Light Source X</span>
-          <div class="slider-row">
-            <input type="range" id="lightx" min="-3.0" max="3.0" step="0.2" value="1.5">
-            <span class="slider-value" id="lightx-val">1.5</span>
-          </div>
-          <span class="control-label">Light Source Y</span>
-          <div class="slider-row">
-            <input type="range" id="lighty" min="-3.0" max="3.0" step="0.2" value="2.0">
-            <span class="slider-value" id="lighty-val">2.0</span>
-          </div>
+      <div class="control-group">
+        <span class="control-label">V1 X</span>
+        <div class="slider-row">
+          <input type="range" id="v1x" min="-1.5" max="1.5" step="0.05" value="0.8">
+          <span class="slider-value" id="v1x-val">0.80</span>
+        </div>
+        <span class="control-label">V1 Y</span>
+        <div class="slider-row">
+          <input type="range" id="v1y" min="-1.5" max="1.5" step="0.05" value="-0.6">
+          <span class="slider-value" id="v1y-val">-0.60</span>
         </div>
       </div>
 
-      <!-- 기하학 다이어그램 및 대입공식 가시화 영역 -->
-      <div class="section" style="flex:1;">
-        <div class="section-title">Ray-Triangle Intersection Formula</div>
-        <div class="diagram-panel">
-          <canvas id="diagram-canvas" width="310" height="200"></canvas>
+      <div class="control-group">
+        <span class="control-label">V2 X</span>
+        <div class="slider-row">
+          <input type="range" id="v2x" min="-1.5" max="1.5" step="0.05" value="0.0">
+          <span class="slider-value" id="v2x-val">0.00</span>
         </div>
-        <div class="formula-box" id="formula-readout">
-          <strong>수식 전개:</strong><br>
-          Plane: (p - v0) · n = 0<br>
-          Ray: p = o + t·d<br>
-          → (o + t·d - v0) · n = 0<br>
-          → <strong>t = (v0·n - o·n) / (d·n)</strong>
+        <span class="control-label">V2 Y</span>
+        <div class="slider-row">
+          <input type="range" id="v2y" min="-1.5" max="1.5" step="0.05" value="0.8">
+          <span class="slider-value" id="v2y-val">0.80</span>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 에러 출력창 -->
-  <div id="error-modal">
-    <div class="error-box">
-      <h2>WebGPU 호환성 경고</h2>
-      <p id="error-msg">이 브라우저는 WebGPU API를 지원하지 않습니다. Chrome, Edge, Safari 최신 버전을 활용하시거나 WebGPU 플래그를 확인하십시오.</p>
+    <!-- Triangle Z / Plane -->
+    <div class="section">
+      <div class="section-title">Plane (Triangle Z)</div>
+      <div class="control-group">
+        <span class="control-label">Triangle Z (plane distance)</span>
+        <div class="slider-row">
+          <input type="range" id="triZ" min="-1.0" max="2.0" step="0.05" value="0.5">
+          <span class="slider-value" id="triZ-val">0.50</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Triangle Color R</span>
+        <div class="slider-row">
+          <input type="range" id="colR" min="0" max="1" step="0.02" value="0.2">
+          <span class="slider-value" id="colR-val">0.20</span>
+        </div>
+        <span class="control-label">Triangle Color G</span>
+        <div class="slider-row">
+          <input type="range" id="colG" min="0" max="1" step="0.02" value="0.7">
+          <span class="slider-value" id="colG-val">0.70</span>
+        </div>
+        <span class="control-label">Triangle Color B</span>
+        <div class="slider-row">
+          <input type="range" id="colB" min="0" max="1" step="0.02" value="0.4">
+          <span class="slider-value" id="colB-val">0.40</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formula Diagram -->
+    <div class="section">
+      <div class="section-title">Ray-Plane 수식</div>
+      <canvas id="diagram-canvas" width="280" height="170"></canvas>
+      <div class="formula-box" id="formula-readout">
+        <strong>평면 방정식:</strong> (p - v0) · n = 0<br>
+        <strong>광선:</strong> p = o + t·d<br>
+        → t = (v0 - o)·n / (d·n)<br>
+        <span id="formula-live" style="color:#e67e22;">계산 중...</span>
+      </div>
     </div>
   </div>
+</div>
 
-  <script>
-    // -------------------------------------------------------------
-    // WebGPU 장치 상태 감지 및 비호환성 경고 시스템
-    // -------------------------------------------------------------
-    if (!navigator.gpu) {
-      document.getElementById('error-modal').style.display = 'flex';
-      document.getElementById('backend-status').textContent = 'WebGPU UNSUPPORTED';
-      document.getElementById('backend-status').style.background = '#e74c3c';
+<div id="error-modal">
+  <div class="error-box">
+    <h2>WebGPU 초기화 실패</h2>
+    <p id="error-msg">WebGPU를 지원하지 않거나 초기화에 실패했습니다.<br>Chrome/Edge 최신 버전을 사용해주세요.</p>
+  </div>
+</div>
+
+<script>
+// ── 파라미터 ──────────────────────────────────────────────────
+const p = {
+  v0: [-0.8, -0.6], v1: [0.8, -0.6], v2: [0.0, 0.8],
+  triZ: 0.5,
+  color: [0.2, 0.7, 0.4]
+};
+
+// ── UI 바인딩 ──────────────────────────────────────────────────
+function bindSlider(id, setter) {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id + '-val');
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    setter(v);
+    val.textContent = v.toFixed(2);
+    scheduleRender();
+  });
+}
+bindSlider('v0x', v => { p.v0[0] = v; });
+bindSlider('v0y', v => { p.v0[1] = v; });
+bindSlider('v1x', v => { p.v1[0] = v; });
+bindSlider('v1y', v => { p.v1[1] = v; });
+bindSlider('v2x', v => { p.v2[0] = v; });
+bindSlider('v2y', v => { p.v2[1] = v; });
+bindSlider('triZ', v => { p.triZ = v; });
+bindSlider('colR', v => { p.color[0] = v; });
+bindSlider('colG', v => { p.color[1] = v; });
+bindSlider('colB', v => { p.color[2] = v; });
+
+// ── 수학 헬퍼 ─────────────────────────────────────────────────
+function dot2(a, b) { return a[0]*b[0] + a[1]*b[1]; }
+function dot3(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+function sub3(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+function cross3(a, b) {
+  return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+}
+function norm3(a) {
+  const l = Math.sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+  return l < 1e-10 ? [0,0,0] : [a[0]/l, a[1]/l, a[2]/l];
+}
+
+// ── Ray-Triangle 교차 판정 (Möller–Trumbore + 평면 공식) ──────
+// 광선: o + t*d (직교 투영: o=(x,y,0), d=(0,0,1))
+// 평면 공식: t = dot(v0 - o, n) / dot(d, n)
+// 삼각형 내부 판정: Inside-Outside (signed area)
+function rayTriangleHit(ox, oy, v0, v1, v2, triZ) {
+  const o = [ox, oy, 0.0];
+  const d = [0.0, 0.0, 1.0];
+
+  // 삼각형의 3D 꼭짓점 (z = triZ)
+  const A = [v0[0], v0[1], triZ];
+  const B = [v1[0], v1[1], triZ];
+  const C = [v2[0], v2[1], triZ];
+
+  // 평면 법선 계산
+  const edge1 = sub3(B, A);
+  const edge2 = sub3(C, A);
+  const n = norm3(cross3(edge1, edge2));
+
+  // 분모: d·n
+  const denom = dot3(d, n);
+  if (Math.abs(denom) < 1e-6) return null; // 광선이 평면과 평행
+
+  // t 계산: (v0 - o)·n / (d·n)
+  const t = dot3(sub3(A, o), n) / denom;
+  if (t < 0.0) return null; // 뒤에 있음
+
+  // 교점 계산
+  const hp = [o[0] + t*d[0], o[1] + t*d[1], o[2] + t*d[2]];
+
+  // Inside-Outside 검사 (2D로 단순화: 삼각형이 평면 z=triZ 위에 있으므로)
+  function sign2d(px, py, ax, ay, bx, by) {
+    return (px - bx) * (ay - by) - (ax - bx) * (py - by);
+  }
+  const d0 = sign2d(hp[0], hp[1], A[0], A[1], B[0], B[1]);
+  const d1 = sign2d(hp[0], hp[1], B[0], B[1], C[0], C[1]);
+  const d2 = sign2d(hp[0], hp[1], C[0], C[1], A[0], A[1]);
+
+  const hasNeg = (d0 < 0) || (d1 < 0) || (d2 < 0);
+  const hasPos = (d0 > 0) || (d1 > 0) || (d2 > 0);
+  if (hasNeg && hasPos) return null; // 삼각형 밖
+
+  return { t, n };
+}
+
+// ── WebGPU 상태 ───────────────────────────────────────────────
+const mainCanvas = document.getElementById('main-canvas');
+const W = mainCanvas.width; // 480
+const H = mainCanvas.height;
+
+let gpuDevice = null;
+let gpuTexture = null;
+let gpuSampler = null;
+let renderPipeline = null;
+let renderBindGroup = null;
+let gpuContext = null;
+
+const pixels = new Uint8Array(W * H * 4);
+
+async function initWebGPU() {
+  if (!navigator.gpu) throw new Error('WebGPU not supported');
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) throw new Error('No GPU adapter');
+  gpuDevice = await adapter.requestDevice();
+
+  // Context configure - MUST happen before getCurrentTexture()
+  gpuContext = mainCanvas.getContext('webgpu');
+  const fmt = navigator.gpu.getPreferredCanvasFormat();
+  gpuContext.configure({ device: gpuDevice, format: fmt, alphaMode: 'opaque' });
+
+  // Storage texture (CPU→GPU upload target)
+  gpuTexture = gpuDevice.createTexture({
+    size: [W, H],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+  });
+
+  gpuSampler = gpuDevice.createSampler({ magFilter: 'nearest', minFilter: 'nearest' });
+
+  // Fullscreen quad render pipeline
+  const shaderSrc = `
+    struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f }
+    @vertex fn vs(@builtin(vertex_index) vi: u32) -> VO {
+      var P = array<vec2f,6>(
+        vec2f(-1,-1),vec2f(1,-1),vec2f(-1,1),
+        vec2f(-1,1),vec2f(1,-1),vec2f(1,1)
+      );
+      var U = array<vec2f,6>(
+        vec2f(0,1),vec2f(1,1),vec2f(0,0),
+        vec2f(0,0),vec2f(1,1),vec2f(1,0)
+      );
+      var o: VO; o.pos = vec4f(P[vi],0,1); o.uv = U[vi]; return o;
     }
-
-    // -------------------------------------------------------------
-    // 수학 헬퍼 유틸리티 (Canvas 2D 기하계산 및 Uniform 데이터 직렬화용)
-    // -------------------------------------------------------------
-    function vec3_sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
-    function vec3_add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
-    function vec3_mul(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
-    function vec3_dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
-    function vec3_cross(a, b) {
-      return [
-        a[1]*b[2] - a[2]*b[1],
-        a[2]*b[0] - a[0]*b[2],
-        a[0]*b[1] - a[1]*b[0]
-      ];
+    @group(0) @binding(0) var s: sampler;
+    @group(0) @binding(1) var t: texture_2d<f32>;
+    @fragment fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+      return textureSample(t, s, uv);
     }
-    function vec3_normalize(a) {
-      const len = Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
-      if (len === 0) return [0, 0, 0];
-      return [a[0]/len, a[1]/len, a[2]/len];
-    }
+  `;
 
-    // -------------------------------------------------------------
-    // 전역 상태 변수들
-    // -------------------------------------------------------------
-    const canvas = document.getElementById('webgpu-canvas');
-    const diagramCanvas = document.getElementById('diagram-canvas');
-    const diagramCtx = diagramCanvas.getContext('2d');
+  const mod = gpuDevice.createShaderModule({ code: shaderSrc });
+  const bgl = gpuDevice.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+    ]
+  });
+  renderPipeline = gpuDevice.createRenderPipeline({
+    layout: gpuDevice.createPipelineLayout({ bindGroupLayouts: [bgl] }),
+    vertex: { module: mod, entryPoint: 'vs' },
+    fragment: { module: mod, entryPoint: 'fs', targets: [{ format: fmt }] }
+  });
+  renderBindGroup = gpuDevice.createBindGroup({
+    layout: bgl,
+    entries: [
+      { binding: 0, resource: gpuSampler },
+      { binding: 1, resource: gpuTexture.createView() }
+    ]
+  });
 
-    // 카메라 오빗(Orbit) 회전 각도 상태
-    let cameraTheta = 0.0;
-    let cameraPhi = Math.PI / 2.2;
-    const cameraRadius = 3.2;
-    let isDragging = false;
-    let prevMouseX = 0;
-    let prevMouseY = 0;
+  document.getElementById('status-badge').textContent = 'WebGPU ACTIVE';
+  scheduleRender();
+}
 
-    // 실시간 파라미터 캐싱
-    const params = {
-      v0: [-0.8, -0.5, 0.0],
-      v1: [0.8, -0.5, 0.0],
-      v2: [0.0, 0.8, 0.0],
-      cameraPos: [0.0, 0.0, 3.2],
-      cameraLookAt: [0.0, 0.0, 0.0],
-      lightPos: [1.5, 2.0, 1.0],
-      cullBackface: 1.0,
-      showGrid: 1.0
-    };
+// ── CPU 픽셀 계산 ─────────────────────────────────────────────
+function computePixels() {
+  const halfW = W / 2, halfH = H / 2;
+  const scale = 1.5; // NDC [-1.5, 1.5] → canvas
 
-    // -------------------------------------------------------------
-    // 사용자 조작 이벤트 리스너 등록 (ImGui 반응성 극대화)
-    // -------------------------------------------------------------
-    const uiElements = [
-      { id: 'v0x', key: 'v0', idx: 0 }, { id: 'v0y', key: 'v0', idx: 1 }, { id: 'v0z', key: 'v0', idx: 2 },
-      { id: 'v1x', key: 'v1', idx: 0 }, { id: 'v1y', key: 'v1', idx: 1 }, { id: 'v1z', key: 'v1', idx: 2 },
-      { id: 'v2x', key: 'v2', idx: 0 }, { id: 'v2y', key: 'v2', idx: 1 }, { id: 'v2z', key: 'v2', idx: 2 },
-      { id: 'lightx', key: 'lightPos', idx: 0 }, { id: 'lighty', key: 'lightPos', idx: 1 }
-    ];
+  let hitCount = 0;
 
-    uiElements.forEach(item => {
-      const el = document.getElementById(item.id);
-      const valDisplay = document.getElementById(item.id + '-val');
-      el.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        params[item.key][item.idx] = val;
-        valDisplay.textContent = val.toFixed(1);
-        triggerUpdate();
-      });
-    });
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      // 픽셀 → NDC 좌표 (Y축 반전)
+      const ox = (px - halfW + 0.5) / halfW * scale;
+      const oy = -(py - halfH + 0.5) / halfH * scale;
 
-    document.getElementById('cull-backface').addEventListener('change', (e) => {
-      params.cullBackface = e.target.checked ? 1.0 : 0.0;
-      triggerUpdate();
-    });
+      const hit = rayTriangleHit(ox, oy, p.v0, p.v1, p.v2, p.triZ);
 
-    document.getElementById('show-grid').addEventListener('change', (e) => {
-      params.showGrid = e.target.checked ? 1.0 : 0.0;
-      triggerUpdate();
-    });
-
-    // 캔버스 마우스 회전 드래그 이벤트
-    canvas.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      prevMouseX = e.clientX;
-      prevMouseY = e.clientY;
-    });
-
-    window.addEventListener('mouseup', () => { isDragging = false; });
-
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const dx = e.clientX - prevMouseX;
-      const dy = e.clientY - prevMouseY;
-      prevMouseX = e.clientX;
-      prevMouseY = e.clientY;
-
-      // 구면 궤도 각도 수정
-      cameraTheta -= dx * 0.007;
-      cameraPhi -= dy * 0.007;
-
-      // 임계값 제한 (북극/남극 극점 플립핑 제한)
-      cameraPhi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraPhi));
-
-      updateCameraPosition();
-    });
-
-    function updateCameraPosition() {
-      params.cameraPos[0] = cameraRadius * Math.sin(cameraPhi) * Math.sin(cameraTheta);
-      params.cameraPos[1] = cameraRadius * Math.cos(cameraPhi);
-      params.cameraPos[2] = cameraRadius * Math.sin(cameraPhi) * Math.cos(cameraTheta);
-      triggerUpdate();
-    }
-
-    // 초기 카메라 오빗 설정 적용
-    updateCameraPosition();
-
-    // -------------------------------------------------------------
-    // 독자적 기하학 관계 유도 다이어그램 그리기 (Canvas2D)
-    // -------------------------------------------------------------
-    function renderFormulaDiagram() {
-      diagramCtx.clearRect(0, 0, diagramCanvas.width, diagramCanvas.height);
-
-      // 삼각형 평면과 법선 벡터의 개념적 사영을 2D 캔버스에 표현
-      const cx = diagramCanvas.width / 2;
-      const cy = diagramCanvas.height / 2;
-
-      // 평면 표현 (점선)
-      diagramCtx.beginPath();
-      diagramCtx.setLineDash([5, 5]);
-      diagramCtx.strokeStyle = '#3e3e5e';
-      diagramCtx.lineWidth = 1.5;
-      diagramCtx.moveTo(40, cy + 30);
-      diagramCtx.lineTo(270, cy - 30);
-      diagramCtx.stroke();
-      diagramCtx.setLineDash([]);
-
-      // 삼각형 꼭짓점 투영 렌더링
-      const v0_2d = [70, cy + 20];
-      const v1_2d = [210, cy - 15];
-      const v2_2d = [150, cy - 50];
-
-      diagramCtx.beginPath();
-      diagramCtx.fillStyle = 'rgba(0, 122, 204, 0.2)';
-      diagramCtx.strokeStyle = '#007acc';
-      diagramCtx.lineWidth = 2;
-      diagramCtx.moveTo(v0_2d[0], v0_2d[1]);
-      diagramCtx.lineTo(v1_2d[0], v1_2d[1]);
-      diagramCtx.lineTo(v2_2d[0], v2_2d[1]);
-      diagramCtx.closePath();
-      diagramCtx.fill();
-      diagramCtx.stroke();
-
-      // 삼각형 중심점 계산
-      const triCenter = [(v0_2d[0]+v1_2d[0]+v2_2d[0])/3, (v0_2d[1]+v1_2d[1]+v2_2d[1])/3];
-
-      // 법선 벡터 n 표기
-      const normal_end = [triCenter[0] - 20, triCenter[1] - 50];
-      diagramCtx.beginPath();
-      diagramCtx.strokeStyle = '#27ae60';
-      diagramCtx.lineWidth = 2;
-      diagramCtx.moveTo(triCenter[0], triCenter[1]);
-      diagramCtx.lineTo(normal_end[0], normal_end[1]);
-      diagramCtx.stroke();
-
-      // 화살표 머리
-      diagramCtx.fillStyle = '#27ae60';
-      diagramCtx.beginPath();
-      diagramCtx.arc(normal_end[0], normal_end[1], 3.5, 0, Math.PI * 2);
-      diagramCtx.fill();
-
-      diagramCtx.fillStyle = '#27ae60';
-      diagramCtx.font = '11px Consolas';
-      diagramCtx.fillText('n', normal_end[0] - 12, normal_end[1] + 3);
-
-      // 레이 원점 o (카메라)
-      const ray_origin = [80, 50];
-      diagramCtx.fillStyle = '#e67e22';
-      diagramCtx.beginPath();
-      diagramCtx.arc(ray_origin[0], ray_origin[1], 4, 0, Math.PI * 2);
-      diagramCtx.fill();
-      diagramCtx.fillText('o', ray_origin[0] - 12, ray_origin[1] + 3);
-
-      // 교점 p 및 광선 경로
-      const hit_p = [140, cy + 5];
-      diagramCtx.beginPath();
-      diagramCtx.strokeStyle = '#e67e22';
-      diagramCtx.lineWidth = 1.5;
-      diagramCtx.moveTo(ray_origin[0], ray_origin[1]);
-      diagramCtx.lineTo(hit_p[0] + 40, hit_p[1] + 10); // 조금더 연장해서 표시
-      diagramCtx.stroke();
-
-      // 광선 벡터 화살표
-      diagramCtx.fillStyle = '#e67e22';
-      diagramCtx.beginPath();
-      diagramCtx.arc(hit_p[0], hit_p[1], 4, 0, Math.PI * 2);
-      diagramCtx.fill();
-      diagramCtx.fillText('p = o+td', hit_p[0] + 8, hit_p[1] - 6);
-
-      // 삼각형 인덱스 텍스트 추가
-      diagramCtx.fillStyle = '#8e8ea8';
-      diagramCtx.font = '9px Consolas';
-      diagramCtx.fillText('v0', v0_2d[0] - 15, v0_2d[1] + 5);
-      diagramCtx.fillText('v1', v1_2d[0] + 8, v1_2d[1] + 3);
-      diagramCtx.fillText('v2', v2_2d[0] - 5, v2_2d[1] - 8);
-
-      // 실시간 기하 수치적 피드백 연산
-      const e1 = vec3_sub(params.v1, params.v0);
-      const e2 = vec3_sub(params.v2, params.v0);
-      const norm = vec3_normalize(vec3_cross(e1, e2));
-
-      // 임의의 전방 레이를 가정하여 연산 수행 (다이어그램 출력용 대표값)
-      const lookDir = vec3_normalize(vec3_sub(params.cameraLookAt, params.cameraPos));
-      const denom = vec3_dot(lookDir, norm);
-      const num = vec3_dot(vec3_sub(params.v0, params.cameraPos), norm);
-      let t_val = denom !== 0 ? (num / denom) : 0.0;
-
-      // 사이드바 하단 리드아웃 텍스트 실시간 출력
-      const readout = document.getElementById('formula-readout');
-      readout.innerHTML = `
-        <strong>[실시간 기하 수치 결과]</strong><br>
-        Normal n: [${norm[0].toFixed(2)}, ${norm[1].toFixed(2)}, ${norm[2].toFixed(2)}]<br>
-        Numerator (v0-o)·n: ${num.toFixed(3)}<br>
-        Denominator d·n: ${denom.toFixed(3)}<br>
-        t parameter: <span style="color:#e67e22; font-weight:bold;">${denom !== 0 && t_val >= 0 ? t_val.toFixed(3) : 'No Intersection'}</span>
-      `;
-    }
-
-    // -------------------------------------------------------------
-    // WebGPU 파이프라인 및 구현 코드 시작
-    // -------------------------------------------------------------
-    let device, queue;
-    let computePipeline, renderPipeline;
-    let storageTexture, textureView, mainSampler;
-    let uniformBuffer;
-    let computeBindGroup, renderBindGroup;
-
-    // WGSL 셰이더 코드 기술 (스펙에 맞춰 고도로 최적화 및 주석 첨부)
-    const computeShaderSource = `
-      // 삼각형 레이캐스트 연산을 전달받는 구조체
-      struct TriangleRaycastParams {
-          v0: vec4f,
-          v1: vec4f,
-          v2: vec4f,
-          camera_pos: vec4f,
-          camera_lookat: vec4f,
-          light_pos: vec4f,
-          canvas_size: vec2f,
-          cull_backface: f32,
-          show_grid: f32,
-      };
-
-      // 텍스처 출력용 바인딩 (Compute 쓰기 전용)
-      @group(0) @binding(0) var out_texture: texture_storage_2d<rgba8unorm, write>;
-      // 기하학 및 렌더러 파라미터 유니폼 바인딩
-      @group(0) @binding(1) var<uniform> params: TriangleRaycastParams;
-
-      // -------------------------------------------------------------
-      // 레이-삼각형 정밀 판정 로직 함수 (유도 공식 t 계산 포함)
-      // -------------------------------------------------------------
-      fn computeRayTriangleHit(orig: vec3f, dir: vec3f, v0: vec3f, v1: vec3f, v2: vec3f, cull: bool) -> vec4f {
-          let edge1 = v1 - v0;
-          let edge2 = v2 - v0;
-          let face_normal = normalize(cross(edge1, edge2));
-
-          // 광선 방향과 삼각형 평면 법선의 내적 (분모 d·n)
-          let denom = dot(dir, face_normal);
-
-          // 평행도 검사 (계산 안정성 및 0 나누기 방지)
-          if (abs(denom) < 1e-4) {
-              return vec4f(-1.0, 0.0, 0.0, 0.0);
-          }
-
-          // Backface Culling 여부 처리
-          if (cull && denom > 0.0) {
-              return vec4f(-1.0, 0.0, 0.0, 0.0);
-          }
-
-          // 평면 공식과 레이 공식을 대입하여 구한 t 수식
-          // t = (v0·n - o·n) / (d·n)
-          let t = dot(v0 - orig, face_normal) / denom;
-          if (t < 0.0) {
-              return vec4f(-1.0, 0.0, 0.0, 0.0);
-          }
-
-          let hit_point = orig + t * dir;
-
-          // 충돌점이 삼각형 에지 내에 포함되는지 Inside-Outside 검증
-          let c0 = cross(v1 - v0, hit_point - v0);
-          let c1 = cross(v2 - v1, hit_point - v1);
-          let c2 = cross(v0 - v2, hit_point - v2);
-
-          let dot0 = dot(face_normal, c0);
-          let dot1 = dot(face_normal, c1);
-          let dot2 = dot(face_normal, c2);
-
-          // 내적값들의 부호 일치 조건 판단 (양면 판정 처리)
-          if (dot0 >= -1e-5 && dot1 >= -1e-5 && dot2 >= -1e-5) {
-              return vec4f(t, face_normal);
-          }
-          if (dot0 <= 1e-5 && dot1 <= 1e-5 && dot2 <= 1e-5) {
-              return vec4f(t, -face_normal);
-          }
-
-          return vec4f(-1.0, 0.0, 0.0, 0.0);
+      let r, g, b;
+      if (hit) {
+        // 삼각형 색상 × 간단한 노멀 기반 명암
+        const shade = 0.4 + 0.6 * Math.abs(hit.n[2]);
+        r = Math.min(255, p.color[0] * shade * 255 + 30);
+        g = Math.min(255, p.color[1] * shade * 255 + 30);
+        b = Math.min(255, p.color[2] * shade * 255 + 30);
+        hitCount++;
+      } else {
+        // 배경: 격자 패턴
+        const gx = Math.abs(ox) % 0.5 < 0.02;
+        const gy = Math.abs(oy) % 0.5 < 0.02;
+        const grid = (gx || gy) ? 0.15 : 0.08;
+        r = g = b = grid * 255;
       }
 
-      // -------------------------------------------------------------
-      // 컴퓨터 셰이더 메인 커널 (레이트레이싱 처리)
-      // -------------------------------------------------------------
-      @compute @workgroup_size(16, 16)
-      fn raytraceComputeMain(@builtin(global_invocation_id) global_id: vec3u) {
-          let size = textureDimensions(out_texture);
-          if (global_id.x >= size.x || global_id.y >= size.y) {
-              return;
-          }
-
-          let aspect = f32(size.x) / f32(size.y);
-          let uv = vec2f(
-              (f32(global_id.x) + 0.5) / f32(size.x) * 2.0 - 1.0,
-              1.0 - (f32(global_id.y) + 0.5) / f32(size.y) * 2.0
-          );
-
-          // 카메라 방향 변환계 빌드 (LookAt 기반)
-          let cam_pos = params.camera_pos.xyz;
-          let cam_target = params.camera_lookat.xyz;
-          let fwd = normalize(cam_target - cam_pos);
-          let temp_up = vec3f(0.0, 1.0, 0.0);
-          let right = normalize(cross(fwd, temp_up));
-          let up = cross(right, fwd);
-
-          // 투영 평면상의 레이 디렉션 설정
-          let fov_factor = 1.2;
-          let ray_dir = normalize(uv.x * aspect * right + uv.y * up + fwd * fov_factor);
-
-          // 씬 기본 배경 정의 (아름다운 공학적 그리드 스타일)
-          var final_color = vec3f(0.1, 0.1, 0.16);
-
-          // 격자 바닥면 레이 연산 (선택 옵션일 시)
-          if (params.show_grid > 0.5) {
-              let p_y = -1.0;
-              if (ray_dir.y < -0.01) {
-                  let t_floor = (p_y - cam_pos.y) / ray_dir.y;
-                  if (t_floor > 0.0) {
-                      let hit_floor = cam_pos + t_floor * ray_dir;
-                      let g_val = fract(hit_floor.xz * 2.0);
-                      let border = step(0.97, g_val.x) + step(0.97, g_val.y);
-                      if (border > 0.0) {
-                          final_color = vec3f(0.2, 0.2, 0.32);
-                      } else {
-                          final_color = vec3f(0.06, 0.06, 0.11);
-                      }
-                  }
-              }
-          }
-
-          // 삼각형 충돌 테스트 실행
-          let hit_res = computeRayTriangleHit(
-              cam_pos,
-              ray_dir,
-              params.v0.xyz,
-              params.v1.xyz,
-              params.v2.xyz,
-              params.cull_backface > 0.5
-          );
-
-          if (hit_res.x > 0.0) {
-              let t = hit_res.x;
-              let normal = hit_res.yzw;
-              let hit_point = cam_pos + t * ray_dir;
-
-              // 퐁 라이팅 기반 표면 쉐이딩 연산
-              let light_dir = normalize(params.light_pos.xyz - hit_point);
-              let diff = max(dot(normal, light_dir), 0.0);
-
-              // 반사 하이라이트 specular 계산
-              let view_dir = normalize(cam_pos - hit_point);
-              let h = normalize(light_dir + view_dir);
-              let spec = pow(max(dot(normal, h), 0.0), 40.0) * 0.6;
-
-              // 법선 정보를 색상화 하여 직관적이고 미려한 그래픽 확보
-              let normal_color = abs(normal) * 0.7 + vec3f(0.3);
-              final_color = normal_color * (diff + 0.15) + vec3f(spec);
-
-              // 충돌 교점 부근 림 라이팅 추가
-              let rim = 1.0 - max(dot(view_dir, normal), 0.0);
-              final_color += vec3f(0.15 * pow(rim, 3.0));
-          }
-
-          textureStore(out_texture, global_id.xy, vec4f(final_color, 1.0));
-      }
-    `;
-
-    const renderShaderSource = `
-      // -------------------------------------------------------------
-      // Fullscreen Quad를 그리는 래스터 기반 렌더 쉐이더 정의
-      // -------------------------------------------------------------
-      struct VertexOutput {
-          @builtin(position) position: vec4f,
-          @location(0) uv: vec2f,
-      };
-
-      @vertex
-      fn screenQuadVS(@builtin(vertex_index) v_idx: u32) -> VertexOutput {
-          var pos = array<vec2f, 6>(
-              vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0),
-              vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0)
-          );
-          var uv = array<vec2f, 6>(
-              vec2f(0.0, 1.0), vec2f(1.0, 1.0), vec2f(0.0, 0.0),
-              vec2f(0.0, 0.0), vec2f(1.0, 1.0), vec2f(1.0, 0.0)
-          );
-          var out: VertexOutput;
-          out.position = vec4f(pos[v_idx], 0.0, 1.0);
-          out.uv = uv[v_idx];
-          return out;
-      }
-
-      @group(0) @binding(0) var screenSampler: sampler;
-      @group(0) @binding(1) var screenTex: texture_2d<f32>;
-
-      @fragment
-      fn screenQuadFS(@location(0) uv: vec2f) -> @location(0) vec4f {
-          return textureSample(screenTex, screenSampler, uv);
-      }
-    `;
-
-    // -------------------------------------------------------------
-    // WebGPU 메인 그래픽스 파이프라인 수립 함수
-    // -------------------------------------------------------------
-    async function initWebGPU() {
-      if (!navigator.gpu) return;
-
-      const adapter = await navigator.gpu.requestAdapter();
-      device = await adapter.requestDevice();
-      queue = device.queue;
-
-            // 셰이더 컴파일 모듈 등록
-      const computeShaderModule = device.createShaderModule({
-        label: 'TriangleRaycastComputeShader',
-        code: computeShaderSource
-      });
-      const renderShaderModule = device.createShaderModule({
-        label: 'TriangleRaycastRenderShader',
-        code: renderShaderSource
-      });
-
-      // -------------------------------------------------------------
-      // 리소스 리저브 및 파이프라인 생성
-      // -------------------------------------------------------------
-      const width = canvas.width;
-      const height = canvas.height;
-
-      // 쓰기 및 샘플링이 동시에 가능한 텍스처 풀 생성
-      storageTexture = device.createTexture({
-        size: [width, height],
-        format: 'rgba8unorm',
-        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
-      });
-      textureView = storageTexture.createView();
-
-      mainSampler = device.createSampler({
-        magFilter: 'linear',
-        minFilter: 'linear'
-      });
-
-      // Uniform 버퍼 정의 (TriangleRaycastParams 구조체 정렬 규약 준증)
-      // v0(16B) + v1(16B) + v2(16B) + cam_pos(16B) + cam_look(16B) + light_pos(16B) + size(8B) + cull(4B) + grid(4B) = 112 Bytes
-      const uniformBufferSize = 112;
-      uniformBuffer = device.createBuffer({
-        size: uniformBufferSize,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-      });
-
-      // -------------------------------------------------------------
-      // Compute Pipeline 생성
-      // -------------------------------------------------------------
-      const computeBindGroupLayout = device.createBindGroupLayout({
-        entries: [
-          { binding: 0, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' } },
-          { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } }
-        ]
-      });
-
-            computePipeline = device.createComputePipeline({
-        layout: device.createPipelineLayout({ bindGroupLayouts: [computeBindGroupLayout] }),
-        compute: { module: computeShaderModule, entryPoint: 'raytraceComputeMain' }
-      });
-
-      computeBindGroup = device.createBindGroup({
-        layout: computeBindGroupLayout,
-        entries: [
-          { binding: 0, resource: textureView },
-          { binding: 1, resource: { buffer: uniformBuffer } }
-        ]
-      });
-
-      // -------------------------------------------------------------
-      // Render Pipeline 생성 (Fullscreen Quad 스크린 출력)
-      // -------------------------------------------------------------
-      const renderBindGroupLayout = device.createBindGroupLayout({
-        entries: [
-          { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
-          { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} }
-        ]
-      });
-
-            renderPipeline = device.createRenderPipeline({
-        layout: device.createPipelineLayout({ bindGroupLayouts: [renderBindGroupLayout] }),
-        vertex: { module: renderShaderModule, entryPoint: 'screenQuadVS' },
-        fragment: {
-          module: renderShaderModule,
-          entryPoint: 'screenQuadFS',
-          targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
-        }
-      });
-
-      renderBindGroup = device.createBindGroup({
-        layout: renderBindGroupLayout,
-        entries: [
-          { binding: 0, resource: mainSampler },
-          { binding: 1, resource: textureView }
-        ]
-      });
-
-      triggerUpdate();
+      const idx = (py * W + px) * 4;
+      pixels[idx]   = r;
+      pixels[idx+1] = g;
+      pixels[idx+2] = b;
+      pixels[idx+3] = 255;
     }
+  }
 
-    // -------------------------------------------------------------
-    // 데이터 직렬화 및 GPU 갱신 루프
-    // -------------------------------------------------------------
-    let renderRequested = false;
+  // 실시간 수식 업데이트
+  updateFormulaReadout();
+  return hitCount;
+}
 
-    function triggerUpdate() {
-      if (!renderRequested) {
-        renderRequested = true;
-        requestAnimationFrame(performRender);
-      }
-    }
+function updateFormulaReadout() {
+  const A = [p.v0[0], p.v0[1], p.triZ];
+  const B = [p.v1[0], p.v1[1], p.triZ];
+  const C = [p.v2[0], p.v2[1], p.triZ];
+  const n = norm3(cross3(sub3(B, A), sub3(C, A)));
+  const d = [0, 0, 1]; // 직교 광선
+  const o = [0, 0, 0]; // 중앙 광선 원점
 
-    function performRender() {
-      renderRequested = false;
+  const denom = dot3(d, n);
+  const num = dot3(sub3(A, o), n);
+  const t_val = Math.abs(denom) > 1e-6 ? num / denom : null;
 
-      if (!device) return;
+  document.getElementById('formula-live').innerHTML =
+    `n = (${n[0].toFixed(2)}, ${n[1].toFixed(2)}, ${n[2].toFixed(2)})<br>` +
+    `(v0-o)·n = ${num.toFixed(3)}, d·n = ${denom.toFixed(3)}<br>` +
+    `<strong>t = ${t_val !== null ? t_val.toFixed(3) : 'N/A'}</strong>`;
+}
 
-      // 1. Uniform 데이터 버퍼 정렬 구축 및 전송
-      const bufferData = new Float32Array(28); // 112 Bytes / 4
+// ── GPU 업로드 & 렌더 ──────────────────────────────────────────
+let renderPending = false;
 
-      // v0 (vec4f)
-      bufferData[0] = params.v0[0];
-      bufferData[1] = params.v0[1];
-      bufferData[2] = params.v0[2];
-      bufferData[3] = 1.0;
+function scheduleRender() {
+  if (!renderPending) {
+    renderPending = true;
+    requestAnimationFrame(doRender);
+  }
+}
 
-      // v1 (vec4f)
-      bufferData[4] = params.v1[0];
-      bufferData[5] = params.v1[1];
-      bufferData[6] = params.v1[2];
-      bufferData[7] = 1.0;
+function doRender() {
+  renderPending = false;
+  if (!gpuDevice) return;
 
-      // v2 (vec4f)
-      bufferData[8] = params.v2[0];
-      bufferData[9] = params.v2[1];
-      bufferData[10] = params.v2[2];
-      bufferData[11] = 1.0;
+  computePixels();
 
-      // cameraPos (vec4f)
-      bufferData[12] = params.cameraPos[0];
-      bufferData[13] = params.cameraPos[1];
-      bufferData[14] = params.cameraPos[2];
-      bufferData[15] = 1.0;
+  // CPU 픽셀 → GPU 텍스처 업로드
+  gpuDevice.queue.writeTexture(
+    { texture: gpuTexture },
+    pixels,
+    { bytesPerRow: W * 4 },
+    { width: W, height: H }
+  );
 
-      // cameraLookAt (vec4f)
-      bufferData[16] = params.cameraLookAt[0];
-      bufferData[17] = params.cameraLookAt[1];
-      bufferData[18] = params.cameraLookAt[2];
-      bufferData[19] = 1.0;
+  // GPU 렌더 패스
+  const enc = gpuDevice.createCommandEncoder();
+  const pass = enc.beginRenderPass({
+    colorAttachments: [{
+      view: gpuContext.getCurrentTexture().createView(),
+      clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
+      loadOp: 'clear', storeOp: 'store'
+    }]
+  });
+  pass.setPipeline(renderPipeline);
+  pass.setBindGroup(0, renderBindGroup);
+  pass.draw(6);
+  pass.end();
+  gpuDevice.queue.submit([enc.finish()]);
 
-      // lightPos (vec4f)
-      bufferData[20] = params.lightPos[0];
-      bufferData[21] = params.lightPos[1];
-      bufferData[22] = params.lightPos[2];
-      bufferData[23] = 1.0;
+  drawDiagram();
+}
 
-      // canvas_size, cull, grid (vec2f + f32 + f32)
-      bufferData[24] = canvas.width;
-      bufferData[25] = canvas.height;
-      bufferData[26] = params.cullBackface;
-      bufferData[27] = params.showGrid;
+// ── Canvas2D 수식 다이어그램 ───────────────────────────────────
+function drawDiagram() {
+  const dc = document.getElementById('diagram-canvas');
+  const ctx = dc.getContext('2d');
+  const W2 = dc.width, H2 = dc.height;
+  ctx.clearRect(0, 0, W2, H2);
 
-      queue.writeBuffer(uniformBuffer, 0, bufferData);
+  // 배경
+  ctx.fillStyle = '#0f0f18';
+  ctx.fillRect(0, 0, W2, H2);
 
-      // 2. GPU 명령 레코더 기동 및 실행 패스 구성
-      const commandEncoder = device.createCommandEncoder();
+  // 삼각형 평면 (점선)
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = '#2e2e5e';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(20, H2*0.62); ctx.lineTo(W2-20, H2*0.58);
+  ctx.stroke();
+  ctx.setLineDash([]);
 
-      // Compute Pass 수행
-      const computePass = commandEncoder.beginComputePass();
-      computePass.setPipeline(computePipeline);
-      computePass.setBindGroup(0, computeBindGroup);
-      // 스레드 그룹 연산 분할 (520x520 크기에 맞춰 16 크기로 올림 연산)
-      const workgroupX = Math.ceil(canvas.width / 16);
-      const workgroupY = Math.ceil(canvas.height / 16);
-      computePass.dispatchWorkgroups(workgroupX, workgroupY);
-      computePass.end();
+  // 삼각형
+  const tx = [60, 190, 130], ty = [H2*0.68, H2*0.65, H2*0.45];
+  ctx.beginPath();
+  ctx.moveTo(tx[0], ty[0]); ctx.lineTo(tx[1], ty[1]); ctx.lineTo(tx[2], ty[2]);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,122,204,0.18)';
+  ctx.fill();
+  ctx.strokeStyle = '#007acc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-      // Render Pass 수행 (정적 프레임 버퍼 풀에 드로우)
-      const context = canvas.getContext('webgpu');
-      const renderPass = commandEncoder.beginRenderPass({
-        colorAttachments: [{
-          view: context.getCurrentTexture().createView(),
-          clearValue: { r: 0.1, g: 0.1, b: 0.15, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store'
-        }]
-      });
-      renderPass.setPipeline(renderPipeline);
-      renderPass.setBindGroup(0, renderBindGroup);
-      renderPass.draw(6); // 풀스크린 6개 버텍스 패스
-      renderPass.end();
+  // 꼭짓점 레이블
+  ctx.fillStyle = '#8e8ea8';
+  ctx.font = '10px Consolas';
+  ctx.fillText('v0', tx[0]-20, ty[0]+4);
+  ctx.fillText('v1', tx[1]+4, ty[1]+4);
+  ctx.fillText('v2', tx[2]-5, ty[2]-5);
 
-      queue.submit([commandEncoder.finish()]);
+  // 법선 n
+  const cx = (tx[0]+tx[1]+tx[2])/3, cy2 = (ty[0]+ty[1]+ty[2])/3;
+  drawArrow(ctx, cx, cy2, cx-10, cy2-42, '#27ae60', 'n');
 
-      // 3. Canvas2D 개념적 다이어그램 갱신 및 결합
-      renderFormulaDiagram();
-    }
+  // 광선 (위에서 아래로)
+  const rx = 90, ry_start = 12, ry_end = ty[0]*0.85;
+  drawArrow(ctx, rx, ry_start, rx, ry_end, '#e67e22', '');
+  ctx.fillStyle = '#e67e22';
+  ctx.font = '10px Consolas';
+  ctx.fillText('o', rx+5, ry_start+8);
+  ctx.fillText('d=(0,0,1)', rx+5, ry_start+20);
 
-    // 초기 웹 데모 실행 개시
-    initWebGPU().then(() => {
-      // 콘텍스트 캔버스 포맷 사정 바인딩
-      const context = canvas.getContext('webgpu');
-      if (device) {
-        context.configure({
-          device: device,
-          format: navigator.gpu.getPreferredCanvasFormat(),
-          alphaMode: 'opaque'
-        });
-        triggerUpdate();
-      }
-    });
-  </script>
+  // 교점 p
+  const ry_hit = (ty[0]+ty[1])/2 - 8;
+  ctx.fillStyle = '#e67e22';
+  ctx.beginPath();
+  ctx.arc(rx, ry_hit, 3.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.font = '10px Consolas';
+  ctx.fillText('p=o+t·d', rx+6, ry_hit-2);
+
+  // t 브래킷
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = '#5e5e8e';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rx-12, ry_start); ctx.lineTo(rx-12, ry_hit);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#5e5e8e';
+  ctx.font = '10px Consolas';
+  ctx.fillText('t', rx-22, (ry_start+ry_hit)/2+4);
+
+  // 수식 텍스트
+  ctx.fillStyle = '#c0c0e0';
+  ctx.font = '10px Consolas';
+  ctx.fillText('t = (v0-o)·n', 195, H2*0.38);
+  ctx.fillText('       ─────', 195, H2*0.44);
+  ctx.fillText('         d·n', 195, H2*0.52);
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 1) return;
+  const ux = dx/len, uy = dy/len;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.stroke();
+  // 화살촉
+  const hw = 5, hl = 9;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hl*ux + hw*uy, y2 - hl*uy - hw*ux);
+  ctx.lineTo(x2 - hl*ux - hw*uy, y2 - hl*uy + hw*ux);
+  ctx.closePath();
+  ctx.fill();
+  if (label) {
+    ctx.fillStyle = color;
+    ctx.font = '11px Consolas';
+    ctx.fillText(label, x2+5, y2+4);
+  }
+}
+
+// ── 초기화 ─────────────────────────────────────────────────────
+initWebGPU().catch(err => {
+  console.error('WebGPU init failed:', err);
+  document.getElementById('status-badge').textContent = 'ERROR';
+  document.getElementById('status-badge').style.background = '#e74c3c';
+  document.getElementById('error-msg').textContent = err.message;
+  document.getElementById('error-modal').style.display = 'flex';
+});
+</script>
 </body>
 </html>
